@@ -1,0 +1,7 @@
+#search-results { margin-top: 0.5em ; }
+
+.search-result {
+    margin: 0.25em 0 ; padding: 0.1em 0.2em ;
+    border: 1px solid #eee ; background: #f8f8f8 ;
+    font-family: monospace ; font-size: 80% ;
+}

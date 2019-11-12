@@ -1,0 +1,12 @@
+* { margin: 0 ; padding: 0 }
+
+body {
+    padding: 5px ;
+    font-size: 16px ;
+    -webkit-font-smoothing: antialiased ;
+    -moz-osx-font-smoothing: grayscale ;
+}
+
+ul, ol { margin: 0.5em 0 0 1.25em ; }
+input[type="text"] { height: 25px ; border: 1px solid #c5c5c5 ; padding: 0 2px ; }
+label { height: 1.25em ; margin-top: -3px ; }

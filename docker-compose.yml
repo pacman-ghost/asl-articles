@@ -1,0 +1,33 @@
+# Set the TAG environment variable to set the image tag e.g.
+#   TAG=testing docker-compose build ...
+#
+# Set the ENABLE_TESTS build argument to support test functionality in the containers e.g.
+#   docker-compose build --build-arg ENABLE_TESTS=1
+#
+# DBCONN is a database connection string that is passed straight through to the Flask container.
+# However, if we're talking to a SQLite database, we also need to mount the file into the container.
+# This is done via the SQLITE variable, but since Docker doesn't allow any way to do things conditionally,
+# it needs to be set even if it's not being used :-/
+#
+# See the run-containers.sh script that manages all of this.
+
+version: "3"
+
+services:
+    web:
+        image: asl-articles-web:$TAG
+        build: web
+        ports:
+        - "3002:80"
+    flask:
+        image: asl-articles-flask:$TAG
+        build:
+            context: .
+            args:
+              ENABLE_TESTS: $ENABLE_TESTS
+        ports:
+        - "5002:5000"
+        volumes:
+        - $SQLITE:/data/sqlite.db
+        environment:
+        - DBCONN

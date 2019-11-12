@@ -1,0 +1,25 @@
+version: 1
+
+formatters:
+    standard:
+        format: "%(asctime)s.%(msecs)03d | %(message)s"
+        datefmt: "%H:%M:%S"
+
+handlers:
+    console:
+        class: "logging.StreamHandler"
+        formatter: "standard"
+        stream: "ext://sys.stdout"
+    file:
+        class: "logging.FileHandler"
+        formatter: "standard"
+        filename: "/tmp/asl-articles.log"
+        mode: "w"
+
+loggers:
+    werkzeug:
+        level: "WARNING"
+        handlers: [ "console", "file" ]
+    search:
+        level: "WARNING"
+        handlers: [ "console", "file" ]

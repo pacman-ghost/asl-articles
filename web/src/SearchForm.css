@@ -1,0 +1,4 @@
+#search-form { padding: 0.25em ; }
+#search-form { border: 1px dotted #666 ; }
+
+#search-form button[type="submit"] { margin-left: 5px ; }
