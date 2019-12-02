@@ -73,3 +73,8 @@ db = SQLAlchemy( app )
 import asl_articles.globvars #pylint: disable=cyclic-import
 import asl_articles.main #pylint: disable=cyclic-import
 import asl_articles.search #pylint: disable=cyclic-import
+import asl_articles.publishers #pylint: disable=cyclic-import
+import asl_articles.utils #pylint: disable=cyclic-import
+
+# initialize
+asl_articles.utils.load_html_whitelists( app )

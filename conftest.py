@@ -158,8 +158,11 @@ def webdriver( request ):
     def make_web_url( url ):
         """Generate a URL for the React frontend."""
         url = "{}/{}".format( web_url, url )
+        kwargs = {}
+        kwargs[ "_flask"] = flask_url
+        kwargs[ "store_msgs"] = 1 # stop notification messages from building up and obscuring clicks
         url += "&" if "?" in url else "?"
-        url += urllib.parse.urlencode( { "_flask": flask_url } )
+        url += urllib.parse.urlencode( kwargs )
         return url
     driver.make_url = make_web_url
 

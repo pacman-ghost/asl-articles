@@ -21,11 +21,14 @@ def search():
         query = query.filter(
             Publisher.publ_name.ilike( "%{}%".format( query_string ) )
         )
+    query = query.order_by( Publisher.publ_name.asc() )
     publishers = list( query )
     _logger.debug( "- Found: %s", " ; ".join( str(p) for p in publishers ) )
     publishers = [ {
         "type": "publ",
-        "id": p.publ_id,
-        "publ_name": p.publ_name
+        "publ_id": p.publ_id,
+        "publ_name": p.publ_name,
+        "publ_description": p.publ_description,
+        "publ_url": p.publ_url,
     } for p in publishers ]
     return jsonify( publishers )

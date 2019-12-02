@@ -1,0 +1,12 @@
+#ask img.icon { width: 2em ; float: left ; margin: 0 1em 1em 0 ; }
+.MuiButton-label { text-transform: none ; }
+
+.Toastify p { margin-top: 0.25em ; }
+.Toastify__toast--info { background: #20b040 ; }
+.Toastify__toast--warn { background: #f0c010 ; }
+.Toastify__toast--error { background: #e04060 ; }
+
+#menu { margin-bottom: 5px ; padding: 2px 5px ; background: #b0e0f0 ; border: 1px dotted #80d0f0 ; font-size: 75% ; }
+#menu a { text-decoration: none ; color: #000 ; }
+
+.monospace { margin-top: 0.5em ; font-family: monospace ; font-style: italic ; font-size: 80% ; }

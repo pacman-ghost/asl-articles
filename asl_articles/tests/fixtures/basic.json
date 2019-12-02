@@ -1,9 +1,9 @@
 {
 
 "publisher": [
-    { "publ_name": "Avalon Hill" },
-    { "publ_name": "Multiman Publishing" },
-    { "publ_name": "Le Franc Tireur" }
+    { "publ_name": "Avalon Hill", "publ_description": "AH description", "publ_url": "http://ah.com" },
+    { "publ_name": "Multiman Publishing", "publ_url": "http://mmp.com" },
+    { "publ_name": "Le Franc Tireur", "publ_description": "The French guys." }
 ]
 
 }

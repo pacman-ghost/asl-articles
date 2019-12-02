@@ -2,6 +2,11 @@
 
 .search-result {
     margin: 0.25em 0 ; padding: 0.1em 0.2em ;
-    border: 1px solid #eee ; background: #f8f8f8 ;
-    font-family: monospace ; font-size: 80% ;
+    font-size: 90% ;
 }
+
+.search-result .name { border: 1px solid #c0c0c0 ; background: #f0f0f0 ; padding: 2px 5px ; }
+.search-result .name a { font-weight: bold ; text-decoration: none ; }
+.search-result .name img.edit { margin-left: 0.5em ; height: 0.8em ; cursor: pointer ; }
+.search-result .name img.delete { float: right ; margin: 0.2em 0 0 0.5em ; height: 0.8em ; cursor: pointer ; }
+.search-result .description { font-size: 80% ; padding: 2px 5px ; }

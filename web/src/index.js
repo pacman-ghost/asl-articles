@@ -5,7 +5,7 @@ import "./index.css" ;
 
 // --------------------------------------------------------------------
 
-ReactDOM.render(
+export let gAppRef = ReactDOM.render(
     <App />,
     document.getElementById( "app" )
 ) ;

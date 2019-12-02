@@ -9,7 +9,8 @@ FROM python:alpine3.7 AS base
 # install the requirements
 FROM base AS build
 RUN mkdir /install
-RUN apk update && apk add postgresql-dev gcc python3-dev musl-dev
+# NOTE: psycopg2 needs postgresql-dev and build tools, lxml needs libxslt
+RUN apk update && apk add postgresql-dev gcc python3-dev musl-dev && apk add libxslt-dev
 WORKDIR /install
 COPY requirements.txt /tmp/
 RUN pip install --upgrade pip
@@ -21,6 +22,7 @@ FROM base
 COPY --from=build /install /usr/local
 RUN apk --no-cache add libpq
 RUN pip install --upgrade pip
+RUN apk add libxslt
 
 # install the application
 WORKDIR /app

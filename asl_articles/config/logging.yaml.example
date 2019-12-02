@@ -20,6 +20,12 @@ loggers:
     werkzeug:
         level: "WARNING"
         handlers: [ "console", "file" ]
+    startup:
+        level: "WARNING"
+        handlers: [ "console", "file" ]
     search:
+        level: "WARNING"
+        handlers: [ "console", "file" ]
+    db:
         level: "WARNING"
         handlers: [ "console", "file" ]

@@ -1,1 +1,8 @@
 Generic single-database configuration.
+
+To auto-generate a migration from the SQLAlchemy models:
+    alembic revision --autogenerate -m "..."
+https://alembic.sqlalchemy.org/en/latest/autogenerate.html
+
+To create/update the database:
+    alembic upgrade head
