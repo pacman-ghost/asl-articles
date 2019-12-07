@@ -9,6 +9,8 @@ import sqlalchemy.orm
 import sqlalchemy.sql.expression
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 
@@ -48,13 +50,26 @@ def do_search( query ):
     form = find_child( "#search-form" )
     assert form
     elem = find_child( ".query", form )
-    elem.clear()
-    elem.send_keys( query )
+    # FUDGE! Calling elem.clear() then send_keys(query) has a weird effect in Chromium if the query
+    # is empty. The previous query gets repeated instead - is the browser auto-filling the field?
+    actions = ActionChains( _webdriver ).move_to_element( elem ).click() \
+        .key_down( Keys.CONTROL ).send_keys( "a" ).key_up( Keys.CONTROL ) \
+        .send_keys( Keys.DELETE )
+    if query:
+        actions = actions.send_keys( query )
+    actions.perform()
     find_child( "button[type='submit']", form ).click()
 
     # return the results
     wait_for( 2, lambda: get_seqno() != curr_seqno )
     return find_children( "#search-results .search-result" )
+
+def get_result_names( results ):
+    """Get the names from a list of search results."""
+    return [
+        find_child( ".name", r ).text
+        for r in results
+    ]
 
 # ---------------------------------------------------------------------
 
@@ -71,10 +86,11 @@ def init_db( engine, fname ):
     data = json.load( open( fname, "r" ) )
 
     # load the test data into the database
-    for table_name,rows in data.items():
+    for table_name in ["publisher","publication"]:
         model = getattr( asl_articles.models, table_name.capitalize() )
         session.query( model ).delete()
-        session.bulk_insert_mappings( model, rows )
+        if table_name in data:
+            session.bulk_insert_mappings( model, data[table_name] )
     session.commit()
 
     return session

@@ -1,0 +1,14 @@
+{
+
+"publisher": [
+    { "publ_id": 1, "publ_name": "Avalon Hill", "publ_description": "AH description", "publ_url": "http://ah.com" },
+    { "publ_id": 2, "publ_name": "Multiman Publishing", "publ_url": "http://mmp.com" }
+],
+
+"publication": [
+    { "pub_name": "ASL Journal", "pub_edition": "1", "pub_description": "ASL Journal #1", "pub_url": "http://aslj.com/1" },
+    { "pub_name": "ASL Journal", "pub_edition": "2", "pub_description": "ASL Journal #2", "pub_url": "http://aslj.com/2" },
+    { "pub_name": "MMP News" }
+]
+
+}

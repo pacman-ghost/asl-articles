@@ -3,6 +3,7 @@
 import re
 import logging
 
+from flask import jsonify
 import lxml.html.clean
 
 _html_whitelists = None
@@ -23,20 +24,42 @@ def get_request_args( vals, keys, log=None ):
             log[0].debug( "- %s = %s", k, str(vals[k]) )
     return vals
 
-def apply_attrs( obj, vals ):
-    """Update an object's attributes."""
-    for k,v in vals.items():
-        setattr( obj, k, v )
+def clean_request_args( vals, fields, logger ):
+    """Clean incoming data."""
+    cleaned = {}
+    for f in fields:
+        if isinstance( vals[f], str ):
+            val2 = clean_html( vals[f] )
+            if val2 != vals[f]:
+                logger.debug( "Cleaned HTML: %s => %s", f, val2 )
+                vals[f] = val2
+                cleaned[f] = val2
+    return cleaned
+
+def make_ok_response( extras=None, cleaned=None ):
+    """Generate a Flask 'success' response."""
+    # generate the basic response
+    resp = { "status": "OK" }
+    if extras:
+        resp.update( extras )
+    # check if any values were cleaned
+    if cleaned:
+        # yup - return the updated values to the caller
+        resp[ "warning" ] = "Some values had HTML removed."
+        resp[ "cleaned" ] = cleaned
+    return jsonify( resp )
 
 # ---------------------------------------------------------------------
 
 def clean_html( val ):
     """Sanitize HTML using a whitelist."""
 
-    # strip the HTML
+    # check if we need to do anything
     val = val.strip()
     if not val:
         return val
+
+    # strip the HTML
     args = {}
     if _html_whitelists["tags"]:
         args[ "allow_tags" ] = _html_whitelists["tags"]
@@ -75,6 +98,11 @@ def load_html_whitelists( app ):
     }
 
 # ---------------------------------------------------------------------
+
+def apply_attrs( obj, vals ):
+    """Update an object's attributes."""
+    for k,v in vals.items():
+        setattr( obj, k, v )
 
 def to_bool( val ):
     """Interpret a value as a boolean."""

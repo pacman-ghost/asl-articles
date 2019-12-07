@@ -1,0 +1,15 @@
+{
+
+"publisher": [
+    { "publ_id": 1, "publ_name": "Cascading Deletes 0" },
+    { "publ_id": 2, "publ_name": "Cascading Deletes 1" },
+    { "publ_id": 3, "publ_name": "Cascading Deletes 2" }
+],
+
+"publication": [
+    { "pub_name": "publication 1", "publ_id": "2" },
+    { "pub_name": "publication 2a", "publ_id": "3" },
+    { "pub_name": "publication 2b", "publ_id": "3" }
+]
+
+}

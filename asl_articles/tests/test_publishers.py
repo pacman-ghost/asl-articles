@@ -1,6 +1,6 @@
 """ Test publisher operations. """
 
-from asl_articles.tests.utils import init_tests, init_db, do_search, \
+from asl_articles.tests.utils import init_tests, init_db, do_search, get_result_names, \
     wait_for, wait_for_elem, find_child, find_children, set_elem_text, \
     set_toast_marker, check_toast, check_ask_dialog, check_error_msg
 
@@ -19,18 +19,18 @@ def test_edit_publisher( webdriver, flask_app, dbconn ):
     assert find_child( ".name", result ).text == "Avalon Hill"
     _edit_publisher( result, {
         "name": "  Avalon Hill (updated)  ",
-        "url": "  http://ah-updated.com  ",
-        "description": "  Updated AH description.  "
+        "description": "  Updated AH description.  ",
+        "url": "  http://ah-updated.com  "
     } )
 
     # check that the search result was updated in the UI
     results = find_children( "#search-results .search-result" )
     result = results[0]
-    _check_result( result, [ "Avalon Hill (updated)", "http://ah-updated.com/", "Updated AH description." ] )
+    _check_result( result, [ "Avalon Hill (updated)", "Updated AH description.", "http://ah-updated.com/" ] )
 
     # try to remove all fields from "Avalon Hill" (should fail)
     _edit_publisher( result,
-        { "name": "", "url": "", "description": "" },
+        { "name": "", "description": "", "url": "" },
         expected_error = "Please specify the publisher's name."
     )
 
@@ -48,7 +48,7 @@ def test_edit_publisher( webdriver, flask_app, dbconn ):
 
     # check that the search result was updated in the database
     results = do_search( "" )
-    assert _get_result_names( results ) == [ "Le Franc Tireur", "Multiman Publishing", "Updated Avalon Hill" ]
+    assert get_result_names( results ) == [ "Le Franc Tireur", "Multiman Publishing", "Updated Avalon Hill" ]
 
 # ---------------------------------------------------------------------
 
@@ -79,7 +79,7 @@ def test_create_publisher( webdriver, flask_app, dbconn ):
 
     # check that the new publisher appears in the UI
     def check_new_publisher( result ):
-        _check_result( result, [ "New publisher", "http://new-publisher.com/", "New publisher description." ] )
+        _check_result( result, [ "New publisher", "New publisher description.", "http://new-publisher.com/" ] )
     results = find_children( "#search-results .search-result" )
     check_new_publisher( results[0] )
 
@@ -124,11 +124,53 @@ def test_delete_publisher( webdriver, flask_app, dbconn ):
 
     # check that search result was removed on-screen
     results = find_children( "#search-results .search-result" )
-    assert _get_result_names( results ) == [ "Avalon Hill", "Multiman Publishing" ]
+    assert get_result_names( results ) == [ "Avalon Hill", "Multiman Publishing" ]
 
     # check that the search result was deleted from the database
     results = do_search( "" )
-    assert _get_result_names( results ) == [ "Avalon Hill", "Multiman Publishing" ]
+    assert get_result_names( results ) == [ "Avalon Hill", "Multiman Publishing" ]
+
+# ---------------------------------------------------------------------
+
+def test_cascading_deletes( webdriver, flask_app, dbconn ):
+    """Test cascading deletes."""
+
+    # initialize
+    init_tests( webdriver, flask_app )
+
+    def do_test( publ_name, expected_warning, expected_pubs ):
+
+        # initialize
+        init_db( dbconn, "cascading-deletes.json" )
+        results = do_search( "" )
+
+        # delete the specified publisher
+        results = [ r for r in results if find_child(".name",r).text == publ_name ]
+        assert len( results ) == 1
+        find_child( ".delete", results[0] ).click()
+        check_ask_dialog( ( "Do you want to delete", publ_name, expected_warning ), "ok" )
+
+        # check that deleted associated publications were removed from the UI
+        def check_publications( results ):
+            results = [ find_child(".name",r).text for r in results ]
+            pubs = [ r for r in results if r.startswith( "publication" ) ]
+            assert pubs == expected_pubs
+        check_publications( find_children( "#search-results .search-result" ) )
+
+        # check that associated publications were removed from the database
+        results = do_search( "publication" )
+        check_publications( results )
+
+    # do the tests
+    do_test( "Cascading Deletes 0",
+        "No publications will be deleted", ["publication 1","publication 2a","publication 2b"]
+    )
+    do_test( "Cascading Deletes 1",
+        "1 associated publication will also be deleted", ["publication 2a","publication 2b"]
+    )
+    do_test( "Cascading Deletes 2",
+        "2 associated publications will also be deleted", ["publication 1"]
+    )
 
 # ---------------------------------------------------------------------
 
@@ -151,8 +193,8 @@ def test_unicode( webdriver, flask_app, dbconn ):
     assert len( results ) == 1
     _check_result( results[0], [
         "japan = \u65e5\u672c",
-        "http://xn--3e0b707e.com/",
-        "greece = \u0395\u03bb\u03bb\u03ac\u03b4\u03b1"
+        "greece = \u0395\u03bb\u03bb\u03ac\u03b4\u03b1",
+        "http://xn--3e0b707e.com/"
     ] )
 
 # ---------------------------------------------------------------------
@@ -176,7 +218,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     )
     assert len( results ) == 1
     result = results[0]
-    _check_result( result, [ "name: bold xxx italic", None, "bad stuff here:" ] )
+    _check_result( result, [ "name: bold xxx italic", "bad stuff here:", None ] )
     assert find_child( ".name span" ).get_attribute( "innerHTML" ) \
         == "name: <span> <b>bold</b> xxx <i>italic</i></span>"
     assert check_toast( "warning", "Some values had HTML removed.", contains=True )
@@ -234,19 +276,12 @@ def _edit_publisher( result, vals, toast_type="info", expected_error=None ):
 
 # ---------------------------------------------------------------------
 
-def _get_result_names( results ):
-    """Get the names from a list of search results."""
-    return [
-        find_child( ".name", r ).text
-        for r in results
-    ]
-
 def _check_result( result, expected ):
     """Check a result."""
     assert find_child( ".name", result ).text == expected[0]
+    assert find_child( ".description", result ).text == expected[1]
     elem = find_child( ".name a", result )
     if elem:
-        assert elem.get_attribute( "href" ) == expected[1]
+        assert elem.get_attribute( "href" ) == expected[2]
     else:
-        assert expected[1] is None
-    assert find_child( ".description", result ).text == expected[2]
+        assert expected[2] is None

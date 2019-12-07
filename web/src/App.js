@@ -3,7 +3,9 @@ import ReactDOMServer from "react-dom/server" ;
 import { ToastContainer, toast } from "react-toastify" ;
 import "react-toastify/dist/ReactToastify.min.css" ;
 import SearchForm from "./SearchForm" ;
-import { SearchResults, SearchResult } from "./SearchResults" ;
+import { SearchResults } from "./SearchResults" ;
+import { PublisherSearchResult } from "./PublisherSearchResult" ;
+import { PublicationSearchResult } from "./PublicationSearchResult" ;
 import ModalForm from "./ModalForm";
 import AskDialog from "./AskDialog" ;
 import "./App.css" ;
@@ -15,7 +17,6 @@ const queryString = require( "query-string" ) ;
 
 export default class App extends React.Component
 {
-
     constructor( props ) {
         // figure out the base URL of the Flask backend server
         // NOTE: We allow the caller to do this since the test suite will usually spin up
@@ -26,6 +27,7 @@ export default class App extends React.Component
         if ( ! flaskBaseUrl )
             flaskBaseUrl = process.env.REACT_APP_FLASK_URL ;
 
+        // initialize the App
         super( props ) ;
         this.state = {
             searchResults: [],
@@ -42,8 +44,11 @@ export default class App extends React.Component
         return ( <div>
             <div id="menu">
                 [<a href="/" className="new-publisher"
-                    onClick={ (e) => { e.preventDefault() ; SearchResult.onNewPublisher( this._onNewPublisher.bind(this) ) ; } }
+                    onClick={ (e) => { e.preventDefault() ; PublisherSearchResult.onNewPublisher( this._onNewPublisher.bind(this) ) ; } }
                 >New publisher</a>]
+                [<a href="/" className="new-publication"
+                    onClick={ (e) => { e.preventDefault() ; PublicationSearchResult.onNewPublication( this._onNewPublication.bind(this) ) ; } }
+                >New publication</a>]
             </div>
             <SearchForm onSearch={this.onSearch.bind(this)} />
             <SearchResults seqNo={this.state.searchSeqNo} searchResults={this.state.searchResults} />
@@ -62,6 +67,29 @@ export default class App extends React.Component
         </div> ) ;
     }
 
+    componentDidMount() {
+        // initialize the caches
+        // NOTE: We maintain caches of the publishers and publications, so that we can quickly populate droplists.
+        // The backend server returns updated lists after any operation that could change them (create/update/delete),
+        // which is simpler and less error-prone than trying to manually keep our caches in sync. It's less efficient,
+        // but it won't happen too often, there won't be too many entries, and the database server is local.
+        this.caches = {} ;
+        axios.get( this.state.flaskBaseUrl + "/publishers" )
+        .then( resp => {
+            this.caches.publishers = resp.data ;
+        } )
+        .catch( err => {
+            this.showErrorToast( <div> Couldn't load the publishers: <div className="monospace"> {err.toString()} </div> </div> ) ;
+        } ) ;
+        axios.get( this.state.flaskBaseUrl + "/publications" )
+        .then( resp => {
+            this.caches.publications = resp.data ;
+        } )
+        .catch( err => {
+            this.showErrorToast( <div> Couldn't load the publications: <div className="monospace"> {err.toString()} </div> </div> ) ;
+        } ) ;
+    }
+
     onSearch( query ) {
         // run the search
         axios.post( this.state.flaskBaseUrl + "/search", {
@@ -76,11 +104,14 @@ export default class App extends React.Component
         } ) ;
     }
 
-    _onNewPublisher( publ_id, vals ) {
-        // add the new publisher to the start of the search results
-        // NOTE: This isn't really the right thing to do, since the new publisher might not actually be
+    _onNewPublisher( publ_id, vals ) { this._addNewSearchResult( vals, "publisher", "publ_id", publ_id ) ; }
+    _onNewPublication( pub_id, vals ) { this._addNewSearchResult( vals, "publication", "pub_id", pub_id ) ; }
+    _addNewSearchResult( vals, srType, idName, idVal ) {
+        // add the new search result to the start of the search results
+        // NOTE: This isn't really the right thing to do, since the new object might not actually be
         // a result for the current search, but it's nice to give the user some visual feedback.
-        vals.publ_id = publ_id ;
+        vals.type = srType ;
+        vals[ idName ] = idVal ;
         let newSearchResults = [ vals ] ;
         newSearchResults.push( ...this.state.searchResults ) ;
         this.setState( { searchResults: newSearchResults } ) ;

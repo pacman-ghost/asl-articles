@@ -1,6 +1,8 @@
 """ Global variables. """
 
 from flask import make_response
+from sqlalchemy.engine import Engine
+from sqlalchemy import event
 
 from asl_articles import app
 from asl_articles.config.constants import APP_NAME, APP_VERSION
@@ -37,3 +39,12 @@ def inject_template_params():
         "APP_NAME": APP_NAME,
         "APP_VERSION": APP_VERSION,
     }
+
+@event.listens_for( Engine, "connect" )
+def on_db_connect( dbapi_connection, connection_record ): #pylint: disable=unused-argument
+    """Database connection callback."""
+    if app.config[ "SQLALCHEMY_DATABASE_URI" ].startswith( "sqlite://" ):
+        # foreign keys must be enabled manually for SQLite :-/
+        curs = dbapi_connection.cursor()
+        curs.execute( "PRAGMA foreign_keys = ON" )
+        curs.close()

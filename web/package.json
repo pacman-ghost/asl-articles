@@ -11,6 +11,7 @@
     "react-dom": "^16.11.0",
     "react-draggable": "^4.1.0",
     "react-scripts": "3.2.0",
+    "react-select": "^3.0.8",
     "react-toastify": "^5.4.1"
   },
   "scripts": {
