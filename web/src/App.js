@@ -162,13 +162,12 @@ export default class App extends React.Component
 
     showErrorMsg( content ) {
         // show the error message in a modal dialog
-        this.ask(
-            <div> <img className="icon" src="/images/error.png" alt="Error." /> {content} </div>,
+        this.ask( content, "error",
             { "OK": null }
         ) ;
     }
 
-    ask( content, buttons ) {
+    ask( content, iconType, buttons ) {
         // prepare the buttons
         let buttons2 = [] ;
         for ( let b in buttons ) {
@@ -182,7 +181,10 @@ export default class App extends React.Component
             } ;
         }
         // show the dialog
-        this.setState( { askDialog: { content: content, buttons: buttons2 } } ) ;
+        this.setState( { askDialog: {
+            content: <div> <img src={"/images/"+iconType+".png"} className="icon" alt={iconType+" icon"} /> {content} </div>,
+            buttons: buttons2
+        } } ) ;
     }
 
     logInternalError( msg, detail ) {

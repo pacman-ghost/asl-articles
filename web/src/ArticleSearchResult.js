@@ -129,7 +129,7 @@ export class ArticleSearchResult extends React.Component
             Delete this article?
             <div style={{margin:"0.5em 0 0 2em",fontStyle:"italic"}} dangerouslySetInnerHTML = {{ __html: this.props.data.article_title }} />
         </div> ) ;
-        gAppRef.ask( content, {
+        gAppRef.ask( content, "ask", {
             "OK": () => {
                 // delete the article on the server
                 axios.get( gAppRef.makeFlaskUrl( "/article/delete/" + this.props.data.article_id ) )

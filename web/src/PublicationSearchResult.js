@@ -144,7 +144,7 @@ export class PublicationSearchResult extends React.Component
                 <div style={{margin:"0.5em 0 0.5em 2em",fontStyle:"italic"}} dangerouslySetInnerHTML = {{ __html: this._makeDisplayName() }} />
                 {warning}
             </div> ) ;
-            gAppRef.ask( content, {
+            gAppRef.ask( content, "ask", {
                 "OK": () => {
                     // delete the publication on the server
                     axios.get( gAppRef.makeFlaskUrl( "/publication/delete/" + this.props.data.pub_id, {list:1} ) )
@@ -176,32 +176,6 @@ export class PublicationSearchResult extends React.Component
         .catch( err => {
             doDelete( err ) ;
         } ) ;
-
-        // confirm the operation
-        const content = ( <div>
-            Delete this publication?
-            <div style={{margin:"0.5em 0 0 2em",fontStyle:"italic"}} dangerouslySetInnerHTML = {{ __html: this._makeDisplayName() }} />
-        </div> ) ;
-            gAppRef.ask( content, {
-                "OK": () => {
-                    // delete the publication on the server
-                    axios.get( gAppRef.makeFlaskUrl( "/publication/delete/" + this.props.data.pub_id, {list:1} ) )
-                    .then( resp => {
-                        // update the cached publications
-                        gAppRef.caches.publications = resp.data.publications ;
-                        // update the UI
-                        this.props.onDelete( "pub_id", this.props.data.pub_id ) ;
-                        if ( resp.data.warning )
-                            gAppRef.showWarningToast( <div> The publication was deleted. <p> {resp.data.warning} </p> </div> ) ;
-                        else
-                            gAppRef.showInfoToast( <div> The publication was deleted. </div> ) ;
-                    } )
-                    .catch( err => {
-                        gAppRef.showErrorToast( <div> Couldn't delete the publication: <div className="monospace"> {err.toString()} </div> </div> ) ;
-                    } ) ;
-                },
-                "Cancel": null,
-            } ) ;
     }
 
     _makeDisplayName() {

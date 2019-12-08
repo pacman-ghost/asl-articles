@@ -126,7 +126,7 @@ export class PublisherSearchResult extends React.Component
                 <div style={{margin:"0.5em 0 0.5em 2em",fontStyle:"italic"}} dangerouslySetInnerHTML={{__html: this.props.data.publ_name}} />
                 {warning}
             </div> ) ;
-            gAppRef.ask( content, {
+            gAppRef.ask( content, "ask", {
                 "OK": () => {
                     // delete the publisher on the server
                     axios.get( gAppRef.makeFlaskUrl( "/publisher/delete/" + this.props.data.publ_id, {list:1} ) )
