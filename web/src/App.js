@@ -6,6 +6,7 @@ import SearchForm from "./SearchForm" ;
 import { SearchResults } from "./SearchResults" ;
 import { PublisherSearchResult } from "./PublisherSearchResult" ;
 import { PublicationSearchResult } from "./PublicationSearchResult" ;
+import { ArticleSearchResult } from "./ArticleSearchResult" ;
 import ModalForm from "./ModalForm";
 import AskDialog from "./AskDialog" ;
 import "./App.css" ;
@@ -49,6 +50,9 @@ export default class App extends React.Component
                 [<a href="/" className="new-publication"
                     onClick={ (e) => { e.preventDefault() ; PublicationSearchResult.onNewPublication( this._onNewPublication.bind(this) ) ; } }
                 >New publication</a>]
+                [<a href="/" className="new-article"
+                    onClick={ (e) => { e.preventDefault() ; ArticleSearchResult.onNewArticle( this._onNewArticle.bind(this) ) ; } }
+                >New article</a>]
             </div>
             <SearchForm onSearch={this.onSearch.bind(this)} />
             <SearchResults seqNo={this.state.searchSeqNo} searchResults={this.state.searchResults} />
@@ -106,6 +110,7 @@ export default class App extends React.Component
 
     _onNewPublisher( publ_id, vals ) { this._addNewSearchResult( vals, "publisher", "publ_id", publ_id ) ; }
     _onNewPublication( pub_id, vals ) { this._addNewSearchResult( vals, "publication", "pub_id", pub_id ) ; }
+    _onNewArticle( article_id, vals ) { this._addNewSearchResult( vals, "article", "article_id", article_id ) ; }
     _addNewSearchResult( vals, srType, idName, idVal ) {
         // add the new search result to the start of the search results
         // NOTE: This isn't really the right thing to do, since the new object might not actually be

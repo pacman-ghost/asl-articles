@@ -6,7 +6,7 @@ import logging
 from flask import request, jsonify, abort
 
 from asl_articles import app, db
-from asl_articles.models import Publication
+from asl_articles.models import Publication, Article
 from asl_articles.utils import get_request_args, clean_request_args, make_ok_response, apply_attrs
 
 _logger = logging.getLogger( "db" )
@@ -24,7 +24,7 @@ def do_get_publications():
     """Get all publications."""
     # NOTE: The front-end maintains a cache of the publications, so as a convenience,
     # we return the current list as part of the response to a create/update/delete operation.
-    results = list( Publication.query )
+    results = Publication.query.all()
     return { r.pub_id: get_publication_vals(r) for r in results }
 
 # ---------------------------------------------------------------------
@@ -36,8 +36,12 @@ def get_publication( pub_id ):
     pub = Publication.query.get( pub_id )
     if not pub:
         abort( 404 )
-    _logger.debug( "- %s", pub )
-    return jsonify( get_publication_vals( pub ) )
+    vals = get_publication_vals( pub )
+    # include the number of associated articles
+    query = Article.query.filter_by( pub_id = pub_id )
+    vals[ "nArticles" ] = query.count()
+    _logger.debug( "- %s ; #articles=%d", pub, vals["nArticles"] )
+    return jsonify( vals )
 
 def get_publication_vals( pub ):
     """Extract public fields from a Publication record."""
@@ -95,14 +99,24 @@ def update_publication():
 @app.route( "/publication/delete/<pub_id>" )
 def delete_publication( pub_id ):
     """Delete a publication."""
+
     _logger.debug( "Delete publication: id=%s", pub_id )
+
+    # get the publication
     pub = Publication.query.get( pub_id )
     if not pub:
         abort( 404 )
     _logger.debug( "- %s", pub )
+
+    # figure out which associated articles will be deleted
+    query = db.session.query( Article.article_id ).filter_by( pub_id = pub_id ) #pylint: disable=no-member
+    deleted_articles = [ r[0] for r in query ]
+
+    # delete the publication
     db.session.delete( pub ) #pylint: disable=no-member
     db.session.commit() #pylint: disable=no-member
-    extras = {}
+
+    extras = { "deleteArticles": deleted_articles }
     if request.args.get( "list" ):
         extras[ "publications" ] = do_get_publications()
     return make_ok_response( extras=extras )

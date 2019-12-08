@@ -86,7 +86,7 @@ def init_db( engine, fname ):
     data = json.load( open( fname, "r" ) )
 
     # load the test data into the database
-    for table_name in ["publisher","publication"]:
+    for table_name in ["publisher","publication","article"]:
         model = getattr( asl_articles.models, table_name.capitalize() )
         session.query( model ).delete()
         if table_name in data:

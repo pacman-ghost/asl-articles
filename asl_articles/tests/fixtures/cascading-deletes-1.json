@@ -1,0 +1,41 @@
+{
+
+"publisher": [
+    { "publ_id": 1, "publ_name": "#pubs=0, #articles=0" },
+    { "publ_id": 2, "publ_name": "#pubs=1, #articles=0" },
+    { "publ_id": 3, "publ_name": "#pubs=1, #articles=1" },
+    { "publ_id": 4, "publ_name": "#pubs=1, #articles=2" },
+    { "publ_id": 5, "publ_name": "#pubs=2, #articles=0" },
+    { "publ_id": 6, "publ_name": "#pubs=2, #articles=1" },
+    { "publ_id": 7, "publ_name": "#pubs=2, #articles=2" },
+    { "publ_id": 8, "publ_name": "#pubs=2, #articles=4" }
+],
+
+"publication": [
+    { "pub_id": 20, "pub_name": "publication 2", "publ_id": "2" },
+    { "pub_id": 30, "pub_name": "publication 3", "publ_id": "3" },
+    { "pub_id": 40, "pub_name": "publication 4", "publ_id": "4" },
+    { "pub_id": 50, "pub_name": "publication 5a", "publ_id": "5" },
+    { "pub_id": 51, "pub_name": "publication 5b", "publ_id": "5" },
+    { "pub_id": 60, "pub_name": "publication 6a", "publ_id": "6" },
+    { "pub_id": 61, "pub_name": "publication 6b", "publ_id": "6" },
+    { "pub_id": 70, "pub_name": "publication 7a", "publ_id": "7" },
+    { "pub_id": 71, "pub_name": "publication 7b", "publ_id": "7" },
+    { "pub_id": 80, "pub_name": "publication 8a", "publ_id": "8" },
+    { "pub_id": 81, "pub_name": "publication 8b", "publ_id": "8" }
+],
+
+"article": [
+    { "article_title": "article 3", "pub_id": 30 },
+    { "article_title": "article 4a", "pub_id": 40 },
+    { "article_title": "article 4b", "pub_id": 40 },
+    { "article_title": "article 6a", "pub_id": 60 },
+    { "article_title": "article 7a", "pub_id": 70 },
+    { "article_title": "article 7b", "pub_id": 71 },
+    { "article_title": "article 8a.1", "pub_id": 80 },
+    { "article_title": "article 8a.2", "pub_id": 80 },
+    { "article_title": "article 8b.1", "pub_id": 81 },
+    { "article_title": "article 8b.2", "pub_id": 81 }
+]
+
+}

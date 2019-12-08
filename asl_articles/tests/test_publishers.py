@@ -102,7 +102,7 @@ def test_delete_publisher( webdriver, flask_app, dbconn ):
     result = results[1]
     assert find_child( ".name", result ).text == "Le Franc Tireur"
     find_child( ".delete", result ).click()
-    check_ask_dialog( ( "Do you want to delete", "Le Franc Tireur" ), "cancel" )
+    check_ask_dialog( ( "Delete this publisher?", "Le Franc Tireur" ), "cancel" )
 
     # check that search results are unchanged on-screen
     results2 = find_children( "#search-results .search-result" )
@@ -117,7 +117,7 @@ def test_delete_publisher( webdriver, flask_app, dbconn ):
     assert find_child( ".name", result ).text == "Le Franc Tireur"
     find_child( ".delete", result ).click()
     set_toast_marker( "info" )
-    check_ask_dialog( ( "Do you want to delete", "Le Franc Tireur" ), "ok" )
+    check_ask_dialog( ( "Delete this publisher?", "Le Franc Tireur" ), "ok" )
     wait_for( 2,
         lambda: check_toast( "info", "The publisher was deleted." )
     )
@@ -138,38 +138,76 @@ def test_cascading_deletes( webdriver, flask_app, dbconn ):
     # initialize
     init_tests( webdriver, flask_app )
 
-    def do_test( publ_name, expected_warning, expected_pubs ):
+    def check_results( results, sr_type, expected, expected_deletions ):
+        expected = [ "{} {}".format( sr_type, p ) for p in expected ]
+        expected = [ e for e in expected if e not in expected_deletions ]
+        results = [ find_child(".name",r).text for r in results ]
+        results = [ r for r in results if r.startswith( sr_type ) ]
+        assert results == expected
+
+    def do_test( publ_name, expected_warning, expected_deletions ):
 
         # initialize
-        init_db( dbconn, "cascading-deletes.json" )
+        init_db( dbconn, "cascading-deletes-1.json" )
         results = do_search( "" )
 
         # delete the specified publisher
         results = [ r for r in results if find_child(".name",r).text == publ_name ]
         assert len( results ) == 1
         find_child( ".delete", results[0] ).click()
-        check_ask_dialog( ( "Do you want to delete", publ_name, expected_warning ), "ok" )
+        check_ask_dialog( ( "Delete this publisher?", publ_name, expected_warning ), "ok" )
 
-        # check that deleted associated publications were removed from the UI
-        def check_publications( results ):
-            results = [ find_child(".name",r).text for r in results ]
-            pubs = [ r for r in results if r.startswith( "publication" ) ]
-            assert pubs == expected_pubs
-        check_publications( find_children( "#search-results .search-result" ) )
+        # check that deleted associated publications/articles were removed from the UI
+        results = find_children( "#search-results .search-result" )
+        def check_publications():
+            check_results( results,
+                "publication", [ "2", "3", "4", "5a", "5b", "6a", "6b", "7a", "7b", "8a", "8b" ],
+                expected_deletions
+            )
+        def check_articles():
+            check_results( results,
+                "article", [ "3", "4a", "4b", "6a", "7a", "7b", "8a.1", "8a.2", "8b.1", "8b.2" ],
+                expected_deletions
+            )
+        check_publications()
+        check_articles()
 
-        # check that associated publications were removed from the database
-        results = do_search( "publication" )
-        check_publications( results )
+        # check that associated publications/articles were removed from the database
+        results = do_search( "" )
+        check_publications()
+        check_articles()
 
     # do the tests
-    do_test( "Cascading Deletes 0",
-        "No publications will be deleted", ["publication 1","publication 2a","publication 2b"]
+    do_test( "#pubs=0, #articles=0",
+        "No publications nor articles will be deleted", []
     )
-    do_test( "Cascading Deletes 1",
-        "1 associated publication will also be deleted", ["publication 2a","publication 2b"]
+    do_test( "#pubs=1, #articles=0",
+        "1 publication will also be deleted",
+        [ "publication 2" ]
     )
-    do_test( "Cascading Deletes 2",
-        "2 associated publications will also be deleted", ["publication 1"]
+    do_test( "#pubs=1, #articles=1",
+        "1 publication and 1 article will also be deleted",
+        [ "publication 3", "article 3" ]
+    )
+    do_test( "#pubs=1, #articles=2",
+        "1 publication and 2 articles will also be deleted",
+        [ "publication 4", "article 4a", "article 4b" ]
+    )
+    do_test( "#pubs=2, #articles=0",
+        "2 publications will also be deleted",
+        [ "publication 5a", "publication 5b" ]
+    )
+    do_test( "#pubs=2, #articles=1",
+        "2 publications and 1 article will also be deleted",
+        [ "publication 6a", "publication 6b", "article 6a" ]
+    )
+    do_test( "#pubs=2, #articles=2",
+        "2 publications and 2 articles will also be deleted",
+        [ "publication 7a", "publication 7b", "article 7a", "article 7b" ]
+    )
+    do_test( "#pubs=2, #articles=4",
+        "2 publications and 4 articles will also be deleted",
+        [ "publication 8a", "publication 8b", "article 8a.1", "article 8a.2", "article 8b.1", "article 8b.2" ]
     )
 
 # ---------------------------------------------------------------------

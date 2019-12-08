@@ -1,0 +1,15 @@
+{
+
+"publication": [
+    { "pub_id": 1, "pub_name": "Cascading Deletes 1" },
+    { "pub_id": 2, "pub_name": "Cascading Deletes 2" },
+    { "pub_id": 3, "pub_name": "Cascading Deletes 3" }
+],
+
+"article": [
+    { "article_title": "article 2", "pub_id": "2" },
+    { "article_title": "article 3a", "pub_id": "3" },
+    { "article_title": "article 3b", "pub_id": "3" }
+]
+
+}

@@ -2,6 +2,7 @@ import React from "react" ;
 import "./SearchResults.css" ;
 import { PublisherSearchResult } from "./PublisherSearchResult" ;
 import { PublicationSearchResult } from "./PublicationSearchResult" ;
+import { ArticleSearchResult } from "./ArticleSearchResult" ;
 import { gAppRef } from "./index.js" ;
 
 // --------------------------------------------------------------------
@@ -10,23 +11,30 @@ export class SearchResults extends React.Component
 {
 
     render() {
+        let results ;
         if ( ! this.props.searchResults || this.props.searchResults.length === 0 )
-            return null ;
-        let elems = [] ;
-        this.props.searchResults.forEach( sr => {
-            if ( sr.type === "publisher" ) {
-                elems.push( <PublisherSearchResult key={"publisher:"+sr.publ_id} data={sr}
-                    onDelete = { this.onDeleteSearchResult.bind( this ) }
-                /> ) ;
-            } else if ( sr.type === "publication" ) {
-                elems.push( <PublicationSearchResult key={"publication:"+sr.pub_id} data={sr}
-                    onDelete = { this.onDeleteSearchResult.bind( this ) }
-                /> ) ;
-            } else {
-                gAppRef.logInternalError( "Unknown search result type.", sr.type ) ;
-            }
-        } ) ;
-        return <div id="search-results" seqno={this.props.seqNo}> {elems} </div> ;
+            results = (this.props.seqNo === 0) ? null : <div className="no-results"> No results. </div> ;
+        else {
+            results = [] ;
+            this.props.searchResults.forEach( sr => {
+                if ( sr.type === "publisher" ) {
+                    results.push( <PublisherSearchResult key={"publisher:"+sr.publ_id} data={sr}
+                        onDelete = { this.onDeleteSearchResult.bind( this ) }
+                    /> ) ;
+                } else if ( sr.type === "publication" ) {
+                    results.push( <PublicationSearchResult key={"publication:"+sr.pub_id} data={sr}
+                        onDelete = { this.onDeleteSearchResult.bind( this ) }
+                    /> ) ;
+                } else if ( sr.type === "article" ) {
+                    results.push( <ArticleSearchResult key={"article:"+sr.article_id} data={sr}
+                        onDelete = { this.onDeleteSearchResult.bind( this ) }
+                    /> ) ;
+                } else {
+                    gAppRef.logInternalError( "Unknown search result type.", sr.type ) ;
+                }
+            } ) ;
+        }
+        return <div id="search-results" seqno={this.props.seqNo}> {results} </div> ;
     }
 
     onDeleteSearchResult( idName, idVal ) {

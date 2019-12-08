@@ -104,7 +104,7 @@ def test_delete_publication( webdriver, flask_app, dbconn ):
     result = results[1]
     assert find_child( ".name", result ).text == "ASL Journal (2)"
     find_child( ".delete", result ).click()
-    check_ask_dialog( ( "Do you want to delete", "ASL Journal (2)" ), "cancel" )
+    check_ask_dialog( ( "Delete this publication?", "ASL Journal (2)" ), "cancel" )
 
     # check that search results are unchanged on-screen
     results2 = find_children( "#search-results .search-result" )
@@ -119,7 +119,7 @@ def test_delete_publication( webdriver, flask_app, dbconn ):
     assert find_child( ".name", result ).text == "ASL Journal (2)"
     find_child( ".delete", result ).click()
     set_toast_marker( "info" )
-    check_ask_dialog( ( "Do you want to delete", "ASL Journal (2)" ), "ok" )
+    check_ask_dialog( ( "Delete this publication?", "ASL Journal (2)" ), "ok" )
     wait_for( 2,
         lambda: check_toast( "info", "The publication was deleted." )
     )
@@ -131,6 +131,48 @@ def test_delete_publication( webdriver, flask_app, dbconn ):
     # check that the search result was deleted from the database
     results = do_search( "ASL Journal" )
     assert get_result_names( results ) == [ "ASL Journal (1)" ]
+
+# ---------------------------------------------------------------------
+
+def test_cascading_deletes( webdriver, flask_app, dbconn ):
+    """Test cascading deletes."""
+
+    # initialize
+    init_tests( webdriver, flask_app )
+
+    def do_test( pub_name, expected_warning, expected_articles ):
+
+        # initialize
+        init_db( dbconn, "cascading-deletes-2.json" )
+        results = do_search( "" )
+
+        # delete the specified publication
+        results = [ r for r in results if find_child(".name",r).text == pub_name ]
+        assert len( results ) == 1
+        find_child( ".delete", results[0] ).click()
+        check_ask_dialog( ( "Delete this publication?", pub_name, expected_warning ), "ok" )
+
+        # check that deleted associated articles were removed from the UI
+        def check_articles( results ):
+            results = [ find_child(".name",r).text for r in results ]
+            articles = [ r for r in results if r.startswith( "article" ) ]
+            assert articles == expected_articles
+        check_articles( find_children( "#search-results .search-result" ) )
+
+        # check that associated articles were removed from the database
+        results = do_search( "article" )
+        check_articles( results )
+
+    # do the tests
+    do_test( "Cascading Deletes 1",
+        "No articles will be deleted", ["article 2","article 3a","article 3b"]
+    )
+    do_test( "Cascading Deletes 2",
+        "1 associated article will also be deleted", ["article 3a","article 3b"]
+    )
+    do_test( "Cascading Deletes 3",
+        "2 associated articles will also be deleted", ["article 2"]
+    )
 
 # ---------------------------------------------------------------------
 

@@ -41,6 +41,30 @@ class Publication( db.Model ):
     # is more trouble than it's worth :-/
     time_created = db.Column( db.TIMESTAMP(timezone=True), nullable=True )
     time_updated = db.Column( db.TIMESTAMP(timezone=True), nullable=True )
+    #
+    children = db.relationship( "Article", backref="parent", passive_deletes=True )
 
     def __repr__( self ):
         return "<Publication:{}|{}>".format( self.pub_id, self.pub_name )
+
+# ---------------------------------------------------------------------
+
+class Article( db.Model ):
+    """Define the Article model."""
+
+    article_id = db.Column( db.Integer, primary_key=True )
+    article_title = db.Column( db.String(200), nullable=False )
+    article_subtitle = db.Column( db.String(200), nullable=True )
+    article_snippet = db.Column( db.String(5000), nullable=True )
+    article_url = db.Column( db.String(500), nullable=True )
+    pub_id = db.Column( db.Integer,
+        db.ForeignKey( Publication.__table__.c.pub_id, ondelete="CASCADE" ),
+        nullable=True
+    )
+    # NOTE: time_created should be non-nullable, but getting this to work on SQlite and Postgres
+    # is more trouble than it's worth :-/
+    time_created = db.Column( db.TIMESTAMP(timezone=True), nullable=True )
+    time_updated = db.Column( db.TIMESTAMP(timezone=True), nullable=True )
+
+    def __repr__( self ):
+        return "<Article:{}|{}>".format( self.article_id, self.article_title )

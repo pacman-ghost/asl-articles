@@ -6,7 +6,7 @@ import logging
 from flask import request, jsonify, abort
 
 from asl_articles import app, db
-from asl_articles.models import Publisher, Publication
+from asl_articles.models import Publisher, Publication, Article
 from asl_articles.publications import do_get_publications
 from asl_articles.utils import get_request_args, clean_request_args, make_ok_response, apply_attrs
 
@@ -25,7 +25,7 @@ def _do_get_publishers():
     """Get all publishers."""
     # NOTE: The front-end maintains a cache of the publishers, so as a convenience,
     # we return the current list as part of the response to a create/update/delete operation.
-    results = list( Publisher.query )
+    results = Publisher.query.all()
     return { r.publ_id: get_publisher_vals(r) for r in results }
 
 # ---------------------------------------------------------------------
@@ -40,9 +40,15 @@ def get_publisher( publ_id ):
         abort( 404 )
     vals = get_publisher_vals( publ )
     # include the number of associated publications
-    query = Publication.query.filter_by( publ_id = publ.publ_id )
+    query = Publication.query.filter_by( publ_id = publ_id )
     vals[ "nPublications" ] = query.count()
-    _logger.debug( "- %s ; #publications=%d", publ, vals["nPublications"] )
+    # include the number of associated articles
+    query = db.session.query #pylint: disable=no-member
+    query = query( Article, Publication ) \
+        .filter( Publication.publ_id == publ_id ) \
+        .filter( Article.pub_id == Publication.pub_id )
+    vals[ "nArticles" ] = query.count()
+    _logger.debug( "- %s ; #publications=%d ; #articles=%d", publ, vals["nPublications"], vals["nArticles"] )
     return jsonify( vals )
 
 def get_publisher_vals( publ ):
@@ -109,14 +115,21 @@ def delete_publisher( publ_id ):
     _logger.debug( "- %s", publ )
 
     # figure out which associated publications will be deleted
-    query = db.session.query( Publication.pub_id ).filter_by( publ_id = publ.publ_id ) #pylint: disable=no-member
+    query = db.session.query( Publication.pub_id ).filter_by( publ_id = publ_id ) #pylint: disable=no-member
     deleted_pubs = [ r[0] for r in query ]
+
+    # figure out which associated articles will be deleted
+    query = db.session.query #pylint: disable=no-member
+    query = query( Article.article_id ).join( Publication ) \
+        .filter( Publication.publ_id == publ_id ) \
+        .filter( Article.pub_id == Publication.pub_id )
+    deleted_articles = [ r[0] for r in query ]
 
     # delete the publisher
     db.session.delete( publ ) #pylint: disable=no-member
     db.session.commit() #pylint: disable=no-member
 
-    extras = { "deletedPublications": deleted_pubs }
+    extras = { "deletedPublications": deleted_pubs, "deletedArticles": deleted_articles }
     if request.args.get( "list" ):
         extras[ "publishers" ] = _do_get_publishers()
         extras[ "publications" ] = do_get_publications()

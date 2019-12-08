@@ -1,4 +1,5 @@
 #search-results { margin-top: 0.5em ; }
+#search-results .no-results { font-style: italic ; }
 
 .search-result {
     margin: 0.25em 0 ; padding: 0.1em 0.2em ;
@@ -13,3 +14,5 @@
 
 .search-result.publisher .name { border: 1px solid #c0c0c0 ; background: #a0e0f0 ; }
 .search-result.publication .name { border: 1px solid #c0c0c0 ; background: #d0a080 ; }
+.search-result.article .title { border: 1px solid #c0c0c0 ; background: #60f000 ; }
+.search-result.article .subtitle { font-size: 80% ; font-style: italic ; }

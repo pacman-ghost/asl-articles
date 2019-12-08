@@ -101,21 +101,28 @@ export class PublisherSearchResult extends React.Component
     }
 
     onDeletePublisher() {
-        let doDelete = ( nPubs ) => {
+        let doDelete = ( nPubs, nArticles ) => {
+            // confirm the operation
             let warning ;
-            if ( typeof nPubs === "number" ) {
-                if ( nPubs === 0 )
-                    warning = <div> No publications will be deleted. </div> ;
-                else
-                    warning = <div> { pluralString(nPubs,"associated publication") + " will also be deleted." } </div> ;
-            } else {
+            if ( typeof nPubs !== "number" ) {
+                // something went wrong when getting the number of associated publications/articles
+                // (we can continue, but we warn the user)
                 warning = ( <div> <img className="icon" src="/images/error.png" alt="Error." />
-                    WARNING: Couldn't check if any associated publications will be deleted:
+                    WARNING: Couldn't check if any publications or articles will also be deleted:
                     <div className="monospace"> {nPubs.toString()} </div>
                 </div> ) ;
+            } else if ( nPubs === 0 && nArticles === 0 )
+                warning = <div> No publications nor articles will be deleted. </div> ;
+            else {
+                let vals = [] ;
+                if ( nPubs > 0 )
+                    vals.push( pluralString( nPubs, "publication" ) ) ;
+                if ( nArticles > 0 )
+                    vals.push( pluralString( nArticles, "article" ) ) ;
+                warning = <div> {warning} { vals.join(" and ") + " will also be deleted." } </div> ;
             }
             let content = ( <div>
-                Do you want to delete this publisher?
+                Delete this publisher?
                 <div style={{margin:"0.5em 0 0.5em 2em",fontStyle:"italic"}} dangerouslySetInnerHTML={{__html: this.props.data.publ_name}} />
                 {warning}
             </div> ) ;
@@ -132,6 +139,9 @@ export class PublisherSearchResult extends React.Component
                         resp.data.deletedPublications.forEach( pub_id => {
                             this.props.onDelete( "pub_id", pub_id ) ;
                         } ) ;
+                        resp.data.deletedArticles.forEach( article_id => {
+                            this.props.onDelete( "article_id", article_id ) ;
+                        } ) ;
                         if ( resp.data.warning )
                             gAppRef.showWarningToast( <div> The publisher was deleted. <p> {resp.data.warning} </p> </div> ) ;
                         else
@@ -147,7 +157,7 @@ export class PublisherSearchResult extends React.Component
         // get the publisher details
         axios.get( gAppRef.state.flaskBaseUrl + "/publisher/" + this.props.data.publ_id )
         .then( resp => {
-            doDelete( resp.data.nPublications ) ;
+            doDelete( resp.data.nPublications, resp.data.nArticles ) ;
         } )
         .catch( err => {
             doDelete( err ) ;

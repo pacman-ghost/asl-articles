@@ -2,7 +2,7 @@ import React from "react" ;
 import ReactDOMServer from "react-dom/server" ;
 import Select from "react-select" ;
 import { gAppRef } from "./index.js" ;
-import { makeOptionalLink } from "./utils.js" ;
+import { makeOptionalLink, pluralString } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -125,31 +125,83 @@ export class PublicationSearchResult extends React.Component
     }
 
     onDeletePublication() {
+        let doDelete = ( nArticles ) => {
+            // confirm the operation
+            let warning ;
+            if ( typeof nArticles === "number" ) {
+                if ( nArticles === 0 )
+                    warning = <div> No articles will be deleted. </div> ;
+                else
+                    warning = <div> { pluralString(nArticles,"associated article") + " will also be deleted." } </div> ;
+            } else {
+                warning = ( <div> <img className="icon" src="/images/error.png" alt="Error." />
+                    WARNING: Couldn't check if any associated articles will be deleted:
+                    <div className="monospace"> {nArticles.toString()} </div>
+                </div> ) ;
+            }
+            const content = ( <div>
+                Delete this publication?
+                <div style={{margin:"0.5em 0 0.5em 2em",fontStyle:"italic"}} dangerouslySetInnerHTML = {{ __html: this._makeDisplayName() }} />
+                {warning}
+            </div> ) ;
+            gAppRef.ask( content, {
+                "OK": () => {
+                    // delete the publication on the server
+                    axios.get( gAppRef.state.flaskBaseUrl + "/publication/delete/" + this.props.data.pub_id + "?list=1" )
+                    .then( resp => {
+                        // update the cached publications
+                        gAppRef.caches.publications = resp.data.publications ;
+                        // update the UI
+                        this.props.onDelete( "pub_id", this.props.data.pub_id ) ;
+                        resp.data.deleteArticles.forEach( article_id => {
+                            this.props.onDelete( "article_id", article_id ) ;
+                        } ) ;
+                        if ( resp.data.warning )
+                            gAppRef.showWarningToast( <div> The publication was deleted. <p> {resp.data.warning} </p> </div> ) ;
+                        else
+                            gAppRef.showInfoToast( <div> The publication was deleted. </div> ) ;
+                    } )
+                    .catch( err => {
+                        gAppRef.showErrorToast( <div> Couldn't delete the publication: <div className="monospace"> {err.toString()} </div> </div> ) ;
+                    } ) ;
+                },
+                "Cancel": null,
+            } ) ;
+        }
+        // get the publication details
+        axios.get( gAppRef.state.flaskBaseUrl + "/publication/" + this.props.data.pub_id )
+        .then( resp => {
+            doDelete( resp.data.nArticles ) ;
+        } )
+        .catch( err => {
+            doDelete( err ) ;
+        } ) ;
+
         // confirm the operation
         const content = ( <div>
-            Do you want to delete this publication?
+            Delete this publication?
             <div style={{margin:"0.5em 0 0 2em",fontStyle:"italic"}} dangerouslySetInnerHTML = {{ __html: this._makeDisplayName() }} />
         </div> ) ;
-        gAppRef.ask( content, {
-            "OK": () => {
-                // delete the publication on the server
-                axios.get( gAppRef.state.flaskBaseUrl + "/publication/delete/" + this.props.data.pub_id + "?list=1" )
-                .then( resp => {
-                    // update the cached publications
-                    gAppRef.caches.publications = resp.data.publications ;
-                    // update the UI
-                    this.props.onDelete( "pub_id", this.props.data.pub_id ) ;
-                    if ( resp.data.warning )
-                        gAppRef.showWarningToast( <div> The publication was deleted. <p> {resp.data.warning} </p> </div> ) ;
-                    else
-                        gAppRef.showInfoToast( <div> The publication was deleted. </div> ) ;
-                } )
-                .catch( err => {
-                    gAppRef.showErrorToast( <div> Couldn't delete the publication: <div className="monospace"> {err.toString()} </div> </div> ) ;
-                } ) ;
-            },
-            "Cancel": null,
-        } ) ;
+            gAppRef.ask( content, {
+                "OK": () => {
+                    // delete the publication on the server
+                    axios.get( gAppRef.state.flaskBaseUrl + "/publication/delete/" + this.props.data.pub_id + "?list=1" )
+                    .then( resp => {
+                        // update the cached publications
+                        gAppRef.caches.publications = resp.data.publications ;
+                        // update the UI
+                        this.props.onDelete( "pub_id", this.props.data.pub_id ) ;
+                        if ( resp.data.warning )
+                            gAppRef.showWarningToast( <div> The publication was deleted. <p> {resp.data.warning} </p> </div> ) ;
+                        else
+                            gAppRef.showInfoToast( <div> The publication was deleted. </div> ) ;
+                    } )
+                    .catch( err => {
+                        gAppRef.showErrorToast( <div> Couldn't delete the publication: <div className="monospace"> {err.toString()} </div> </div> ) ;
+                    } ) ;
+                },
+                "Cancel": null,
+            } ) ;
     }
 
     _makeDisplayName() {
