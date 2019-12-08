@@ -21,7 +21,7 @@ export class PublisherSearchResult extends React.Component
 
     static onNewPublisher( notify ) {
         PublisherSearchResult._doEditPublisher( {}, (newVals,refs) => {
-            axios.post( gAppRef.state.flaskBaseUrl + "/publisher/create?list=1", newVals )
+            axios.post( gAppRef.makeFlaskUrl( "/publisher/create", {list:1} ), newVals )
             .then( resp => {
                 // update the cached publishers
                 gAppRef.caches.publishers = resp.data.publishers ;
@@ -48,7 +48,7 @@ export class PublisherSearchResult extends React.Component
         PublisherSearchResult._doEditPublisher( this.props.data, (newVals,refs) => {
             // send the updated details to the server
             newVals.publ_id = this.props.data.publ_id ;
-            axios.post( gAppRef.state.flaskBaseUrl + "/publisher/update?list=1", newVals )
+            axios.post( gAppRef.makeFlaskUrl( "/publisher/update", {list:1} ), newVals )
             .then( resp => {
                 // update the cached publishers
                 gAppRef.caches.publishers = resp.data.publishers ;
@@ -129,7 +129,7 @@ export class PublisherSearchResult extends React.Component
             gAppRef.ask( content, {
                 "OK": () => {
                     // delete the publisher on the server
-                    axios.get( gAppRef.state.flaskBaseUrl + "/publisher/delete/" + this.props.data.publ_id + "?list=1" )
+                    axios.get( gAppRef.makeFlaskUrl( "/publisher/delete/" + this.props.data.publ_id, {list:1} ) )
                     .then( resp => {
                         // update the cached publishers
                         gAppRef.caches.publishers = resp.data.publishers ;
@@ -155,7 +155,7 @@ export class PublisherSearchResult extends React.Component
             } ) ;
         } ;
         // get the publisher details
-        axios.get( gAppRef.state.flaskBaseUrl + "/publisher/" + this.props.data.publ_id )
+        axios.get( gAppRef.makeFlaskUrl( "/publisher/" + this.props.data.publ_id ) )
         .then( resp => {
             doDelete( resp.data.nPublications, resp.data.nArticles ) ;
         } )

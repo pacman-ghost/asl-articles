@@ -26,7 +26,7 @@ export class ArticleSearchResult extends React.Component
 
     static onNewArticle( notify ) {
         ArticleSearchResult._doEditArticle( {}, (newVals,refs) => {
-            axios.post( gAppRef.state.flaskBaseUrl + "/article/create", newVals )
+            axios.post( gAppRef.makeFlaskUrl( "/article/create" ), newVals )
             .then( resp => {
                 // unload any cleaned values
                 for ( let r in refs ) {
@@ -51,7 +51,7 @@ export class ArticleSearchResult extends React.Component
         ArticleSearchResult._doEditArticle( this.props.data, (newVals,refs) => {
             // send the updated details to the server
             newVals.article_id = this.props.data.article_id ;
-            axios.post( gAppRef.state.flaskBaseUrl + "/article/update", newVals )
+            axios.post( gAppRef.makeFlaskUrl( "/article/update" ), newVals )
             .then( resp => {
                 // update the UI with the new details
                 for ( let r in refs )
@@ -132,7 +132,7 @@ export class ArticleSearchResult extends React.Component
         gAppRef.ask( content, {
             "OK": () => {
                 // delete the article on the server
-                axios.get( gAppRef.state.flaskBaseUrl + "/article/delete/" + this.props.data.article_id )
+                axios.get( gAppRef.makeFlaskUrl( "/article/delete/" + this.props.data.article_id ) )
                 .then( resp => {
                     // update the UI
                     this.props.onDelete( "article_id", this.props.data.article_id ) ;

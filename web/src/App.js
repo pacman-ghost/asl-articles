@@ -19,14 +19,6 @@ const queryString = require( "query-string" ) ;
 export default class App extends React.Component
 {
     constructor( props ) {
-        // figure out the base URL of the Flask backend server
-        // NOTE: We allow the caller to do this since the test suite will usually spin up
-        // it's own Flask server, but talks to an existing React server, so we need some way
-        // for pytest to change which Flask server the React frontend code should tak to.
-        const args = queryString.parse( window.location.search ) ;
-        let flaskBaseUrl = process.env.REACT_APP_TEST_MODE ? args._flask : null ;
-        if ( ! flaskBaseUrl )
-            flaskBaseUrl = process.env.REACT_APP_FLASK_URL ;
 
         // initialize the App
         super( props ) ;
@@ -35,10 +27,19 @@ export default class App extends React.Component
             searchSeqNo: 0,
             modalForm: null,
             askDialog: null,
-            // test settings follow
-            flaskBaseUrl: flaskBaseUrl,
-            storeMsgs: process.env.REACT_APP_TEST_MODE && args.store_msgs,
         } ;
+
+        // initialize
+        const args = queryString.parse( window.location.search ) ;
+        this._storeMsgs = process.env.REACT_APP_TEST_MODE && args.store_msgs ;
+
+        // figure out the base URL of the Flask backend server
+        // NOTE: We allow the caller to do this since the test suite will usually spin up
+        // it's own Flask server, but talks to an existing React server, so we need some way
+        // for pytest to change which Flask server the React frontend code should tak to.
+        this._flaskBaseUrl = process.env.REACT_APP_TEST_MODE ? args._flask : null ;
+        if ( ! this._flaskBaseUrl )
+            this._flaskBaseUrl = process.env.REACT_APP_FLASK_URL ;
     }
 
     render() {
@@ -63,7 +64,7 @@ export default class App extends React.Component
                 <AskDialog show={true} content={this.state.askDialog.content} buttons={this.state.askDialog.buttons} />
             }
             <ToastContainer position="bottom-right" hideProgressBar={true} />
-            { this.state.storeMsgs && <div>
+            { this._storeMsgs && <div>
                 <textarea id="_stored_msg-info_toast_" ref="_stored_msg-info_toast_" defaultValue="" hidden={true} />
                 <textarea id="_stored_msg-warning_toast_" ref="_stored_msg-warning_toast_" defaultValue="" hidden={true} />
                 <textarea id="_stored_msg-error_toast_" ref="_stored_msg-error_toast_" defaultValue="" hidden={true} />
@@ -78,14 +79,14 @@ export default class App extends React.Component
         // which is simpler and less error-prone than trying to manually keep our caches in sync. It's less efficient,
         // but it won't happen too often, there won't be too many entries, and the database server is local.
         this.caches = {} ;
-        axios.get( this.state.flaskBaseUrl + "/publishers" )
+        axios.get( this.makeFlaskUrl( "/publishers" ) )
         .then( resp => {
             this.caches.publishers = resp.data ;
         } )
         .catch( err => {
             this.showErrorToast( <div> Couldn't load the publishers: <div className="monospace"> {err.toString()} </div> </div> ) ;
         } ) ;
-        axios.get( this.state.flaskBaseUrl + "/publications" )
+        axios.get( this.makeFlaskUrl( "/publications" ) )
         .then( resp => {
             this.caches.publications = resp.data ;
         } )
@@ -96,7 +97,7 @@ export default class App extends React.Component
 
     onSearch( query ) {
         // run the search
-        axios.post( this.state.flaskBaseUrl + "/search", {
+        axios.post( this.makeFlaskUrl( "/search" ), {
             query: query
         } )
         .then( resp => {
@@ -149,7 +150,7 @@ export default class App extends React.Component
     showWarningToast( msg ) { this._doShowToast( "warning", msg, 15*1000 ) ; }
     showErrorToast( msg ) { this._doShowToast( "error", msg, false ) ; }
     _doShowToast( type, msg, autoClose ) {
-        if ( this.state.storeMsgs ) {
+        if ( this._storeMsgs ) {
             // save the message for the test suite to retrieve (nb: we also don't show the toast itself
             // since these build up when tests are running at high speed, and obscure elements that
             // we want to click on :-/
@@ -193,6 +194,18 @@ export default class App extends React.Component
         console.log( "INTERNAL ERROR: " + msg ) ;
         if ( detail )
             console.log( detail ) ;
+    }
+
+    makeFlaskUrl( url, args ) {
+        // generate a URL for the Flask backend server
+        url = this._flaskBaseUrl + url ;
+        if ( args ) {
+            let args2 = [] ;
+            for ( let a in args )
+                args2.push( a + "=" + encodeURIComponent( args[a] ) ) ;
+            url = url + "?" + args2.join("&") ;
+        }
+        return url ;
     }
 
 }

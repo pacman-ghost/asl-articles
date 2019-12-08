@@ -23,7 +23,7 @@ export class PublicationSearchResult extends React.Component
 
     static onNewPublication( notify ) {
         PublicationSearchResult._doEditPublication( {}, (newVals,refs) => {
-            axios.post( gAppRef.state.flaskBaseUrl + "/publication/create?list=1", newVals )
+            axios.post( gAppRef.makeFlaskUrl( "/publication/create", {list:1} ), newVals )
             .then( resp => {
                 // update the cached publications
                 gAppRef.caches.publications = resp.data.publications ;
@@ -50,7 +50,7 @@ export class PublicationSearchResult extends React.Component
         PublicationSearchResult._doEditPublication( this.props.data, (newVals,refs) => {
             // send the updated details to the server
             newVals.pub_id = this.props.data.pub_id ;
-            axios.post( gAppRef.state.flaskBaseUrl + "/publication/update?list=1", newVals )
+            axios.post( gAppRef.makeFlaskUrl( "/publication/update", {list:1} ), newVals )
             .then( resp => {
                 // update the cached publications
                 gAppRef.caches.publications = resp.data.publications ;
@@ -147,7 +147,7 @@ export class PublicationSearchResult extends React.Component
             gAppRef.ask( content, {
                 "OK": () => {
                     // delete the publication on the server
-                    axios.get( gAppRef.state.flaskBaseUrl + "/publication/delete/" + this.props.data.pub_id + "?list=1" )
+                    axios.get( gAppRef.makeFlaskUrl( "/publication/delete/" + this.props.data.pub_id, {list:1} ) )
                     .then( resp => {
                         // update the cached publications
                         gAppRef.caches.publications = resp.data.publications ;
@@ -169,7 +169,7 @@ export class PublicationSearchResult extends React.Component
             } ) ;
         }
         // get the publication details
-        axios.get( gAppRef.state.flaskBaseUrl + "/publication/" + this.props.data.pub_id )
+        axios.get( gAppRef.makeFlaskUrl( "/publication/" + this.props.data.pub_id ) )
         .then( resp => {
             doDelete( resp.data.nArticles ) ;
         } )
@@ -185,7 +185,7 @@ export class PublicationSearchResult extends React.Component
             gAppRef.ask( content, {
                 "OK": () => {
                     // delete the publication on the server
-                    axios.get( gAppRef.state.flaskBaseUrl + "/publication/delete/" + this.props.data.pub_id + "?list=1" )
+                    axios.get( gAppRef.makeFlaskUrl( "/publication/delete/" + this.props.data.pub_id, {list:1} ) )
                     .then( resp => {
                         // update the cached publications
                         gAppRef.caches.publications = resp.data.publications ;
