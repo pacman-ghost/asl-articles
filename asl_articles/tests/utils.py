@@ -21,7 +21,7 @@ _flask_app = None # nb: this may not be set (if we're talking to an existing Fla
 
 # ---------------------------------------------------------------------
 
-def init_tests( webdriver, flask_app ):
+def init_tests( webdriver, flask_app, dbconn, fixtures_fname=None ):
     """Prepare to run tests."""
 
     # initialize
@@ -29,9 +29,42 @@ def init_tests( webdriver, flask_app ):
     _webdriver = webdriver
     _flask_app = flask_app
 
+    # initialize the database
+    if dbconn:
+        init_db( dbconn, fixtures_fname )
+    else:
+        assert fixtures_fname is None
+
     # load the home page
     webdriver.get( webdriver.make_url( "/" ) )
     wait_for_elem( 2, "#search-form" )
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+def init_db( dbconn, fixtures_fname ):
+    """Load the database with test data."""
+
+    # create a database session
+    Session = sqlalchemy.orm.sessionmaker( bind=dbconn )
+    session = Session()
+
+    # load the test data
+    if fixtures_fname:
+        dname = os.path.join( os.path.split(__file__)[0], "fixtures/" )
+        fname = os.path.join( dname, fixtures_fname )
+        data = json.load( open( fname, "r" ) )
+    else:
+        data = {}
+
+    # load the test data into the database
+    for table_name in ["publisher","publication","article"]:
+        model = getattr( asl_articles.models, table_name.capitalize() )
+        session.query( model ).delete()
+        if table_name in data:
+            session.bulk_insert_mappings( model, data[table_name] )
+    session.commit()
+
+    return session
 
 # ---------------------------------------------------------------------
 
@@ -70,30 +103,6 @@ def get_result_names( results ):
         find_child( ".name", r ).text
         for r in results
     ]
-
-# ---------------------------------------------------------------------
-
-def init_db( engine, fname ):
-    """Load the database with test data."""
-
-    # create a database session
-    Session = sqlalchemy.orm.sessionmaker( bind=engine )
-    session = Session()
-
-    # load the test data
-    dname = os.path.join( os.path.split(__file__)[0], "fixtures/" )
-    fname = os.path.join( dname, fname )
-    data = json.load( open( fname, "r" ) )
-
-    # load the test data into the database
-    for table_name in ["publisher","publication","article"]:
-        model = getattr( asl_articles.models, table_name.capitalize() )
-        session.query( model ).delete()
-        if table_name in data:
-            session.bulk_insert_mappings( model, data[table_name] )
-    session.commit()
-
-    return session
 
 # ---------------------------------------------------------------------
 

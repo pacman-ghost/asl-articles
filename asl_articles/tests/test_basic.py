@@ -1,6 +1,6 @@
 """ Basic tests. """
 
-from asl_articles.tests.utils import init_tests, init_db, do_search, find_child
+from asl_articles.tests.utils import init_tests, do_search, find_child
 
 # ---------------------------------------------------------------------
 
@@ -8,8 +8,7 @@ def test_basic( webdriver, flask_app, dbconn ):
     """Basic tests."""
 
     # initialize
-    init_tests( webdriver, flask_app )
-    init_db( dbconn, "basic.json" )
+    init_tests( webdriver, flask_app, dbconn, "basic.json" )
 
     # make sure the home page loaded correctly
     elem = find_child( "#search-form .caption" )

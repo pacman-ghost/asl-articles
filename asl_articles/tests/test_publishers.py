@@ -10,8 +10,7 @@ def test_edit_publisher( webdriver, flask_app, dbconn ):
     """Test editing publishers."""
 
     # initialize
-    init_tests( webdriver, flask_app )
-    init_db( dbconn, "basic.json" )
+    init_tests( webdriver, flask_app, dbconn, "basic.json" )
 
     # edit "Avalon Hill"
     results = do_search( "" )
@@ -56,11 +55,7 @@ def test_create_publisher( webdriver, flask_app, dbconn ):
     """Test creating new publishers."""
 
     # initialize
-    init_tests( webdriver, flask_app )
-    init_db( dbconn, "basic.json" )
-
-    # load up some search results
-    do_search( "" )
+    init_tests( webdriver, flask_app, dbconn )
 
     # try creating a publisher with no name (should fail)
     _create_publisher( {}, toast_type=None )
@@ -94,8 +89,7 @@ def test_delete_publisher( webdriver, flask_app, dbconn ):
     """Test deleting publishers."""
 
     # initialize
-    init_tests( webdriver, flask_app )
-    init_db( dbconn, "basic.json" )
+    init_tests( webdriver, flask_app, dbconn, "basic.json" )
 
     # start to delete publisher "Le Franc Tireur", but cancel the operation
     results = do_search( "" )
@@ -136,7 +130,7 @@ def test_cascading_deletes( webdriver, flask_app, dbconn ):
     """Test cascading deletes."""
 
     # initialize
-    init_tests( webdriver, flask_app )
+    init_tests( webdriver, flask_app, None )
 
     def check_results( results, sr_type, expected, expected_deletions ):
         expected = [ "{} {}".format( sr_type, p ) for p in expected ]
@@ -216,8 +210,7 @@ def test_unicode( webdriver, flask_app, dbconn ):
     """Test Unicode content."""
 
     # initialize
-    init_tests( webdriver, flask_app )
-    init_db( dbconn, "basic.json" )
+    init_tests( webdriver, flask_app, dbconn )
 
     # create a publisher with Unicode content
     _create_publisher( {
@@ -241,8 +234,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     """Test cleaning HTML content."""
 
     # initialize
-    init_tests( webdriver, flask_app )
-    init_db( dbconn, "basic.json" )
+    init_tests( webdriver, flask_app, dbconn )
 
     # create a publisher with HTML content
     _create_publisher( {

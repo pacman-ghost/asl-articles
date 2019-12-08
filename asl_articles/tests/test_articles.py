@@ -1,6 +1,6 @@
 """ Test article operations. """
 
-from asl_articles.tests.utils import init_tests, init_db, do_search, get_result_names, \
+from asl_articles.tests.utils import init_tests, do_search, get_result_names, \
     wait_for, wait_for_elem, find_child, find_children, set_elem_text, \
     set_toast_marker, check_toast, check_ask_dialog, check_error_msg
 
@@ -10,8 +10,7 @@ def test_edit_article( webdriver, flask_app, dbconn ):
     """Test editing articles."""
 
     # initialize
-    init_tests( webdriver, flask_app )
-    init_db( dbconn, "articles.json" )
+    init_tests( webdriver, flask_app, dbconn, "articles.json" )
 
     # edit "What To Do If You Have A Tin Can"
     results = do_search( "tin can" )
@@ -57,8 +56,7 @@ def test_create_article( webdriver, flask_app, dbconn ):
     """Test creating new articles."""
 
     # initialize
-    init_tests( webdriver, flask_app )
-    init_db( dbconn, "basic.json" )
+    init_tests( webdriver, flask_app, dbconn )
 
     # try creating a article with no name (should fail)
     _create_article( {}, toast_type=None )
@@ -95,8 +93,7 @@ def test_delete_article( webdriver, flask_app, dbconn ):
     """Test deleting articles."""
 
     # initialize
-    init_tests( webdriver, flask_app )
-    init_db( dbconn, "articles.json" )
+    init_tests( webdriver, flask_app, dbconn, "articles.json" )
 
     # start to delete article "Smoke Gets In Your Eyes", but cancel the operation
     results = do_search( "smoke" )
@@ -136,8 +133,7 @@ def test_unicode( webdriver, flask_app, dbconn ):
     """Test Unicode content."""
 
     # initialize
-    init_tests( webdriver, flask_app )
-    init_db( dbconn, "basic.json" )
+    init_tests( webdriver, flask_app, dbconn )
 
     # create a article with Unicode content
     _create_article( {
@@ -163,8 +159,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     """Test cleaning HTML content."""
 
     # initialize
-    init_tests( webdriver, flask_app )
-    init_db( dbconn, "basic.json" )
+    init_tests( webdriver, flask_app, dbconn )
 
     # create a article with HTML content
     _create_article( {
