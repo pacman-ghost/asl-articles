@@ -12,8 +12,10 @@ export class PublicationSearchResult extends React.Component
 {
 
     render() {
+        const publ = gAppRef.caches.publishers[ this.props.data.publ_id ] ;
         return ( <div className="search-result publication">
             <div className="name"> { makeOptionalLink( this._makeDisplayName(), this.props.data.pub_url ) }
+                { publ && <span className="publisher"> ({publ.publ_name}) </span> }
                 <img src="/images/edit.png" className="edit" onClick={this.onEditPublication.bind(this)} alt="Edit this publication." />
                 <img src="/images/delete.png" className="delete" onClick={this.onDeletePublication.bind(this)} alt="Delete this publication." />
             </div>

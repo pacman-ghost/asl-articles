@@ -135,7 +135,7 @@ def test_cascading_deletes( webdriver, flask_app, dbconn ):
     def check_results( results, sr_type, expected, expected_deletions ):
         expected = [ "{} {}".format( sr_type, p ) for p in expected ]
         expected = [ e for e in expected if e not in expected_deletions ]
-        results = [ find_child(".name",r).text for r in results ]
+        results = [ find_child( ".name span", r ).text for r in results ]
         results = [ r for r in results if r.startswith( sr_type ) ]
         assert results == expected
 
@@ -146,7 +146,7 @@ def test_cascading_deletes( webdriver, flask_app, dbconn ):
         results = do_search( "" )
 
         # delete the specified publisher
-        results = [ r for r in results if find_child(".name",r).text == publ_name ]
+        results = [ r for r in results if find_child( ".name", r ).text == publ_name ]
         assert len( results ) == 1
         find_child( ".delete", results[0] ).click()
         check_ask_dialog( ( "Delete this publisher?", publ_name, expected_warning ), "ok" )

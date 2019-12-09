@@ -8,6 +8,8 @@
 
 .search-result .name { padding: 2px 5px ; }
 .search-result .name a { font-weight: bold ; text-decoration: none ; }
+.search-result .name .publisher { font-size: 80% ; font-style: italic ; }
+.search-result .name .publication { font-size: 80% ; font-style: italic ; }
 .search-result .name img.edit { margin-left: 0.5em ; height: 0.8em ; cursor: pointer ; }
 .search-result .name img.delete { float: right ; margin: 0.2em 0 0 0.5em ; height: 0.8em ; cursor: pointer ; }
 .search-result .description { font-size: 80% ; padding: 2px 5px ; }

@@ -144,14 +144,14 @@ def test_cascading_deletes( webdriver, flask_app, dbconn ):
         results = do_search( "" )
 
         # delete the specified publication
-        results = [ r for r in results if find_child(".name",r).text == pub_name ]
+        results = [ r for r in results if find_child( ".name", r ).text == pub_name ]
         assert len( results ) == 1
         find_child( ".delete", results[0] ).click()
         check_ask_dialog( ( "Delete this publication?", pub_name, expected_warning ), "ok" )
 
         # check that deleted associated articles were removed from the UI
         def check_articles( results ):
-            results = [ find_child(".name",r).text for r in results ]
+            results = [ find_child( ".name span", r ).text for r in results ]
             articles = [ r for r in results if r.startswith( "article" ) ]
             assert articles == expected_articles
         check_articles( find_children( "#search-results .search-result" ) )

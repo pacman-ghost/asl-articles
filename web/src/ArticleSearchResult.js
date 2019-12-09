@@ -12,10 +12,12 @@ export class ArticleSearchResult extends React.Component
 {
 
     render() {
+        const pub = gAppRef.caches.publications[ this.props.data.pub_id ] ;
         // NOTE: The "title" field is also given the CSS class "name" so that the normal CSS will apply to it.
         // Some tests also look for a generic ".name" class name when checking search results.
         return ( <div className="search-result article">
             <div className="title name"> { makeOptionalLink( this.props.data.article_title, this.props.data.article_url ) }
+            { pub && <span className="publication"> ({pub.pub_name}) </span> }
                 <img src="/images/edit.png" className="edit" onClick={this.onEditArticle.bind(this)} alt="Edit this article." />
                 <img src="/images/delete.png" className="delete" onClick={this.onDeleteArticle.bind(this)} alt="Delete this article." />
                 { this.props.data.article_subtitle && <div className="subtitle" dangerouslySetInnerHTML={{ __html: this.props.data.article_subtitle }} /> }
