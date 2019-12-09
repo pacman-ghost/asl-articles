@@ -3,7 +3,7 @@
 import re
 import logging
 
-from flask import jsonify
+from flask import jsonify, abort
 import lxml.html.clean
 
 _html_whitelists = None
@@ -11,23 +11,30 @@ _startup_logger = logging.getLogger( "startup" )
 
 # ---------------------------------------------------------------------
 
-def get_request_args( vals, keys, log=None ):
+def get_request_args( vals, arg_names, log=None ):
     """Unload the arguments from a Flask request."""
-    vals = { k: vals.get( k ) for k in keys }
+    arg_names = [ _parse_arg_name( k ) for k in arg_names ]
+    vals = { a[0]: vals.get( a[0] ) for a in arg_names }
     vals = {
         k: v.strip() if isinstance(v,str) else v
         for k,v in vals.items()
     }
     if log:
         log[0].debug( "%s", log[1] )
-        for k in keys:
-            log[0].debug( "- %s = %s", k, str(vals[k]) )
+        for a in arg_names:
+            log[0].debug( "- %s = %s", a[0], str(vals[a[0]]) )
+    # check for required arguments
+    required = [ a[0] for a in arg_names if a[1] ]
+    required = [ r for r in required if r not in vals or not vals[r] ]
+    if required:
+        abort( 400, "Missing required values: {}".format( ", ".join( required ) ) )
     return vals
 
 def clean_request_args( vals, fields, logger ):
     """Clean incoming data."""
     cleaned = {}
     for f in fields:
+        f = _parse_arg_name( f )[ 0 ]
         if isinstance( vals[f], str ):
             val2 = clean_html( vals[f] )
             if val2 != vals[f]:
@@ -35,6 +42,12 @@ def clean_request_args( vals, fields, logger ):
                 vals[f] = val2
                 cleaned[f] = val2
     return cleaned
+
+def _parse_arg_name( arg_name ):
+    """Parse a request argument name."""
+    if arg_name[0] == "*":
+        return ( arg_name[1:], True ) # required argument
+    return ( arg_name, False ) # optional argument
 
 def make_ok_response( extras=None, cleaned=None ):
     """Generate a Flask 'success' response."""

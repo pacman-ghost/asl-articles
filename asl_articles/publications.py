@@ -11,7 +11,7 @@ from asl_articles.utils import get_request_args, clean_request_args, make_ok_res
 
 _logger = logging.getLogger( "db" )
 
-_FIELD_NAMES = [ "pub_name", "pub_edition", "pub_description", "pub_url", "publ_id" ]
+_FIELD_NAMES = [ "*pub_name", "pub_edition", "pub_description", "pub_url", "publ_id" ]
 
 # ---------------------------------------------------------------------
 

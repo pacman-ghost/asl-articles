@@ -12,7 +12,7 @@ from asl_articles.utils import get_request_args, clean_request_args, make_ok_res
 
 _logger = logging.getLogger( "db" )
 
-_FIELD_NAMES = [ "publ_name", "publ_description", "publ_url" ]
+_FIELD_NAMES = [ "*publ_name", "publ_description", "publ_url" ]
 
 # ---------------------------------------------------------------------
 
