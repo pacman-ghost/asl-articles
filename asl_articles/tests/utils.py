@@ -203,6 +203,21 @@ def _make_toast_stored_msg_id( toast_type ):
 
 # ---------------------------------------------------------------------
 
+class ReactSelect:
+    """Control a react-select droplist."""
+    def __init__( self, elem ):
+        self.select = elem
+    def select_by_name( self, val ):
+        """Select an option by name."""
+        find_child( "svg", self.select ).click()
+        options = [ e for e in find_children( ".react-select__option", self.select )
+            if e.text == val
+        ]
+        assert len( options ) == 1
+        options[0].click()
+
+# ---------------------------------------------------------------------
+
 def set_elem_text( elem, val ):
     """Set the text for an element."""
     elem.clear()

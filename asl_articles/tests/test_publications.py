@@ -1,8 +1,12 @@
 """ Test publication operations. """
 
+import urllib.request
+import json
+
 from asl_articles.tests.utils import init_tests, init_db, do_search, get_result_names, \
     wait_for, wait_for_elem, find_child, find_children, set_elem_text, \
     set_toast_marker, check_toast, check_ask_dialog, check_error_msg
+from asl_articles.tests.utils import ReactSelect
 
 # ---------------------------------------------------------------------
 
@@ -128,6 +132,59 @@ def test_delete_publication( webdriver, flask_app, dbconn ):
     # check that the search result was deleted from the database
     results = do_search( "ASL Journal" )
     assert get_result_names( results ) == [ "ASL Journal (1)" ]
+
+# ---------------------------------------------------------------------
+
+def test_parent_publisher( webdriver, flask_app, dbconn ):
+    """Test setting a publication's parent publisher."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, "parents.json" )
+    pub_sr = None
+
+    def check_results( expected_parent ):
+
+        # check that the parent publisher was updated in the UI
+        nonlocal pub_sr
+        elem = find_child( ".name .publisher", pub_sr )
+        if expected_parent:
+            assert elem.text == "({})".format( expected_parent[1] )
+        else:
+            assert elem is None
+
+        # check that the parent publisher was updated in the database
+        pub_id = pub_sr.get_attribute( "testing--pub_id" )
+        url = flask_app.url_for( "get_publication", pub_id=pub_id )
+        pub = json.load( urllib.request.urlopen( url ) )
+        if expected_parent:
+            assert pub["publ_id"] == expected_parent[0]
+        else:
+            assert pub["publ_id"] is None
+
+        # check that the parent publisher was updated in the UI
+        results = do_search( "MMP News" )
+        assert len(results) == 1
+        pub_sr = results[0]
+        elem = find_child( ".name .publisher", pub_sr )
+        if expected_parent:
+            assert elem.text == "({})".format( expected_parent[1] )
+        else:
+            assert elem is None
+
+    # create a publication with no parent publisher
+    _create_publication( { "name": "MMP News" } )
+    results = find_children( "#search-results .search-result" )
+    assert len(results) == 1
+    pub_sr = results[0]
+    check_results( None )
+
+    # change the publication to have a publisher
+    _edit_publication( pub_sr, { "publisher": "Multiman Publishing" } )
+    check_results( (1, "Multiman Publishing") )
+
+    # change the publication back to having no publisher
+    _edit_publication( pub_sr, { "publisher": "(none)" } )
+    check_results( None )
 
 # ---------------------------------------------------------------------
 
@@ -260,8 +317,12 @@ def _edit_publication( result, vals, toast_type="info", expected_error=None ):
     find_child( ".edit", result ).click()
     dlg = wait_for_elem( 2, "#modal-form" )
     for k,v in vals.items():
-        sel = ".{} {}".format( k , "textarea" if k == "description" else "input" )
-        set_elem_text( find_child( sel, dlg ), v )
+        if k == "publisher":
+            select = ReactSelect( find_child( ".publisher .react-select", dlg ) )
+            select.select_by_name( v )
+        else:
+            sel = ".{} {}".format( k , "textarea" if k == "description" else "input" )
+            set_elem_text( find_child( sel, dlg ), v )
     set_toast_marker( toast_type )
     find_child( "button.ok", dlg ).click()
     if expected_error:

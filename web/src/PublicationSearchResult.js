@@ -13,7 +13,9 @@ export class PublicationSearchResult extends React.Component
 
     render() {
         const publ = gAppRef.caches.publishers[ this.props.data.publ_id ] ;
-        return ( <div className="search-result publication">
+        return ( <div className="search-result publication"
+                    ref = { r => gAppRef.setTestAttribute( r, "pub_id", this.props.data.pub_id ) }
+            >
             <div className="name"> { makeOptionalLink( this._makeDisplayName(), this.props.data.pub_url ) }
                 { publ && <span className="publisher"> ({publ.publ_name}) </span> }
                 <img src="/images/edit.png" className="edit" onClick={this.onEditPublication.bind(this)} alt="Edit this publication." />
@@ -87,6 +89,7 @@ export class PublicationSearchResult extends React.Component
         publishers.sort( (lhs,rhs) => {
             return ReactDOMServer.renderToStaticMarkup( lhs.label ).localeCompare( ReactDOMServer.renderToStaticMarkup( rhs.label ) ) ;
         } ) ;
+
         const content = <div>
             <div className="row name"> <label> Name: </label>
                 <input type="text" defaultValue={vals.pub_name} ref={(r) => refs.pub_name=r} />
@@ -95,7 +98,7 @@ export class PublicationSearchResult extends React.Component
                 <input type="text" defaultValue={vals.pub_edition} ref={(r) => refs.pub_edition=r} />
             </div>
             <div className="row publisher"> <label> Publisher: </label>
-                <Select options={publishers} isSearchable={true}
+                <Select className="react-select" classNamePrefix="react-select" options={publishers} isSearchable={true}
                     defaultValue = { publishers[ currPubl ] }
                     ref = { (r) => refs.publ_id=r }
                 />

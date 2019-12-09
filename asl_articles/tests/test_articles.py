@@ -1,8 +1,12 @@
 """ Test article operations. """
 
+import urllib.request
+import json
+
 from asl_articles.tests.utils import init_tests, do_search, get_result_names, \
     wait_for, wait_for_elem, find_child, find_children, set_elem_text, \
     set_toast_marker, check_toast, check_ask_dialog, check_error_msg
+from asl_articles.tests.utils import ReactSelect
 
 # ---------------------------------------------------------------------
 
@@ -129,6 +133,59 @@ def test_delete_article( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
+def test_parent_publisher( webdriver, flask_app, dbconn ):
+    """Test setting an article's parent publication."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, "parents.json" )
+    article_sr = None
+
+    def check_results( expected_parent ):
+
+        # check that the parent publication was updated in the UI
+        nonlocal article_sr
+        elem = find_child( ".title .publication", article_sr )
+        if expected_parent:
+            assert elem.text == "({})".format( expected_parent[1] )
+        else:
+            assert elem is None
+
+        # check that the parent publication was updated in the database
+        article_id = article_sr.get_attribute( "testing--article_id" )
+        url = flask_app.url_for( "get_article", article_id=article_id )
+        article = json.load( urllib.request.urlopen( url ) )
+        if expected_parent:
+            assert article["pub_id"] == expected_parent[0]
+        else:
+            assert article["pub_id"] is None
+
+        # check that the parent publication was updated in the UI
+        results = do_search( "My Article" )
+        assert len(results) == 1
+        article_sr = results[0]
+        elem = find_child( ".title .publication", article_sr )
+        if expected_parent:
+            assert elem.text == "({})".format( expected_parent[1] )
+        else:
+            assert elem is None
+
+    # create an article with no parent publication
+    _create_article( { "title": "My Article" } )
+    results = find_children( "#search-results .search-result" )
+    assert len(results) == 1
+    article_sr = results[0]
+    check_results( None )
+
+    # change the article to have a publication
+    _edit_article( article_sr, { "publication": "ASL Journal" } )
+    check_results( (1, "ASL Journal") )
+
+    # change the article back to having no publication
+    _edit_article( article_sr, { "publication": "(none)" } )
+    check_results( None )
+
+# ---------------------------------------------------------------------
+
 def test_unicode( webdriver, flask_app, dbconn ):
     """Test Unicode content."""
 
@@ -219,8 +276,12 @@ def _edit_article( result, vals, toast_type="info", expected_error=None ):
     find_child( ".edit", result ).click()
     dlg = wait_for_elem( 2, "#modal-form" )
     for k,v in vals.items():
-        sel = ".{} {}".format( k , "textarea" if k == "snippet" else "input" )
-        set_elem_text( find_child( sel, dlg ), v )
+        if k == "publication":
+            select = ReactSelect( find_child( ".publication .react-select", dlg ) )
+            select.select_by_name( v )
+        else:
+            sel = ".{} {}".format( k , "textarea" if k == "snippet" else "input" )
+            set_elem_text( find_child( sel, dlg ), v )
     set_toast_marker( toast_type )
     find_child( "button.ok", dlg ).click()
     if expected_error:

@@ -31,13 +31,13 @@ export default class App extends React.Component
 
         // initialize
         const args = queryString.parse( window.location.search ) ;
-        this._storeMsgs = process.env.REACT_APP_TEST_MODE && args.store_msgs ;
+        this._storeMsgs = this.isTestMode() && args.store_msgs ;
 
         // figure out the base URL of the Flask backend server
         // NOTE: We allow the caller to do this since the test suite will usually spin up
         // it's own Flask server, but talks to an existing React server, so we need some way
         // for pytest to change which Flask server the React frontend code should tak to.
-        this._flaskBaseUrl = process.env.REACT_APP_TEST_MODE ? args._flask : null ;
+        this._flaskBaseUrl = this.isTestMode() ? args._flask : null ;
         if ( ! this._flaskBaseUrl )
             this._flaskBaseUrl = process.env.REACT_APP_FLASK_URL ;
     }
@@ -208,6 +208,13 @@ export default class App extends React.Component
             url = url + "?" + args2.join("&") ;
         }
         return url ;
+    }
+
+    isTestMode() { return process.env.REACT_APP_TEST_MODE ; }
+    setTestAttribute( obj, attrName, attrVal ) {
+        // set an attribute on an element (for testing porpoises)
+        if ( obj && this.isTestMode() )
+            obj.setAttribute( "testing--"+attrName, attrVal ) ;
     }
 
 }

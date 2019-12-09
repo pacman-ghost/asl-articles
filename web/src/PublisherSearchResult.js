@@ -10,7 +10,9 @@ export class PublisherSearchResult extends React.Component
 {
 
     render() {
-        return ( <div className="search-result publisher">
+        return ( <div className="search-result publisher"
+                    ref = { r => gAppRef.setTestAttribute( r, "publ_id", this.props.data.publ_id ) }
+            >
             <div className="name"> { makeOptionalLink( this.props.data.publ_name, this.props.data.publ_url ) }
                 <img src="/images/edit.png" className="edit" onClick={this.onEditPublisher.bind(this)} alt="Edit this publisher." />
                 <img src="/images/delete.png" className="delete" onClick={this.onDeletePublisher.bind(this)} alt="Delete this publisher." />

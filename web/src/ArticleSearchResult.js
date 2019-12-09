@@ -15,7 +15,9 @@ export class ArticleSearchResult extends React.Component
         const pub = gAppRef.caches.publications[ this.props.data.pub_id ] ;
         // NOTE: The "title" field is also given the CSS class "name" so that the normal CSS will apply to it.
         // Some tests also look for a generic ".name" class name when checking search results.
-        return ( <div className="search-result article">
+        return ( <div className="search-result article"
+                    ref = { r => gAppRef.setTestAttribute( r, "article_id", this.props.data.article_id ) }
+            >
             <div className="title name"> { makeOptionalLink( this.props.data.article_title, this.props.data.article_url ) }
             { pub && <span className="publication"> ({pub.pub_name}) </span> }
                 <img src="/images/edit.png" className="edit" onClick={this.onEditArticle.bind(this)} alt="Edit this article." />
@@ -94,7 +96,7 @@ export class ArticleSearchResult extends React.Component
                 <input type="text" defaultValue={vals.article_subtitle} ref={(r) => refs.article_subtitle=r} />
             </div>
             <div className="row publication"> <label> Publication: </label>
-                <Select options={publications} isSearchable={true}
+                <Select className="react-select" classNamePrefix="react-select" options={publications} isSearchable={true}
                     defaultValue = { publications[ currPub ] }
                     ref = { (r) => refs.pub_id=r }
                 />
