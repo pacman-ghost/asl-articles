@@ -26,7 +26,7 @@ RUN apk add libxslt
 
 # install the application
 WORKDIR /app
-ADD asl_articles asl_articles
+COPY asl_articles asl_articles
 COPY setup.py requirements.txt requirements-dev.txt run_server.py LICENSE.txt ./
 RUN pip install -e .
 
@@ -34,6 +34,9 @@ RUN pip install -e .
 ARG ENABLE_TESTS
 COPY asl_articles/config/logging.yaml.example asl_articles/config/logging.yaml
 COPY docker/config/* asl_articles/config/
+
+# copy the alembic files (so that users can upgrade their database)
+COPY alembic alembic
 
 # launch the web server
 EXPOSE 5000
