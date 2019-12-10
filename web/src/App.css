@@ -1,3 +1,5 @@
+img#loading { position: fixed ; top: 50% ; left: 50% ; margin-top: -16px ; margin-left: -16px ; }
+
 #ask img.icon { width: 2em ; float: left ; margin: 0 1em 1em 0 ; }
 .MuiButton-label { text-transform: none ; }
 

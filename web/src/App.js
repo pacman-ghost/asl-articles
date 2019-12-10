@@ -27,6 +27,7 @@ export default class App extends React.Component
             searchSeqNo: 0,
             modalForm: null,
             askDialog: null,
+            startupTasks: [ "caches.publishers", "caches.publications", "caches.tags" ],
         } ;
 
         // initialize
@@ -43,20 +44,29 @@ export default class App extends React.Component
     }
 
     render() {
-        return ( <div>
-            <div id="menu">
-                [<a href="/" className="new-publisher"
-                    onClick={ (e) => { e.preventDefault() ; PublisherSearchResult.onNewPublisher( this._onNewPublisher.bind(this) ) ; } }
-                >New publisher</a>]
-                [<a href="/" className="new-publication"
-                    onClick={ (e) => { e.preventDefault() ; PublicationSearchResult.onNewPublication( this._onNewPublication.bind(this) ) ; } }
-                >New publication</a>]
-                [<a href="/" className="new-article"
-                    onClick={ (e) => { e.preventDefault() ; ArticleSearchResult.onNewArticle( this._onNewArticle.bind(this) ) ; } }
-                >New article</a>]
-            </div>
-            <SearchForm onSearch={this.onSearch.bind(this)} />
-            <SearchResults seqNo={this.state.searchSeqNo} searchResults={this.state.searchResults} />
+        let content ;
+        if ( this.state.startupTasks.length > 0 ) {
+            // we are still starting up
+            content = <div id="loading"> <img id="loading" src="/images/loading.gif" alt="Loading..." /></div> ;
+        } else {
+            // generate the main page
+            content = ( <div>
+                <div id="menu">
+                    [<a href="/" className="new-publisher"
+                        onClick={ (e) => { e.preventDefault() ; PublisherSearchResult.onNewPublisher( this._onNewPublisher.bind(this) ) ; } }
+                    >New publisher</a>]
+                    [<a href="/" className="new-publication"
+                        onClick={ (e) => { e.preventDefault() ; PublicationSearchResult.onNewPublication( this._onNewPublication.bind(this) ) ; } }
+                    >New publication</a>]
+                    [<a href="/" className="new-article"
+                        onClick={ (e) => { e.preventDefault() ; ArticleSearchResult.onNewArticle( this._onNewArticle.bind(this) ) ; } }
+                    >New article</a>]
+                </div>
+                <SearchForm onSearch={this.onSearch.bind(this)} />
+                <SearchResults seqNo={this.state.searchSeqNo} searchResults={this.state.searchResults} />
+            </div> ) ;
+        }
+        return ( <div> {content}
             { this.state.modalForm !== null &&
                 <ModalForm show={true} title={this.state.modalForm.title} content={this.state.modalForm.content} buttons={this.state.modalForm.buttons} />
             }
@@ -82,6 +92,7 @@ export default class App extends React.Component
         axios.get( this.makeFlaskUrl( "/publishers" ) )
         .then( resp => {
             this.caches.publishers = resp.data ;
+            this._onStartupTask( "caches.publishers" ) ;
         } )
         .catch( err => {
             this.showErrorToast( <div> Couldn't load the publishers: <div className="monospace"> {err.toString()} </div> </div> ) ;
@@ -89,6 +100,7 @@ export default class App extends React.Component
         axios.get( this.makeFlaskUrl( "/publications" ) )
         .then( resp => {
             this.caches.publications = resp.data ;
+            this._onStartupTask( "caches.publications" ) ;
         } )
         .catch( err => {
             this.showErrorToast( <div> Couldn't load the publications: <div className="monospace"> {err.toString()} </div> </div> ) ;
@@ -96,6 +108,7 @@ export default class App extends React.Component
         axios.get( this.makeFlaskUrl( "/tags" ) )
         .then( resp => {
             this.caches.tags = resp.data ;
+            this._onStartupTask( "caches.tags" ) ;
         } )
         .catch( err => {
             this.showErrorToast( <div> Couldn't load the tags: <div className="monospace"> {err.toString()} </div> </div> ) ;
@@ -197,12 +210,12 @@ export default class App extends React.Component
     logInternalError( msg, detail ) {
         // log an internal error
         this.showErrorToast( <div>
-            INTERNAL ERROR <div>{msg}</div>
+            INTERNAL ERROR! <div>{msg}</div>
             {detail && <div className="monospace">{detail}</div>}
         </div> ) ;
         console.log( "INTERNAL ERROR: " + msg ) ;
         if ( detail )
-            console.log( detail ) ;
+            console.log( "  " + detail ) ;
     }
 
     makeTagLists( tags ) {
@@ -227,6 +240,17 @@ export default class App extends React.Component
             url = url + "?" + args2.join("&") ;
         }
         return url ;
+    }
+
+    _onStartupTask( taskId ) {
+        // flag that the specified startup task has completed
+        let pos = this.state.startupTasks.indexOf( taskId ) ;
+        if ( pos === -1 ) {
+            this.logInternalError( "Unknown startup task.", "taskId = "+taskId ) ;
+            return ;
+        }
+        this.state.startupTasks.splice( pos, 1 ) ;
+        this.setState( { startupTasks: this.state.startupTasks } ) ;
     }
 
     isTestMode() { return process.env.REACT_APP_TEST_MODE ; }

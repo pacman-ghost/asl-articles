@@ -30,7 +30,7 @@ export class SearchResults extends React.Component
                         onDelete = { this.onDeleteSearchResult.bind( this ) }
                     /> ) ;
                 } else {
-                    gAppRef.logInternalError( "Unknown search result type.", sr.type ) ;
+                    gAppRef.logInternalError( "Unknown search result type.", "srType = "+sr.type ) ;
                 }
             } ) ;
         }
@@ -46,7 +46,7 @@ export class SearchResults extends React.Component
                 return ;
             }
         }
-        gAppRef.logInternalError( "Tried to delete an unknown search result", idName+"="+idVal ) ;
+        gAppRef.logInternalError( "Tried to delete an unknown search result.", idName+" = "+idVal ) ;
     }
 
 }
