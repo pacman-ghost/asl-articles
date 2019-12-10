@@ -7,11 +7,13 @@ from flask import request, jsonify, abort
 
 from asl_articles import app, db
 from asl_articles.models import Article
-from asl_articles.utils import get_request_args, clean_request_args, make_ok_response, apply_attrs
+from asl_articles.tags import do_get_tags
+from asl_articles.utils import get_request_args, clean_request_args, encode_tags, decode_tags, apply_attrs, \
+    make_ok_response
 
 _logger = logging.getLogger( "db" )
 
-_FIELD_NAMES = [ "*article_title", "article_subtitle", "article_snippet", "article_url", "pub_id" ]
+_FIELD_NAMES = [ "*article_title", "article_subtitle", "article_snippet", "article_url", "article_tags", "pub_id" ]
 
 # ---------------------------------------------------------------------
 
@@ -33,6 +35,7 @@ def get_article_vals( article ):
         "article_subtitle": article.article_subtitle,
         "article_snippet": article.article_snippet,
         "article_url": article.article_url,
+        "article_tags": decode_tags( article.article_tags ),
         "pub_id": article.pub_id,
     }
 
@@ -44,15 +47,17 @@ def create_article():
     vals = get_request_args( request.json, _FIELD_NAMES,
         log = ( _logger, "Create article:" )
     )
+    vals[ "article_tags" ] = encode_tags( vals.get( "article_tags" ) )
     cleaned = clean_request_args( vals, _FIELD_NAMES, _logger )
     vals[ "time_created" ] = datetime.datetime.now()
     article = Article( **vals )
     db.session.add( article ) #pylint: disable=no-member
     db.session.commit() #pylint: disable=no-member
     _logger.debug( "- New ID: %d", article.article_id )
-    return make_ok_response( cleaned=cleaned,
-        extras = { "article_id": article.article_id }
-    )
+    extras = { "article_id": article.article_id }
+    if request.args.get( "list" ):
+        extras[ "tags" ] = do_get_tags()
+    return make_ok_response( cleaned=cleaned, extras=extras )
 
 # ---------------------------------------------------------------------
 
@@ -63,6 +68,7 @@ def update_article():
     vals = get_request_args( request.json, _FIELD_NAMES,
         log = ( _logger, "Update article: id={}".format( article_id ) )
     )
+    vals[ "article_tags" ] = encode_tags( vals.get( "article_tags" ) )
     cleaned = clean_request_args( vals, _FIELD_NAMES, _logger )
     vals[ "time_updated" ] = datetime.datetime.now()
     article = Article.query.get( article_id )
@@ -70,7 +76,10 @@ def update_article():
         abort( 404 )
     apply_attrs( article, vals )
     db.session.commit() #pylint: disable=no-member
-    return make_ok_response( cleaned=cleaned )
+    extras = {}
+    if request.args.get( "list" ):
+        extras[ "tags" ] = do_get_tags()
+    return make_ok_response( cleaned=cleaned, extras=extras )
 
 # ---------------------------------------------------------------------
 
@@ -84,4 +93,7 @@ def delete_article( article_id ):
     _logger.debug( "- %s", article )
     db.session.delete( article ) #pylint: disable=no-member
     db.session.commit() #pylint: disable=no-member
-    return make_ok_response( extras={} )
+    extras = {}
+    if request.args.get( "list" ):
+        extras[ "tags" ] = do_get_tags()
+    return make_ok_response( extras=extras )

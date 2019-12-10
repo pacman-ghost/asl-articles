@@ -104,6 +104,13 @@ def get_result_names( results ):
         for r in results
     ]
 
+def find_search_result( name ):
+    """Find a search result."""
+    elems = find_children( "#search-results .search-result" )
+    elems = [ e for e in elems if find_child( ".name span", e ).text == name ]
+    assert len(elems) == 1
+    return elems[0]
+
 # ---------------------------------------------------------------------
 
 def wait_for( timeout, func ):
@@ -200,21 +207,6 @@ def check_toast( toast_type, expected, contains=False, check_others=True ):
 
 def _make_toast_stored_msg_id( toast_type ):
     return "{}_toast".format( toast_type )
-
-# ---------------------------------------------------------------------
-
-class ReactSelect:
-    """Control a react-select droplist."""
-    def __init__( self, elem ):
-        self.select = elem
-    def select_by_name( self, val ):
-        """Select an option by name."""
-        find_child( "svg", self.select ).click()
-        options = [ e for e in find_children( ".react-select__option", self.select )
-            if e.text == val
-        ]
-        assert len( options ) == 1
-        options[0].click()
 
 # ---------------------------------------------------------------------
 

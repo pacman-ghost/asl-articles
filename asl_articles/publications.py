@@ -7,11 +7,13 @@ from flask import request, jsonify, abort
 
 from asl_articles import app, db
 from asl_articles.models import Publication, Article
-from asl_articles.utils import get_request_args, clean_request_args, make_ok_response, apply_attrs
+from asl_articles.tags import do_get_tags
+from asl_articles.utils import get_request_args, clean_request_args, encode_tags, decode_tags, apply_attrs, \
+    make_ok_response
 
 _logger = logging.getLogger( "db" )
 
-_FIELD_NAMES = [ "*pub_name", "pub_edition", "pub_description", "pub_url", "publ_id" ]
+_FIELD_NAMES = [ "*pub_name", "pub_edition", "pub_description", "pub_url", "pub_tags", "publ_id" ]
 
 # ---------------------------------------------------------------------
 
@@ -51,6 +53,7 @@ def get_publication_vals( pub ):
         "pub_edition": pub.pub_edition,
         "pub_description": pub.pub_description,
         "pub_url": pub.pub_url,
+        "pub_tags": decode_tags( pub.pub_tags ),
         "publ_id": pub.publ_id,
     }
 
@@ -62,6 +65,7 @@ def create_publication():
     vals = get_request_args( request.json, _FIELD_NAMES,
         log = ( _logger, "Create publication:" )
     )
+    vals[ "pub_tags" ] = encode_tags( vals.get( "pub_tags" ) )
     cleaned = clean_request_args( vals, _FIELD_NAMES, _logger )
     vals[ "time_created" ] = datetime.datetime.now()
     pub = Publication( **vals )
@@ -71,6 +75,7 @@ def create_publication():
     extras = { "pub_id": pub.pub_id }
     if request.args.get( "list" ):
         extras[ "publications" ] = do_get_publications()
+        extras[ "tags" ] = do_get_tags()
     return make_ok_response( cleaned=cleaned, extras=extras )
 
 # ---------------------------------------------------------------------
@@ -82,6 +87,7 @@ def update_publication():
     vals = get_request_args( request.json, _FIELD_NAMES,
         log = ( _logger, "Update publication: id={}".format( pub_id ) )
     )
+    vals[ "pub_tags" ] = encode_tags( vals.get( "pub_tags" ) )
     cleaned = clean_request_args( vals, _FIELD_NAMES, _logger )
     vals[ "time_updated" ] = datetime.datetime.now()
     pub = Publication.query.get( pub_id )
@@ -92,6 +98,7 @@ def update_publication():
     extras = {}
     if request.args.get( "list" ):
         extras[ "publications" ] = do_get_publications()
+        extras[ "tags" ] = do_get_tags()
     return make_ok_response( cleaned=cleaned, extras=extras )
 
 # ---------------------------------------------------------------------
@@ -119,4 +126,5 @@ def delete_publication( pub_id ):
     extras = { "deleteArticles": deleted_articles }
     if request.args.get( "list" ):
         extras[ "publications" ] = do_get_publications()
+        extras[ "tags" ] = do_get_tags()
     return make_ok_response( extras=extras )

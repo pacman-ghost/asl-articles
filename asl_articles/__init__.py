@@ -76,6 +76,7 @@ import asl_articles.search #pylint: disable=cyclic-import
 import asl_articles.publishers #pylint: disable=cyclic-import
 import asl_articles.publications #pylint: disable=cyclic-import
 import asl_articles.articles #pylint: disable=cyclic-import
+import asl_articles.tags #pylint: disable=cyclic-import
 import asl_articles.utils #pylint: disable=cyclic-import
 
 # initialize

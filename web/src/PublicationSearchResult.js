@@ -1,8 +1,9 @@
 import React from "react" ;
 import ReactDOMServer from "react-dom/server" ;
 import Select from "react-select" ;
+import CreatableSelect from "react-select/creatable" ;
 import { gAppRef } from "./index.js" ;
-import { makeOptionalLink, pluralString } from "./utils.js" ;
+import { makeOptionalLink,  unloadCreatableSelect, pluralString } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -13,6 +14,9 @@ export class PublicationSearchResult extends React.Component
 
     render() {
         const publ = gAppRef.caches.publishers[ this.props.data.publ_id ] ;
+        let tags = [] ;
+        if ( this.props.data.pub_tags )
+            this.props.data.pub_tags.map( t => tags.push( <div key={t} className="tag"> {t} </div> ) ) ;
         return ( <div className="search-result publication"
                     ref = { r => gAppRef.setTestAttribute( r, "pub_id", this.props.data.pub_id ) }
             >
@@ -22,6 +26,7 @@ export class PublicationSearchResult extends React.Component
                 <img src="/images/delete.png" className="delete" onClick={this.onDeletePublication.bind(this)} alt="Delete this publication." />
             </div>
             <div className="description" dangerouslySetInnerHTML={{__html: this.props.data.pub_description}} />
+            { tags.length > 0 && <div className="tags"> <label>Tags:</label> {tags} </div> }
         </div> ) ;
     }
 
@@ -29,8 +34,9 @@ export class PublicationSearchResult extends React.Component
         PublicationSearchResult._doEditPublication( {}, (newVals,refs) => {
             axios.post( gAppRef.makeFlaskUrl( "/publication/create", {list:1} ), newVals )
             .then( resp => {
-                // update the cached publications
+                // update the caches
                 gAppRef.caches.publications = resp.data.publications ;
+                gAppRef.caches.tags = resp.data.tags ;
                 // unload any cleaned values
                 for ( let r in refs ) {
                     if ( resp.data.cleaned && resp.data.cleaned[r] )
@@ -56,8 +62,9 @@ export class PublicationSearchResult extends React.Component
             newVals.pub_id = this.props.data.pub_id ;
             axios.post( gAppRef.makeFlaskUrl( "/publication/update", {list:1} ), newVals )
             .then( resp => {
-                // update the cached publications
+                // update the caches
                 gAppRef.caches.publications = resp.data.publications ;
+                gAppRef.caches.tags = resp.data.tags ;
                 // update the UI with the new details
                 for ( let r in refs )
                     this.props.data[ r ] = (resp.data.cleaned && resp.data.cleaned[r]) || newVals[r] ;
@@ -76,6 +83,7 @@ export class PublicationSearchResult extends React.Component
 
     static _doEditPublication( vals, notify ) {
         let refs = {} ;
+        // initialize the publishers
         let publishers = [ { value: null, label: <i>(none)</i> } ] ;
         let currPubl = 0 ;
         for ( let p of Object.entries(gAppRef.caches.publishers) ) {
@@ -89,7 +97,9 @@ export class PublicationSearchResult extends React.Component
         publishers.sort( (lhs,rhs) => {
             return ReactDOMServer.renderToStaticMarkup( lhs.label ).localeCompare( ReactDOMServer.renderToStaticMarkup( rhs.label ) ) ;
         } ) ;
-
+        // initialize the tags
+        const tags = gAppRef.makeTagLists( vals.pub_tags ) ;
+        // prepare the form content
         const content = <div>
             <div className="row name"> <label> Name: </label>
                 <input type="text" defaultValue={vals.pub_name} ref={(r) => refs.pub_name=r} />
@@ -103,6 +113,12 @@ export class PublicationSearchResult extends React.Component
                     ref = { (r) => refs.publ_id=r }
                 />
             </div>
+            <div className="row tags"> <label> Tags: </label>
+                <CreatableSelect className="react-select" classNamePrefix="react-select" options={tags[1]} isMulti
+                    defaultValue = {tags[0]}
+                    ref = { (r) => refs.pub_tags=r }
+                />
+            </div>
             <div className="row description"> <label> Description: </label>
                 <textarea defaultValue={vals.pub_description} ref={(r) => refs.pub_description=r} />
             </div>
@@ -114,8 +130,14 @@ export class PublicationSearchResult extends React.Component
             OK: () => {
                 // unload the new values
                 let newVals = {} ;
-                for ( let r in refs )
-                    newVals[ r ] = (r === "publ_id") ? refs[r].state.value && refs[r].state.value.value : refs[r].value.trim() ;
+                for ( let r in refs ) {
+                    if ( r === "publ_id" )
+                        newVals[ r ] = refs[r].state.value && refs[r].state.value.value ;
+                    else if ( r === "pub_tags" )
+                        newVals[ r ] = unloadCreatableSelect( refs[r] ) ;
+                    else
+                        newVals[ r ] = refs[r].value.trim() ;
+                }
                 if ( newVals.pub_name === "" ) {
                     gAppRef.showErrorMsg( <div> Please specify the publication's name. </div>) ;
                     return ;
@@ -154,8 +176,9 @@ export class PublicationSearchResult extends React.Component
                     // delete the publication on the server
                     axios.get( gAppRef.makeFlaskUrl( "/publication/delete/" + this.props.data.pub_id, {list:1} ) )
                     .then( resp => {
-                        // update the cached publications
+                        // update the caches
                         gAppRef.caches.publications = resp.data.publications ;
+                        gAppRef.caches.tags = resp.data.tags ;
                         // update the UI
                         this.props.onDelete( "pub_id", this.props.data.pub_id ) ;
                         resp.data.deleteArticles.forEach( article_id => {

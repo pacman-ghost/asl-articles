@@ -6,7 +6,7 @@ import json
 from asl_articles.tests.utils import init_tests, do_search, get_result_names, \
     wait_for, wait_for_elem, find_child, find_children, set_elem_text, \
     set_toast_marker, check_toast, check_ask_dialog, check_error_msg
-from asl_articles.tests.utils import ReactSelect
+from asl_articles.tests.react_select import ReactSelect
 
 # ---------------------------------------------------------------------
 
@@ -24,17 +24,20 @@ def test_edit_article( webdriver, flask_app, dbconn ):
         "title": "  Updated title  ",
         "subtitle": "  Updated subtitle  ",
         "snippet": "  Updated snippet.  ",
+        "tags": [ "+abc", "+xyz" ],
         "url": "  http://updated-article.com  ",
     } )
 
     # check that the search result was updated in the UI
     results = find_children( "#search-results .search-result" )
     result = results[0]
-    _check_result( result, [ "Updated title", "Updated subtitle", "Updated snippet.", "http://updated-article.com/" ] )
+    _check_result( result,
+        [ "Updated title", "Updated subtitle", "Updated snippet.", ["abc","xyz"], "http://updated-article.com/" ]
+    )
 
     # try to remove all fields from the article (should fail)
     _edit_article( result,
-        { "title": "", "subtitle": "", "snippet": "", "url": "" },
+        { "title": "", "subtitle": "", "snippet": "", "tags": ["-abc","-xyz"], "url": "" },
         expected_error = "Please specify the article's title."
     )
 
@@ -49,10 +52,11 @@ def test_edit_article( webdriver, flask_app, dbconn ):
     assert find_child( ".title a", result ) is None
     assert find_child( ".title", result ).text == "Tin Cans Rock!"
     assert find_child( ".snippet", result ).text == ""
+    assert find_children( ".tag", result ) == []
 
     # check that the search result was updated in the database
     results = do_search( "tin can" )
-    _check_result( results[0], [ "Tin Cans Rock!", None, "", None ] )
+    _check_result( results[0], [ "Tin Cans Rock!", None, "", [], None ] )
 
 # ---------------------------------------------------------------------
 
@@ -71,6 +75,8 @@ def test_create_article( webdriver, flask_app, dbconn ):
     set_elem_text( find_child( ".title input", dlg ), "New article" )
     set_elem_text( find_child( ".subtitle input", dlg ), "New subtitle" )
     set_elem_text( find_child( ".snippet textarea", dlg ), "New snippet." )
+    select = ReactSelect( find_child( ".tags .react-select", dlg ) )
+    select.update_multiselect_values( "+111", "+222", "+333" )
     set_elem_text( find_child( ".url input", dlg ), "http://new-snippet.com" )
     set_toast_marker( "info" )
     find_child( "button.ok", dlg ).click()
@@ -81,7 +87,7 @@ def test_create_article( webdriver, flask_app, dbconn ):
     # check that the new article appears in the UI
     def check_new_article( result ):
         _check_result( result, [
-            "New article", "New subtitle", "New snippet.", "http://new-snippet.com/"
+            "New article", "New subtitle", "New snippet.", ["111","222","333"], "http://new-snippet.com/"
         ] )
     results = find_children( "#search-results .search-result" )
     check_new_article( results[0] )
@@ -197,6 +203,7 @@ def test_unicode( webdriver, flask_app, dbconn ):
         "title": "japan = \u65e5\u672c",
         "subtitle": "s.korea = \ud55c\uad6d",
         "snippet": "greece = \u0395\u03bb\u03bb\u03ac\u03b4\u03b1",
+        "tags": [ "+\u0e51", "+\u0e52", "+\u0e53" ],
         "url": "http://\ud55c\uad6d.com"
     } )
 
@@ -207,6 +214,7 @@ def test_unicode( webdriver, flask_app, dbconn ):
         "japan = \u65e5\u672c",
         "s.korea = \ud55c\uad6d",
         "greece = \u0395\u03bb\u03bb\u03ac\u03b4\u03b1",
+        [ "\u0e51", "\u0e52", "\u0e53" ],
         "http://xn--3e0b707e.com/"
     ] )
 
@@ -231,7 +239,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     )
     assert len( results ) == 1
     result = results[0]
-    _check_result( result, [ "title: bold xxx italic", "italicized subtitle", "bad stuff here:", None ] )
+    _check_result( result, [ "title: bold xxx italic", "italicized subtitle", "bad stuff here:", [], None ] )
     assert find_child( ".title span" ).get_attribute( "innerHTML" ) \
         == "title: <span> <b>bold</b> xxx <i>italic</i></span>"
     assert find_child( ".subtitle" ).get_attribute( "innerHTML" ) \
@@ -261,8 +269,12 @@ def _create_article( vals, toast_type="info" ):
     find_child( "#menu .new-article" ).click()
     dlg = wait_for_elem( 2, "#modal-form" )
     for k,v in vals.items():
-        sel = ".{} {}".format( k , "textarea" if k == "snippet" else "input" )
-        set_elem_text( find_child( sel, dlg ), v )
+        if k == "tags":
+            select = ReactSelect( find_child( ".tags .react-select", dlg ) )
+            select.update_multiselect_values( *v )
+        else:
+            sel = ".{} {}".format( k , "textarea" if k == "snippet" else "input" )
+            set_elem_text( find_child( sel, dlg ), v )
     find_child( "button.ok", dlg ).click()
     if toast_type:
         # check that the new article was created successfully
@@ -279,6 +291,9 @@ def _edit_article( result, vals, toast_type="info", expected_error=None ):
         if k == "publication":
             select = ReactSelect( find_child( ".publication .react-select", dlg ) )
             select.select_by_name( v )
+        elif k == "tags":
+            select = ReactSelect( find_child( ".tags .react-select", dlg ) )
+            select.update_multiselect_values( *v )
         else:
             sel = ".{} {}".format( k , "textarea" if k == "snippet" else "input" )
             set_elem_text( find_child( sel, dlg ), v )
@@ -297,15 +312,21 @@ def _edit_article( result, vals, toast_type="info", expected_error=None ):
 
 def _check_result( result, expected ):
     """Check a result."""
+    # check the title and subtitle
     assert find_child( ".title span", result ).text == expected[0]
     elem = find_child( ".subtitle", result )
     if elem:
         assert elem.text == expected[1]
     else:
         assert expected[1] is None
+    # check the snippet
     assert find_child( ".snippet", result ).text == expected[2]
+    # check the tags
+    tags = [ t.text for t in find_children( ".tag", result ) ]
+    assert tags == expected[3]
+    # check the article's link
     elem = find_child( ".title a", result )
     if elem:
-        assert elem.get_attribute( "href" ) == expected[3]
+        assert elem.get_attribute( "href" ) == expected[4]
     else:
-        assert expected[3] is None
+        assert expected[4] is None

@@ -112,6 +112,23 @@ def load_html_whitelists( app ):
 
 # ---------------------------------------------------------------------
 
+def encode_tags( tags ):
+    """Encode tags prior to storing them in the database."""
+    # FUDGE! We store tags as a single string in the database, using ; as a separator, which means
+    # that we can't have a semicolon in a tag itself :-/, so we replace them with a comma.
+    if not tags:
+        return None
+    tags = [ t.replace( ";", "," ) for t in tags ]
+    return ";".join( t.lower() for t in tags )
+
+def decode_tags( tags ):
+    """Decode tags after loading them from the database."""
+    if not tags:
+        return None
+    return tags.split( ";" )
+
+# ---------------------------------------------------------------------
+
 def apply_attrs( obj, vals ):
     """Update an object's attributes."""
     for k,v in vals.items():

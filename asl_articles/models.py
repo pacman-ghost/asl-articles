@@ -33,6 +33,7 @@ class Publication( db.Model ):
     pub_edition = db.Column( db.String(100), nullable=True )
     pub_description = db.Column( db.String(1000), nullable=True )
     pub_url = db.Column( db.String(500), nullable=True )
+    pub_tags = db.Column( db.String(1000), nullable=True )
     publ_id = db.Column( db.Integer,
         db.ForeignKey( Publisher.__table__.c.publ_id, ondelete="CASCADE" ),
         nullable=True
@@ -57,6 +58,7 @@ class Article( db.Model ):
     article_subtitle = db.Column( db.String(200), nullable=True )
     article_snippet = db.Column( db.String(5000), nullable=True )
     article_url = db.Column( db.String(500), nullable=True )
+    article_tags = db.Column( db.String(1000), nullable=True )
     pub_id = db.Column( db.Integer,
         db.ForeignKey( Publication.__table__.c.pub_id, ondelete="CASCADE" ),
         nullable=True

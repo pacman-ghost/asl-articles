@@ -6,7 +6,7 @@ import json
 from asl_articles.tests.utils import init_tests, init_db, do_search, get_result_names, \
     wait_for, wait_for_elem, find_child, find_children, set_elem_text, \
     set_toast_marker, check_toast, check_ask_dialog, check_error_msg
-from asl_articles.tests.utils import ReactSelect
+from asl_articles.tests.react_select import ReactSelect
 
 # ---------------------------------------------------------------------
 
@@ -24,17 +24,20 @@ def test_edit_publication( webdriver, flask_app, dbconn ):
         "name": "  ASL Journal (updated)  ",
         "edition": "  2a  ",
         "description": "  Updated ASLJ description.  ",
+        "tags": [ "+abc", "+xyz" ],
         "url": "  http://aslj-updated.com  ",
     } )
 
     # check that the search result was updated in the UI
     results = find_children( "#search-results .search-result" )
     result = results[1]
-    _check_result( result, [ "ASL Journal (updated)", "2a", "Updated ASLJ description.", "http://aslj-updated.com/" ] )
+    _check_result( result,
+        [ "ASL Journal (updated)", "2a", "Updated ASLJ description.", ["abc","xyz"], "http://aslj-updated.com/" ]
+    )
 
     # try to remove all fields from "ASL Journal #2" (should fail)
     _edit_publication( result,
-        { "name": "", "edition": "", "description": "", "url": "" },
+        { "name": "", "edition": "", "description": "", "tags":["-abc","-xyz"], "url": "" },
         expected_error = "Please specify the publication's name."
     )
 
@@ -49,6 +52,7 @@ def test_edit_publication( webdriver, flask_app, dbconn ):
     assert find_child( ".name a", result ) is None
     assert find_child( ".name", result ).text == "Updated ASL Journal"
     assert find_child( ".description", result ).text == ""
+    assert find_children( ".tag", result ) == []
 
     # check that the search result was updated in the database
     results = do_search( "ASL Journal" )
@@ -71,6 +75,8 @@ def test_create_publication( webdriver, flask_app, dbconn ):
     set_elem_text( find_child( ".name input", dlg ), "New publication" )
     set_elem_text( find_child( ".edition input", dlg ), "#1" )
     set_elem_text( find_child( ".description textarea", dlg ), "New publication description." )
+    select = ReactSelect( find_child( ".tags .react-select", dlg ) )
+    select.update_multiselect_values( "+111", "+222", "+333" )
     set_elem_text( find_child( ".url input", dlg ), "http://new-publication.com" )
     set_toast_marker( "info" )
     find_child( "button.ok", dlg ).click()
@@ -81,7 +87,7 @@ def test_create_publication( webdriver, flask_app, dbconn ):
     # check that the new publication appears in the UI
     def check_new_publication( result ):
         _check_result( result, [
-            "New publication", "#1", "New publication description.", "http://new-publication.com/"
+            "New publication", "#1", "New publication description.", ["111","222","333"], "http://new-publication.com/"
         ] )
     results = find_children( "#search-results .search-result" )
     check_new_publication( results[0] )
@@ -240,6 +246,7 @@ def test_unicode( webdriver, flask_app, dbconn ):
     _create_publication( {
         "name": "japan = \u65e5\u672c",
         "edition": "\u263a",
+        "tags": [ "+\u0e51", "+\u0e52", "+\u0e53" ],
         "url": "http://\ud55c\uad6d.com",
         "description": "greece = \u0395\u03bb\u03bb\u03ac\u03b4\u03b1"
     } )
@@ -250,6 +257,7 @@ def test_unicode( webdriver, flask_app, dbconn ):
     _check_result( results[0], [
         "japan = \u65e5\u672c",  "\u263a",
         "greece = \u0395\u03bb\u03bb\u03ac\u03b4\u03b1",
+        [ "\u0e51", "\u0e52", "\u0e53" ],
         "http://xn--3e0b707e.com/"
     ] )
 
@@ -274,7 +282,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     )
     assert len( results ) == 1
     result = results[0]
-    _check_result( result, [ "name: bold xxx italic", "2", "bad stuff here:", None ] )
+    _check_result( result, [ "name: bold xxx italic", "2", "bad stuff here:", [], None ] )
     assert find_child( ".name span" ).get_attribute( "innerHTML" ) \
         == "name: <span> <b>bold</b> xxx <i>italic</i></span> (<i>2</i>)"
     assert check_toast( "warning", "Some values had HTML removed.", contains=True )
@@ -302,8 +310,12 @@ def _create_publication( vals, toast_type="info" ):
     find_child( "#menu .new-publication" ).click()
     dlg = wait_for_elem( 2, "#modal-form" )
     for k,v in vals.items():
-        sel = ".{} {}".format( k , "textarea" if k == "description" else "input" )
-        set_elem_text( find_child( sel, dlg ), v )
+        if k == "tags":
+            select = ReactSelect( find_child( ".tags .react-select", dlg ) )
+            select.update_multiselect_values( *v )
+        else:
+            sel = ".{} {}".format( k , "textarea" if k == "description" else "input" )
+            set_elem_text( find_child( sel, dlg ), v )
     find_child( "button.ok", dlg ).click()
     if toast_type:
         # check that the new publication was created successfully
@@ -320,6 +332,9 @@ def _edit_publication( result, vals, toast_type="info", expected_error=None ):
         if k == "publisher":
             select = ReactSelect( find_child( ".publisher .react-select", dlg ) )
             select.select_by_name( v )
+        elif k == "tags":
+            select = ReactSelect( find_child( ".tags .react-select", dlg ) )
+            select.update_multiselect_values( *v )
         else:
             sel = ".{} {}".format( k , "textarea" if k == "description" else "input" )
             set_elem_text( find_child( sel, dlg ), v )
@@ -338,13 +353,19 @@ def _edit_publication( result, vals, toast_type="info", expected_error=None ):
 
 def _check_result( result, expected ):
     """Check a result."""
+    # check the name and edition
     expected_name = expected[0]
     if expected[1]:
         expected_name += " ({})".format( expected[1] )
     assert find_child( ".name", result ).text == expected_name
+    # check the description
     assert find_child( ".description", result ).text == expected[2]
+    # check the tags
+    tags = [ t.text for t in find_children( ".tag", result ) ]
+    assert tags == expected[3]
+    # check the publication's link
     elem = find_child( ".name a", result )
     if elem:
-        assert elem.get_attribute( "href" ) == expected[3]
+        assert elem.get_attribute( "href" ) == expected[4]
     else:
-        assert expected[3] is None
+        assert expected[4] is None

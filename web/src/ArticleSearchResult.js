@@ -1,8 +1,9 @@
 import React from "react" ;
 import ReactDOMServer from "react-dom/server" ;
 import Select from "react-select" ;
+import CreatableSelect from "react-select/creatable" ;
 import { gAppRef } from "./index.js" ;
-import { makeOptionalLink } from "./utils.js" ;
+import { makeOptionalLink, unloadCreatableSelect } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -13,6 +14,9 @@ export class ArticleSearchResult extends React.Component
 
     render() {
         const pub = gAppRef.caches.publications[ this.props.data.pub_id ] ;
+        let tags = [] ;
+        if ( this.props.data.article_tags )
+            this.props.data.article_tags.map( t => tags.push( <div key={t} className="tag"> {t} </div> ) ) ;
         // NOTE: The "title" field is also given the CSS class "name" so that the normal CSS will apply to it.
         // Some tests also look for a generic ".name" class name when checking search results.
         return ( <div className="search-result article"
@@ -25,13 +29,16 @@ export class ArticleSearchResult extends React.Component
                 { this.props.data.article_subtitle && <div className="subtitle" dangerouslySetInnerHTML={{ __html: this.props.data.article_subtitle }} /> }
             </div>
             <div className="snippet" dangerouslySetInnerHTML={{__html: this.props.data.article_snippet}} />
+            { tags.length > 0 && <div className="tags"> <label>Tags:</label> {tags} </div> }
         </div> ) ;
     }
 
     static onNewArticle( notify ) {
         ArticleSearchResult._doEditArticle( {}, (newVals,refs) => {
-            axios.post( gAppRef.makeFlaskUrl( "/article/create" ), newVals )
+            axios.post( gAppRef.makeFlaskUrl( "/article/create", {list:1} ), newVals )
             .then( resp => {
+                // update the cached tags
+                gAppRef.caches.tags = resp.data.tags ;
                 // unload any cleaned values
                 for ( let r in refs ) {
                     if ( resp.data.cleaned && resp.data.cleaned[r] )
@@ -55,8 +62,10 @@ export class ArticleSearchResult extends React.Component
         ArticleSearchResult._doEditArticle( this.props.data, (newVals,refs) => {
             // send the updated details to the server
             newVals.article_id = this.props.data.article_id ;
-            axios.post( gAppRef.makeFlaskUrl( "/article/update" ), newVals )
+            axios.post( gAppRef.makeFlaskUrl( "/article/update", {list:1} ), newVals )
             .then( resp => {
+                // update the cached tags
+                gAppRef.caches.tags = resp.data.tags ;
                 // update the UI with the new details
                 for ( let r in refs )
                     this.props.data[ r ] = (resp.data.cleaned && resp.data.cleaned[r]) || newVals[r] ;
@@ -75,6 +84,7 @@ export class ArticleSearchResult extends React.Component
 
     static _doEditArticle( vals, notify ) {
         let refs = {} ;
+        // initialize the publications
         let publications = [ { value: null, label: <i>(none)</i> } ] ;
         let currPub = 0 ;
         for ( let p of Object.entries(gAppRef.caches.publications) ) {
@@ -88,6 +98,9 @@ export class ArticleSearchResult extends React.Component
         publications.sort( (lhs,rhs) => {
             return ReactDOMServer.renderToStaticMarkup( lhs.label ).localeCompare( ReactDOMServer.renderToStaticMarkup( rhs.label ) ) ;
         } ) ;
+        // initialize the tags
+        const tags = gAppRef.makeTagLists( vals.article_tags ) ;
+        // prepare the form content
         const content = <div>
             <div className="row title"> <label> Title: </label>
                 <input type="text" defaultValue={vals.article_title} ref={(r) => refs.article_title=r} />
@@ -101,6 +114,12 @@ export class ArticleSearchResult extends React.Component
                     ref = { (r) => refs.pub_id=r }
                 />
             </div>
+            <div className="row tags"> <label> Tags: </label>
+                <CreatableSelect className="react-select" classNamePrefix="react-select" options={tags[1]} isMulti
+                    defaultValue = {tags[0]}
+                    ref = { (r) => refs.article_tags=r }
+                />
+            </div>
             <div className="row snippet"> <label> Snippet: </label>
                 <textarea defaultValue={vals.article_snippet} ref={(r) => refs.article_snippet=r} />
             </div>
@@ -112,8 +131,14 @@ export class ArticleSearchResult extends React.Component
             OK: () => {
                 // unload the new values
                 let newVals = {} ;
-                for ( let r in refs )
-                    newVals[ r ] = (r === "pub_id") ? refs[r].state.value && refs[r].state.value.value : refs[r].value.trim() ;
+                for ( let r in refs ) {
+                    if ( r === "pub_id" )
+                        newVals[ r ] = refs[r].state.value && refs[r].state.value.value ;
+                    else if ( r === "article_tags" )
+                        newVals[ r ] =  unloadCreatableSelect( refs[r] ) ;
+                    else
+                        newVals[ r ] = refs[r].value.trim() ;
+                }
                 if ( newVals.article_title === "" ) {
                     gAppRef.showErrorMsg( <div> Please specify the article's title. </div>) ;
                     return ;
@@ -136,8 +161,10 @@ export class ArticleSearchResult extends React.Component
         gAppRef.ask( content, "ask", {
             "OK": () => {
                 // delete the article on the server
-                axios.get( gAppRef.makeFlaskUrl( "/article/delete/" + this.props.data.article_id ) )
+                axios.get( gAppRef.makeFlaskUrl( "/article/delete/" + this.props.data.article_id, {list:1} ) )
                 .then( resp => {
+                    // update the cached tags
+                    gAppRef.caches.tags = resp.data.tags ;
                     // update the UI
                     this.props.onDelete( "article_id", this.props.data.article_id ) ;
                     if ( resp.data.warning )

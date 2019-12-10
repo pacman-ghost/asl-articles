@@ -93,6 +93,13 @@ export default class App extends React.Component
         .catch( err => {
             this.showErrorToast( <div> Couldn't load the publications: <div className="monospace"> {err.toString()} </div> </div> ) ;
         } ) ;
+        axios.get( this.makeFlaskUrl( "/tags" ) )
+        .then( resp => {
+            this.caches.tags = resp.data ;
+        } )
+        .catch( err => {
+            this.showErrorToast( <div> Couldn't load the tags: <div className="monospace"> {err.toString()} </div> </div> ) ;
+        } ) ;
     }
 
     onSearch( query ) {
@@ -196,6 +203,18 @@ export default class App extends React.Component
         console.log( "INTERNAL ERROR: " + msg ) ;
         if ( detail )
             console.log( detail ) ;
+    }
+
+    makeTagLists( tags ) {
+        // convert the tags into a list suitable for CreatableSelect
+        // NOTE: react-select uses the "value" field to determine which choices have already been selected
+        // and thus should not be shown in the droplist of available choices.
+        let tagList = [] ;
+        if ( tags )
+            tags.map( tag => tagList.push( { value: tag, label: tag } ) ) ;
+        // create another list for all known tags
+        let allTags = this.caches.tags.map( tag => { return { value: tag[0], label: tag[0] } } ) ;
+        return [ tagList, allTags ] ;
     }
 
     makeFlaskUrl( url, args ) {
