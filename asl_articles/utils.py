@@ -83,15 +83,16 @@ def clean_html( val ):
     buf = cleaner.clean_html( val )
 
     # clean up the results
-    buf = re.sub( r"\s+", " ", buf )
-    buf = re.sub( r"^\s+", "", buf, re.MULTILINE )
-    buf = re.sub( r"\s+$", "", buf, re.MULTILINE )
-    if buf.startswith( "<p>" ) and buf.endswith( "</p>" ):
-        buf = buf[3:-4]
-    if buf.startswith( "<div>" ) and buf.endswith( "</div>" ):
-        buf = buf[5:-6]
-    if buf.startswith( "<span>" ) and buf.endswith( "</span>" ):
-        buf = buf[6:-7]
+    while True:
+        prev_buf = buf
+        buf = re.sub( r"\s+", " ", buf )
+        buf = re.sub( r"^\s+", "", buf, re.MULTILINE )
+        buf = re.sub( r"\s+$", "", buf, re.MULTILINE )
+        for tag in ["body","p","div","span"]:
+            if buf.startswith( "<{}>".format(tag) ) and buf.endswith( "</{}>".format(tag) ):
+                buf = buf[ len(tag)+2 : -len(tag)-3 ]
+        if buf == prev_buf:
+            break
     return buf.strip()
 
 def load_html_whitelists( app ):
