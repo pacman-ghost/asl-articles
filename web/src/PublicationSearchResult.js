@@ -3,7 +3,7 @@ import ReactDOMServer from "react-dom/server" ;
 import Select from "react-select" ;
 import CreatableSelect from "react-select/creatable" ;
 import { gAppRef } from "./index.js" ;
-import { makeOptionalLink,  unloadCreatableSelect, pluralString } from "./utils.js" ;
+import { makeOptionalLink,  unloadCreatableSelect, pluralString, applyUpdatedVals } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -37,15 +37,12 @@ export class PublicationSearchResult extends React.Component
                 // update the caches
                 gAppRef.caches.publications = resp.data.publications ;
                 gAppRef.caches.tags = resp.data.tags ;
-                // unload any cleaned values
-                for ( let r in refs ) {
-                    if ( resp.data.cleaned && resp.data.cleaned[r] )
-                        newVals[ r ] = resp.data.cleaned[ r ] ;
-                }
+                // unload any updated values
+                applyUpdatedVals( newVals, newVals, resp.data.updated, refs ) ;
                 // update the UI with the new details
                 notify( resp.data.pub_id, newVals ) ;
-                if ( resp.data.warning )
-                    gAppRef.showWarningToast( <div> The new publication was created OK. <p> {resp.data.warning} </p> </div> ) ;
+                if ( resp.data.warnings )
+                    gAppRef.showWarnings( "The new publication was created OK.", resp.data.warnings ) ;
                 else
                     gAppRef.showInfoToast( <div> The new publication was created OK. </div> ) ;
                 gAppRef.closeModalForm() ;
@@ -66,11 +63,10 @@ export class PublicationSearchResult extends React.Component
                 gAppRef.caches.publications = resp.data.publications ;
                 gAppRef.caches.tags = resp.data.tags ;
                 // update the UI with the new details
-                for ( let r in refs )
-                    this.props.data[ r ] = (resp.data.cleaned && resp.data.cleaned[r]) || newVals[r] ;
+                applyUpdatedVals( this.props.data, newVals, resp.data.updated, refs ) ;
                 this.forceUpdate() ;
-                if ( resp.data.warning )
-                    gAppRef.showWarningToast( <div> The publication was updated OK. <p> {resp.data.warning} </p> </div> ) ;
+                if ( resp.data.warnings )
+                    gAppRef.showWarnings( "The publication was updated OK.", resp.data.warnings ) ;
                 else
                     gAppRef.showInfoToast( <div> The publication was updated OK. </div> ) ;
                 gAppRef.closeModalForm() ;
@@ -133,9 +129,10 @@ export class PublicationSearchResult extends React.Component
                 for ( let r in refs ) {
                     if ( r === "publ_id" )
                         newVals[ r ] = refs[r].state.value && refs[r].state.value.value ;
-                    else if ( r === "pub_tags" )
-                        newVals[ r ] = unloadCreatableSelect( refs[r] ) ;
-                    else
+                    else if ( r === "pub_tags" ) {
+                        let vals = unloadCreatableSelect( refs[r] ) ;
+                        newVals[ r ] = vals.map( v => v.label ) ;
+                    } else
                         newVals[ r ] = refs[r].value.trim() ;
                 }
                 if ( newVals.pub_name === "" ) {
@@ -184,8 +181,8 @@ export class PublicationSearchResult extends React.Component
                         resp.data.deleteArticles.forEach( article_id => {
                             this.props.onDelete( "article_id", article_id ) ;
                         } ) ;
-                        if ( resp.data.warning )
-                            gAppRef.showWarningToast( <div> The publication was deleted. <p> {resp.data.warning} </p> </div> ) ;
+                        if ( resp.data.warnings )
+                            gAppRef.showWarnings( "The publication was deleted.", resp.data.warnings ) ;
                         else
                             gAppRef.showInfoToast( <div> The publication was deleted. </div> ) ;
                     } )

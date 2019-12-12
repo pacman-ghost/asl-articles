@@ -288,7 +288,10 @@ def _edit_article( result, vals, toast_type="info", expected_error=None ):
     find_child( ".edit", result ).click()
     dlg = wait_for_elem( 2, "#modal-form" )
     for k,v in vals.items():
-        if k == "publication":
+        if k == "authors":
+            select = ReactSelect( find_child( ".authors .react-select", dlg ) )
+            select.update_multiselect_values( *v )
+        elif k == "publication":
             select = ReactSelect( find_child( ".publication .react-select", dlg ) )
             select.select_by_name( v )
         elif k == "tags":

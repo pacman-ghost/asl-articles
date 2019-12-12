@@ -27,7 +27,7 @@ export default class App extends React.Component
             searchSeqNo: 0,
             modalForm: null,
             askDialog: null,
-            startupTasks: [ "caches.publishers", "caches.publications", "caches.tags" ],
+            startupTasks: [ "caches.publishers", "caches.publications", "caches.authors", "caches.tags" ],
         } ;
 
         // initialize
@@ -84,10 +84,10 @@ export default class App extends React.Component
 
     componentDidMount() {
         // initialize the caches
-        // NOTE: We maintain caches of the publishers and publications, so that we can quickly populate droplists.
-        // The backend server returns updated lists after any operation that could change them (create/update/delete),
-        // which is simpler and less error-prone than trying to manually keep our caches in sync. It's less efficient,
-        // but it won't happen too often, there won't be too many entries, and the database server is local.
+        // NOTE: We maintain caches of key objects, so that we can quickly populate droplists. The backend server returns
+        // updated lists after any operation that could change them (create/update/delete), which is simpler and less error-prone
+        // than trying to manually keep our caches in sync. It's less efficient, but it won't happen too often, there won't be
+        // too many entries, and the database server is local.
         this.caches = {} ;
         axios.get( this.makeFlaskUrl( "/publishers" ) )
         .then( resp => {
@@ -104,6 +104,14 @@ export default class App extends React.Component
         } )
         .catch( err => {
             this.showErrorToast( <div> Couldn't load the publications: <div className="monospace"> {err.toString()} </div> </div> ) ;
+        } ) ;
+        axios.get( this.makeFlaskUrl( "/authors" ) )
+        .then( resp => {
+            this.caches.authors = resp.data ;
+            this._onStartupTask( "caches.authors" ) ;
+        } )
+        .catch( err => {
+            this.showErrorToast( <div> Couldn't load the authors: <div className="monospace"> {err.toString()} </div> </div> ) ;
         } ) ;
         axios.get( this.makeFlaskUrl( "/tags" ) )
         .then( resp => {
@@ -185,6 +193,19 @@ export default class App extends React.Component
         this.ask( content, "error",
             { "OK": null }
         ) ;
+    }
+
+    showWarnings( caption, warnings ) {
+        let content ;
+        if ( !warnings || warnings.length === 0 )
+            content = caption ;
+        else if ( warnings.length === 1 )
+            content = <div> {caption} <p> {warnings[0]} </p> </div> ;
+        else {
+            let bullets = warnings.map( (warning,i) => <li key={i}> {warning} </li> ) ;
+            content = <div> {caption} <ul> {bullets} </ul> </div> ;
+        }
+        this.showWarningToast( content ) ;
     }
 
     ask( content, iconType, buttons ) {

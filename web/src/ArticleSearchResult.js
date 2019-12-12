@@ -3,7 +3,7 @@ import ReactDOMServer from "react-dom/server" ;
 import Select from "react-select" ;
 import CreatableSelect from "react-select/creatable" ;
 import { gAppRef } from "./index.js" ;
-import { makeOptionalLink, unloadCreatableSelect } from "./utils.js" ;
+import { makeOptionalLink, unloadCreatableSelect, applyUpdatedVals } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -37,17 +37,15 @@ export class ArticleSearchResult extends React.Component
         ArticleSearchResult._doEditArticle( {}, (newVals,refs) => {
             axios.post( gAppRef.makeFlaskUrl( "/article/create", {list:1} ), newVals )
             .then( resp => {
-                // update the cached tags
+                // update the caches
+                gAppRef.caches.authors = resp.data.authors ;
                 gAppRef.caches.tags = resp.data.tags ;
-                // unload any cleaned values
-                for ( let r in refs ) {
-                    if ( resp.data.cleaned && resp.data.cleaned[r] )
-                        newVals[ r ] = resp.data.cleaned[ r ] ;
-                }
+                // unload any updated values
+                applyUpdatedVals( newVals, newVals, resp.data.updated, refs ) ;
                 // update the UI with the new details
                 notify( resp.data.article_id, newVals ) ;
-                if ( resp.data.warning )
-                    gAppRef.showWarningToast( <div> The new article was created OK. <p> {resp.data.warning} </p> </div> ) ;
+                if ( resp.data.warnings )
+                    gAppRef.showWarnings( "The new article was created OK.", resp.data.warnings ) ;
                 else
                     gAppRef.showInfoToast( <div> The new article was created OK. </div> ) ;
                 gAppRef.closeModalForm() ;
@@ -64,14 +62,14 @@ export class ArticleSearchResult extends React.Component
             newVals.article_id = this.props.data.article_id ;
             axios.post( gAppRef.makeFlaskUrl( "/article/update", {list:1} ), newVals )
             .then( resp => {
-                // update the cached tags
+                // update the caches
+                gAppRef.caches.authors = resp.data.authors ;
                 gAppRef.caches.tags = resp.data.tags ;
                 // update the UI with the new details
-                for ( let r in refs )
-                    this.props.data[ r ] = (resp.data.cleaned && resp.data.cleaned[r]) || newVals[r] ;
+                applyUpdatedVals( this.props.data, newVals, resp.data.updated, refs ) ;
                 this.forceUpdate() ;
-                if ( resp.data.warning )
-                    gAppRef.showWarningToast( <div> The article was updated OK. <p> {resp.data.warning} </p> </div> ) ;
+                if ( resp.data.warnings )
+                    gAppRef.showWarnings( "The article was updated OK.", resp.data.warnings ) ;
                 else
                     gAppRef.showInfoToast( <div> The article was updated OK. </div> ) ;
                 gAppRef.closeModalForm() ;
@@ -98,6 +96,17 @@ export class ArticleSearchResult extends React.Component
         publications.sort( (lhs,rhs) => {
             return ReactDOMServer.renderToStaticMarkup( lhs.label ).localeCompare( ReactDOMServer.renderToStaticMarkup( rhs.label ) ) ;
         } ) ;
+        // initialize the authors
+        let authors = [] ;
+        for ( let a of Object.entries(gAppRef.caches.authors) )
+            authors.push( { value: a[1].author_id, label: a[1].author_name }  );
+        authors.sort( (lhs,rhs) => { return lhs.label.localeCompare( rhs.label ) ; } ) ;
+        let currAuthors = [] ;
+        if ( vals.article_authors ) {
+            currAuthors = vals.article_authors.map( a => {
+                return { value: a, label: gAppRef.caches.authors[a].author_name }
+            } ) ;
+        }
         // initialize the tags
         const tags = gAppRef.makeTagLists( vals.article_tags ) ;
         // prepare the form content
@@ -107,6 +116,12 @@ export class ArticleSearchResult extends React.Component
             </div>
             <div className="row subtitle"> <label> Subtitle: </label>
                 <input type="text" defaultValue={vals.article_subtitle} ref={(r) => refs.article_subtitle=r} />
+            </div>
+            <div className="row authors"> <label> Authors: </label>
+                <CreatableSelect className="react-select" classNamePrefix="react-select" options={authors} isMulti
+                    defaultValue = {currAuthors}
+                    ref = { (r) => refs.article_authors=r }
+                />
             </div>
             <div className="row publication"> <label> Publication: </label>
                 <Select className="react-select" classNamePrefix="react-select" options={publications} isSearchable={true}
@@ -134,9 +149,20 @@ export class ArticleSearchResult extends React.Component
                 for ( let r in refs ) {
                     if ( r === "pub_id" )
                         newVals[ r ] = refs[r].state.value && refs[r].state.value.value ;
-                    else if ( r === "article_tags" )
-                        newVals[ r ] =  unloadCreatableSelect( refs[r] ) ;
-                    else
+                    else if ( r === "article_authors" ) {
+                        let vals = unloadCreatableSelect( refs[r] ) ;
+                        newVals.article_authors = [] ;
+                        vals.forEach( v => {
+                            if ( v.__isNew__ )
+                                newVals.article_authors.push( v.label ) ; // nb: string = new author name
+                            else
+                                newVals.article_authors.push( v.value ) ; // nb: integer = existing author ID
+                        } ) ;
+                    }
+                    else if ( r === "article_tags" ) {
+                        let vals=  unloadCreatableSelect( refs[r] ) ;
+                        newVals[ r ] =  vals.map( v => v.label ) ;
+                    } else
                         newVals[ r ] = refs[r].value.trim() ;
                 }
                 if ( newVals.article_title === "" ) {
@@ -163,12 +189,13 @@ export class ArticleSearchResult extends React.Component
                 // delete the article on the server
                 axios.get( gAppRef.makeFlaskUrl( "/article/delete/" + this.props.data.article_id, {list:1} ) )
                 .then( resp => {
-                    // update the cached tags
+                    // update the caches
+                    gAppRef.caches.authors = resp.data.authors ;
                     gAppRef.caches.tags = resp.data.tags ;
                     // update the UI
                     this.props.onDelete( "article_id", this.props.data.article_id ) ;
-                    if ( resp.data.warning )
-                        gAppRef.showWarningToast( <div> The article was deleted. <p> {resp.data.warning} </p> </div> ) ;
+                    if ( resp.data.warnings )
+                        gAppRef.showWarnings( "The article was deleted.", resp.data.warnings ) ;
                     else
                         gAppRef.showInfoToast( <div> The article was deleted. </div> ) ;
                 } )

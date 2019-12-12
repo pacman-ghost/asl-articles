@@ -1,6 +1,6 @@
 import React from "react" ;
 import { gAppRef } from "./index.js" ;
-import { makeOptionalLink, pluralString } from "./utils.js" ;
+import { makeOptionalLink, pluralString, applyUpdatedVals } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -27,15 +27,12 @@ export class PublisherSearchResult extends React.Component
             .then( resp => {
                 // update the cached publishers
                 gAppRef.caches.publishers = resp.data.publishers ;
-                // unload any cleaned values
-                for ( let r in refs ) {
-                    if ( resp.data.cleaned && resp.data.cleaned[r] )
-                        newVals[ r ] = resp.data.cleaned[ r ] ;
-                }
+                // unload any updated values
+                applyUpdatedVals( newVals, newVals, resp.data.updated, refs ) ;
                 // update the UI with the new details
                 notify( resp.data.publ_id, newVals ) ;
-                if ( resp.data.warning )
-                    gAppRef.showWarningToast( <div> The new publisher was created OK. <p> {resp.data.warning} </p> </div> ) ;
+                if ( resp.data.warnings )
+                    gAppRef.showWarnings( "The new publisher was created OK.", resp.data.warnings ) ;
                 else
                     gAppRef.showInfoToast( <div> The new publisher was created OK. </div> ) ;
                 gAppRef.closeModalForm() ;
@@ -55,11 +52,10 @@ export class PublisherSearchResult extends React.Component
                 // update the cached publishers
                 gAppRef.caches.publishers = resp.data.publishers ;
                 // update the UI with the new details
-                for ( let r in refs )
-                    this.props.data[ r ] = (resp.data.cleaned && resp.data.cleaned[r]) || newVals[r] ;
+                applyUpdatedVals( this.props.data, newVals, resp.data.updated, refs ) ;
                 this.forceUpdate() ;
-                if ( resp.data.warning )
-                    gAppRef.showWarningToast( <div> The publisher was updated OK. <p> {resp.data.warning} </p> </div> ) ;
+                if ( resp.data.warnings )
+                    gAppRef.showWarnings( "The publisher was updated OK.", resp.data.warnings ) ;
                 else
                     gAppRef.showInfoToast( <div> The publisher was updated OK. </div> ) ;
                 gAppRef.closeModalForm() ;
@@ -144,8 +140,8 @@ export class PublisherSearchResult extends React.Component
                         resp.data.deletedArticles.forEach( article_id => {
                             this.props.onDelete( "article_id", article_id ) ;
                         } ) ;
-                        if ( resp.data.warning )
-                            gAppRef.showWarningToast( <div> The publisher was deleted. <p> {resp.data.warning} </p> </div> ) ;
+                        if ( resp.data.warnings )
+                            gAppRef.showWarnings( "The publisher was deleted.", resp.data.warnings ) ;
                         else
                             gAppRef.showInfoToast( <div> The publisher was deleted. </div> ) ;
                     } )

@@ -6,16 +6,27 @@ export function unloadCreatableSelect( sel ) {
     // unload the values from a CreatableSelect
     if ( ! sel.state.value )
         return [] ;
-    const vals = sel.state.value.map( v => v.label ) ;
+    const vals = sel.state.value ;
     // dedupe the values (trying to preserve order)
     let vals2=[], used={} ;
-    for ( let i=0 ; i < vals.length ; ++i ) {
-        if ( ! used[ vals[i] ] ) {
-            vals2.push( vals[i] ) ;
-            used[ vals[i] ] = true ;
+    vals.forEach( val => {
+        if ( ! used[ val.label ] ) {
+            vals2.push( val ) ;
+            used[ val.label ] = true ;
         }
-    }
+    } ) ;
     return vals2 ;
+}
+
+// --------------------------------------------------------------------
+
+export function applyUpdatedVals( vals, newVals, updated, refs ) {
+    // NOTE: After the user has edited an object, we send the new values to the server to store in
+    // the database, but the server will sometimes return modified values back e.g. because unsafe HTML
+    // was removed, or the ID's of newly-created authors. This function applies these new values back
+    // into the original table of values.
+    for ( let r in refs )
+        vals[ r ] = (updated && updated[r] !== undefined) ? updated[r] : newVals[r] ;
 }
 
 // --------------------------------------------------------------------

@@ -30,7 +30,7 @@ def get_request_args( vals, arg_names, log=None ):
         abort( 400, "Missing required values: {}".format( ", ".join( required ) ) )
     return vals
 
-def clean_request_args( vals, fields, logger ):
+def clean_request_args( vals, fields, warnings, logger ):
     """Clean incoming data."""
     cleaned = {}
     for f in fields:
@@ -38,9 +38,10 @@ def clean_request_args( vals, fields, logger ):
         if isinstance( vals[f], str ):
             val2 = clean_html( vals[f] )
             if val2 != vals[f]:
-                logger.debug( "Cleaned HTML: %s => %s", f, val2 )
                 vals[f] = val2
                 cleaned[f] = val2
+                logger.debug( "Cleaned HTML: %s => %s", f, val2 )
+                warnings.append( "Some values had HTML removed." )
     return cleaned
 
 def _parse_arg_name( arg_name ):
@@ -49,17 +50,15 @@ def _parse_arg_name( arg_name ):
         return ( arg_name[1:], True ) # required argument
     return ( arg_name, False ) # optional argument
 
-def make_ok_response( extras=None, cleaned=None ):
+def make_ok_response( extras=None, updated=None, warnings=None ):
     """Generate a Flask 'success' response."""
-    # generate the basic response
     resp = { "status": "OK" }
     if extras:
         resp.update( extras )
-    # check if any values were cleaned
-    if cleaned:
-        # yup - return the updated values to the caller
-        resp[ "warning" ] = "Some values had HTML removed."
-        resp[ "cleaned" ] = cleaned
+    if updated:
+        resp[ "updated" ] = updated
+    if warnings:
+        resp[ "warnings" ] = warnings
     return jsonify( resp )
 
 # ---------------------------------------------------------------------

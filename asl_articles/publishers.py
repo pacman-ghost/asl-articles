@@ -65,40 +65,54 @@ def get_publisher_vals( publ ):
 @app.route( "/publisher/create", methods=["POST"] )
 def create_publisher():
     """Create a publisher."""
+
+    # parse the input
     vals = get_request_args( request.json, _FIELD_NAMES,
         log = ( _logger, "Create publisher:" )
     )
-    cleaned = clean_request_args( vals, _FIELD_NAMES, _logger )
+    warnings = []
+    updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
+
+    # create the new publisher
     vals[ "time_created" ] = datetime.datetime.now()
     publ = Publisher( **vals )
     db.session.add( publ ) #pylint: disable=no-member
     db.session.commit() #pylint: disable=no-member
     _logger.debug( "- New ID: %d", publ.publ_id )
+
+    # generate the response
     extras = { "publ_id": publ.publ_id }
     if request.args.get( "list" ):
         extras[ "publishers" ] = _do_get_publishers()
-    return make_ok_response( cleaned=cleaned, extras=extras )
+    return make_ok_response( updated=updated, extras=extras, warnings=warnings )
 
 # ---------------------------------------------------------------------
 
 @app.route( "/publisher/update", methods=["POST"] )
 def update_publisher():
     """Update a publisher."""
+
+    # parse the input
     publ_id = request.json[ "publ_id" ]
     vals = get_request_args( request.json, _FIELD_NAMES,
         log = ( _logger, "Update publisher: id={}".format( publ_id ) )
     )
-    cleaned = clean_request_args( vals, _FIELD_NAMES, _logger )
-    vals[ "time_updated" ] = datetime.datetime.now()
+    warnings = []
+    updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
+
+    # update the publication
     publ = Publisher.query.get( publ_id )
     if not publ:
         abort( 404 )
+    vals[ "time_updated" ] = datetime.datetime.now()
     apply_attrs( publ, vals )
     db.session.commit() #pylint: disable=no-member
+
+    # generate the response
     extras = {}
     if request.args.get( "list" ):
         extras[ "publishers" ] = _do_get_publishers()
-    return make_ok_response( cleaned=cleaned, extras=extras )
+    return make_ok_response( updated=updated, extras=extras, warnings=warnings )
 
 # ---------------------------------------------------------------------
 
@@ -106,9 +120,8 @@ def update_publisher():
 def delete_publisher( publ_id ):
     """Delete a publisher."""
 
+    # parse the input
     _logger.debug( "Delete publisher: id=%s", publ_id )
-
-    # get the publisher
     publ = Publisher.query.get( publ_id )
     if not publ:
         abort( 404 )

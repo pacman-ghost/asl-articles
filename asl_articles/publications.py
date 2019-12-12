@@ -62,44 +62,58 @@ def get_publication_vals( pub ):
 @app.route( "/publication/create", methods=["POST"] )
 def create_publication():
     """Create a publication."""
+
+    # parse the input
     vals = get_request_args( request.json, _FIELD_NAMES,
         log = ( _logger, "Create publication:" )
     )
     vals[ "pub_tags" ] = encode_tags( vals.get( "pub_tags" ) )
-    cleaned = clean_request_args( vals, _FIELD_NAMES, _logger )
+    warnings = []
+    updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
+
+    # create the new publication
     vals[ "time_created" ] = datetime.datetime.now()
     pub = Publication( **vals )
     db.session.add( pub ) #pylint: disable=no-member
     db.session.commit() #pylint: disable=no-member
     _logger.debug( "- New ID: %d", pub.pub_id )
+
+    # generate the response
     extras = { "pub_id": pub.pub_id }
     if request.args.get( "list" ):
         extras[ "publications" ] = do_get_publications()
         extras[ "tags" ] = do_get_tags()
-    return make_ok_response( cleaned=cleaned, extras=extras )
+    return make_ok_response( updated=updated, extras=extras, warnings=warnings )
 
 # ---------------------------------------------------------------------
 
 @app.route( "/publication/update", methods=["POST"] )
 def update_publication():
     """Update a publication."""
+
+    # parse the input
     pub_id = request.json[ "pub_id" ]
     vals = get_request_args( request.json, _FIELD_NAMES,
         log = ( _logger, "Update publication: id={}".format( pub_id ) )
     )
     vals[ "pub_tags" ] = encode_tags( vals.get( "pub_tags" ) )
-    cleaned = clean_request_args( vals, _FIELD_NAMES, _logger )
-    vals[ "time_updated" ] = datetime.datetime.now()
+    warnings = []
+    updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
+
+    # update the publication
     pub = Publication.query.get( pub_id )
     if not pub:
         abort( 404 )
+    vals[ "time_updated" ] = datetime.datetime.now()
     apply_attrs( pub, vals )
     db.session.commit() #pylint: disable=no-member
+
+    # generate the response
     extras = {}
     if request.args.get( "list" ):
         extras[ "publications" ] = do_get_publications()
         extras[ "tags" ] = do_get_tags()
-    return make_ok_response( cleaned=cleaned, extras=extras )
+    return make_ok_response( updated=updated, extras=extras, warnings=warnings )
 
 # ---------------------------------------------------------------------
 
@@ -107,9 +121,8 @@ def update_publication():
 def delete_publication( pub_id ):
     """Delete a publication."""
 
+    # parse the input
     _logger.debug( "Delete publication: id=%s", pub_id )
-
-    # get the publication
     pub = Publication.query.get( pub_id )
     if not pub:
         abort( 404 )
@@ -123,6 +136,7 @@ def delete_publication( pub_id ):
     db.session.delete( pub ) #pylint: disable=no-member
     db.session.commit() #pylint: disable=no-member
 
+    # generate the response
     extras = { "deleteArticles": deleted_articles }
     if request.args.get( "list" ):
         extras[ "publications" ] = do_get_publications()

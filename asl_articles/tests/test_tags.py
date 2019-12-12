@@ -4,7 +4,7 @@ import urllib.request
 import json
 
 from asl_articles.tests.utils import init_tests, wait_for_elem, find_child, find_children, \
-    find_search_result , get_result_names
+    find_search_result, get_result_names
 from asl_articles.tests.react_select import ReactSelect
 
 from asl_articles.tests.test_publications import _create_publication, _edit_publication
@@ -85,18 +85,23 @@ def _check_tags( flask_app, expected ):
     elems = find_children( "#search-results .search-result" )
     assert set( get_result_names( elems ) ) == set( expected.keys() )
     for sr in elems:
+
         # check the tags in the search result
         name = find_child( ".name span", sr ).text
         tags = [ t.text for t in find_children( ".tag", sr ) ]
         assert tags == expected[ name ]
+
         # check the tags in the publication/article
         find_child( ".edit", sr ).click()
         dlg = wait_for_elem( 2, "#modal-form" )
         select = ReactSelect( find_child( ".tags .react-select", dlg ) )
         assert select.get_multiselect_values() == expected[ name ]
+
         # check that the list of available tags is correct
         # NOTE: We don't bother checking the tag order here.
         assert set( select.get_multiselect_choices() ) == expected_available.difference( expected[name] )
+
+        # close the dialog
         find_child( "button.cancel", dlg ).click()
 
     def fixup_tags( tags ):
