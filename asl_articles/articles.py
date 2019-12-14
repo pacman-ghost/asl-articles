@@ -61,11 +61,11 @@ def create_article():
     # create the new article
     vals[ "time_created" ] = datetime.datetime.now()
     article = Article( **vals )
-    db.session.add( article ) #pylint: disable=no-member
-    db.session.flush() #pylint: disable=no-member
+    db.session.add( article )
+    db.session.flush()
     new_article_id = article.article_id
     _save_authors( article, updated )
-    db.session.commit() #pylint: disable=no-member
+    db.session.commit()
     _logger.debug( "- New ID: %d", new_article_id )
 
     # generate the response
@@ -79,8 +79,9 @@ def _save_authors( article, updated_fields ):
     """Save the article's authors."""
 
     # delete the existing article-author rows
-    query = db.session.query( ArticleAuthor ) #pylint: disable=no-member
-    query.filter( ArticleAuthor.article_id == article.article_id ).delete()
+    db.session.query( ArticleAuthor ) \
+        .filter( ArticleAuthor.article_id == article.article_id ) \
+        .delete()
 
     # add the article-author rows
     authors = request.json.get( "article_authors", [] )
@@ -94,12 +95,12 @@ def _save_authors( article, updated_fields ):
             # this is a new author - create it
             assert isinstance( author, str )
             author = Author( author_name=author )
-            db.session.add( author ) #pylint: disable=no-member
-            db.session.flush() #pylint: disable=no-member
+            db.session.add( author )
+            db.session.flush()
             author_id = author.author_id
             new_authors = True
             _logger.debug( "Created new author \"%s\": id=%d", author, author_id )
-        db.session.add( #pylint: disable=no-member
+        db.session.add(
             ArticleAuthor( seq_no=seq_no, article_id=article.article_id, author_id=author_id )
         )
         author_ids.append( author_id )
@@ -131,7 +132,7 @@ def update_article():
     _save_authors( article, updated )
     vals[ "time_updated" ] = datetime.datetime.now()
     apply_attrs( article, vals )
-    db.session.commit() #pylint: disable=no-member
+    db.session.commit()
 
     # generate the response
     extras = {}
@@ -154,8 +155,8 @@ def delete_article( article_id ):
     _logger.debug( "- %s", article )
 
     # delete the article
-    db.session.delete( article ) #pylint: disable=no-member
-    db.session.commit() #pylint: disable=no-member
+    db.session.delete( article )
+    db.session.commit()
 
     # generate the response
     extras = {}

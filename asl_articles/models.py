@@ -2,8 +2,6 @@
 
 from asl_articles import db
 
-#pylint: disable=no-member
-
 # ---------------------------------------------------------------------
 
 class Publisher( db.Model ):

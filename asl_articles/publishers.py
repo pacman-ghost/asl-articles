@@ -43,8 +43,7 @@ def get_publisher( publ_id ):
     query = Publication.query.filter_by( publ_id = publ_id )
     vals[ "nPublications" ] = query.count()
     # include the number of associated articles
-    query = db.session.query #pylint: disable=no-member
-    query = query( Article, Publication ) \
+    query = db.session.query( Article, Publication ) \
         .filter( Publication.publ_id == publ_id ) \
         .filter( Article.pub_id == Publication.pub_id )
     vals[ "nArticles" ] = query.count()
@@ -76,8 +75,8 @@ def create_publisher():
     # create the new publisher
     vals[ "time_created" ] = datetime.datetime.now()
     publ = Publisher( **vals )
-    db.session.add( publ ) #pylint: disable=no-member
-    db.session.commit() #pylint: disable=no-member
+    db.session.add( publ )
+    db.session.commit()
     _logger.debug( "- New ID: %d", publ.publ_id )
 
     # generate the response
@@ -106,7 +105,7 @@ def update_publisher():
         abort( 404 )
     vals[ "time_updated" ] = datetime.datetime.now()
     apply_attrs( publ, vals )
-    db.session.commit() #pylint: disable=no-member
+    db.session.commit()
 
     # generate the response
     extras = {}
@@ -128,19 +127,19 @@ def delete_publisher( publ_id ):
     _logger.debug( "- %s", publ )
 
     # figure out which associated publications will be deleted
-    query = db.session.query( Publication.pub_id ).filter_by( publ_id = publ_id ) #pylint: disable=no-member
+    query = db.session.query( Publication.pub_id ) \
+        .filter_by( publ_id = publ_id )
     deleted_pubs = [ r[0] for r in query ]
 
     # figure out which associated articles will be deleted
-    query = db.session.query #pylint: disable=no-member
-    query = query( Article.article_id ).join( Publication ) \
+    query = db.session.query( Article.article_id ).join( Publication ) \
         .filter( Publication.publ_id == publ_id ) \
         .filter( Article.pub_id == Publication.pub_id )
     deleted_articles = [ r[0] for r in query ]
 
     # delete the publisher
-    db.session.delete( publ ) #pylint: disable=no-member
-    db.session.commit() #pylint: disable=no-member
+    db.session.delete( publ )
+    db.session.commit()
 
     extras = { "deletedPublications": deleted_pubs, "deletedArticles": deleted_articles }
     if request.args.get( "list" ):

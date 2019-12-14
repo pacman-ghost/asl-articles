@@ -74,8 +74,8 @@ def create_publication():
     # create the new publication
     vals[ "time_created" ] = datetime.datetime.now()
     pub = Publication( **vals )
-    db.session.add( pub ) #pylint: disable=no-member
-    db.session.commit() #pylint: disable=no-member
+    db.session.add( pub )
+    db.session.commit()
     _logger.debug( "- New ID: %d", pub.pub_id )
 
     # generate the response
@@ -106,7 +106,7 @@ def update_publication():
         abort( 404 )
     vals[ "time_updated" ] = datetime.datetime.now()
     apply_attrs( pub, vals )
-    db.session.commit() #pylint: disable=no-member
+    db.session.commit()
 
     # generate the response
     extras = {}
@@ -129,12 +129,13 @@ def delete_publication( pub_id ):
     _logger.debug( "- %s", pub )
 
     # figure out which associated articles will be deleted
-    query = db.session.query( Article.article_id ).filter_by( pub_id = pub_id ) #pylint: disable=no-member
+    query = db.session.query( Article.article_id ) \
+        .filter_by( pub_id = pub_id )
     deleted_articles = [ r[0] for r in query ]
 
     # delete the publication
-    db.session.delete( pub ) #pylint: disable=no-member
-    db.session.commit() #pylint: disable=no-member
+    db.session.delete( pub )
+    db.session.commit()
 
     # generate the response
     extras = { "deleteArticles": deleted_articles }

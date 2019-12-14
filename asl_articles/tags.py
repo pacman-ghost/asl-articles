@@ -27,8 +27,8 @@ def do_get_tags():
                 continue
             for tag in row[0].split( ";" ):
                 tags[ tag ] = tags[ tag ] + 1
-    count_tags( db.session.query( Publication.pub_tags ) ) #pylint: disable=no-member
-    count_tags( db.session.query( Article.article_tags ) ) #pylint: disable=no-member
+    count_tags( db.session.query( Publication.pub_tags ) )
+    count_tags( db.session.query( Article.article_tags ) )
 
     # sort the results
     tags = sorted( tags.items(),
