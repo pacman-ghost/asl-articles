@@ -31,14 +31,15 @@ export default class App extends React.Component
         } ;
 
         // initialize
-        const args = queryString.parse( window.location.search ) ;
-        this._storeMsgs = this.isTestMode() && args.store_msgs ;
+        this.args = queryString.parse( window.location.search ) ;
+        this._storeMsgs = this.isTestMode() && this.args.store_msgs ;
+        this._fakeUploads = this.isTestMode() && this.args.fake_uploads ;
 
         // figure out the base URL of the Flask backend server
         // NOTE: We allow the caller to do this since the test suite will usually spin up
         // it's own Flask server, but talks to an existing React server, so we need some way
         // for pytest to change which Flask server the React frontend code should tak to.
-        this._flaskBaseUrl = this.isTestMode() ? args._flask : null ;
+        this._flaskBaseUrl = this.isTestMode() ? this.args._flask : null ;
         if ( ! this._flaskBaseUrl )
             this._flaskBaseUrl = process.env.REACT_APP_FLASK_URL ;
     }
@@ -78,6 +79,9 @@ export default class App extends React.Component
                 <textarea id="_stored_msg-info_toast_" ref="_stored_msg-info_toast_" defaultValue="" hidden={true} />
                 <textarea id="_stored_msg-warning_toast_" ref="_stored_msg-warning_toast_" defaultValue="" hidden={true} />
                 <textarea id="_stored_msg-error_toast_" ref="_stored_msg-error_toast_" defaultValue="" hidden={true} />
+            </div> }
+            { this._fakeUploads && <div>
+                <textarea id="_stored_msg-upload_" ref="_stored_msg-upload_" defaultValue="" hidden={true} />
             </div> }
         </div> ) ;
     }
@@ -182,11 +186,14 @@ export default class App extends React.Component
             // save the message for the test suite to retrieve (nb: we also don't show the toast itself
             // since these build up when tests are running at high speed, and obscure elements that
             // we want to click on :-/
-            this.refs[ "_stored_msg-" + type + "_toast_" ].value = ReactDOMServer.renderToStaticMarkup( msg ) ;
+            this.setStoredMsg( type+"_toast", ReactDOMServer.renderToStaticMarkup(msg) ) ;
             return ;
         }
         toast( msg, { type: type, autoClose: autoClose } ) ;
     }
+
+    setStoredMsg( msgType, msgData ) { this.refs[ "_stored_msg-" + msgType + "_" ].value = msgData ; }
+    getStoredMsg( msgType ) { return this.refs[ "_stored_msg-" + msgType + "_" ].value }
 
     showErrorMsg( content ) {
         // show the error message in a modal dialog
@@ -275,6 +282,7 @@ export default class App extends React.Component
     }
 
     isTestMode() { return process.env.REACT_APP_TEST_MODE ; }
+    isFakeUploads() { return this._fakeUploads ; }
     setTestAttribute( obj, attrName, attrVal ) {
         // set an attribute on an element (for testing porpoises)
         if ( obj && this.isTestMode() )

@@ -155,12 +155,12 @@ def webdriver( request ):
     # initialize
     web_url = request.config.getoption( "--web-url" )
     assert web_url
-    def make_web_url( url ):
+    def make_web_url( url, **kwargs ):
         """Generate a URL for the React frontend."""
         url = "{}/{}".format( web_url, url )
-        kwargs = {}
         kwargs[ "_flask"] = flask_url
         kwargs[ "store_msgs"] = 1 # stop notification messages from building up and obscuring clicks
+        kwargs[ "fake_uploads"] = 1 # alternate mechanism for uploading files
         url += "&" if "?" in url else "?"
         url += urllib.parse.urlencode( kwargs )
         return url

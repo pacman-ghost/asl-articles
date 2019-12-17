@@ -3,6 +3,7 @@ import ReactDOMServer from "react-dom/server" ;
 import Select from "react-select" ;
 import CreatableSelect from "react-select/creatable" ;
 import { gAppRef } from "./index.js" ;
+import { ImageFileUploader } from "./FileUploader.js" ;
 import { makeOptionalLink, unloadCreatableSelect, applyUpdatedVals } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
@@ -82,6 +83,32 @@ export class ArticleSearchResult extends React.Component
 
     static _doEditArticle( vals, notify ) {
         let refs = {} ;
+        // initialize the image
+        let imageFilename=null, imageData=null ;
+        let imageRef=null, uploadImageRef=null, removeImageRef=null ;
+        let imageUrl = gAppRef.makeFlaskUrl( "/images/article/" + vals.article_id ) ;
+        imageUrl += "?foo=" + Math.random() ; // FUDGE! To bypass the cache :-/
+        let onMissingImage = (evt) => {
+            imageRef.src = "/images/placeholder.png" ;
+            removeImageRef.style.display = "none" ;
+        } ;
+        let onUploadImage = (evt) => {
+            if ( evt === null && !gAppRef.isFakeUploads() ) {
+                // nb: the article image was clicked - trigger an upload request
+                uploadImageRef.click() ;
+                return ;
+            }
+            let fileUploader = new ImageFileUploader() ;
+            fileUploader.getFile( evt, imageRef, removeImageRef, (fname,data) => {
+                imageFilename = fname ;
+                imageData = data ;
+            } ) ;
+        } ;
+        let onRemoveImage = () => {
+            imageData = "{remove}" ;
+            imageRef.src = "/images/placeholder.png" ;
+            removeImageRef.style.display = "none" ;
+        } ;
         // initialize the publications
         let publications = [ { value: null, label: <i>(none)</i> } ] ;
         let currPub = 0 ;
@@ -110,7 +137,13 @@ export class ArticleSearchResult extends React.Component
         // initialize the tags
         const tags = gAppRef.makeTagLists( vals.article_tags ) ;
         // prepare the form content
+        /* eslint-disable jsx-a11y/img-redundant-alt */
         const content = <div>
+            <div className="row image">
+                <img src={imageUrl} className="image" onError={onMissingImage} onClick={() => onUploadImage(null)} ref={r => imageRef=r} alt="Click to upload an image for this article." />
+                <img src="/images/delete.png" className="remove-image" onClick={onRemoveImage} ref={r => removeImageRef=r} alt="Remove the article's image." />
+                <input type="file" accept="image/*" onChange={onUploadImage} style={{display:"none"}} ref={r => uploadImageRef=r} />
+            </div>
             <div className="row title"> <label> Title: </label>
                 <input type="text" defaultValue={vals.article_title} ref={(r) => refs.article_title=r} />
             </div>
@@ -164,6 +197,10 @@ export class ArticleSearchResult extends React.Component
                         newVals[ r ] =  vals.map( v => v.label ) ;
                     } else
                         newVals[ r ] = refs[r].value.trim() ;
+                }
+                if ( imageData ) {
+                    newVals.imageData = imageData ;
+                    newVals.imageFilename = imageFilename ;
                 }
                 if ( newVals.article_title === "" ) {
                     gAppRef.showErrorMsg( <div> Please specify the article's title. </div>) ;

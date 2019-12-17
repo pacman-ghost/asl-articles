@@ -1,0 +1,2 @@
+.row.image img.image { height: 2em ; cursor: pointer ; }
+.row.image img.remove-image { height: 1em ; margin-left: 0.25em ; cursor: pointer ; }

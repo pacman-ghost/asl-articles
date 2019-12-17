@@ -1,12 +1,13 @@
 """ Handle publication requests. """
 
 import datetime
+import base64
 import logging
 
 from flask import request, jsonify, abort
 
 from asl_articles import app, db
-from asl_articles.models import Publication, Article
+from asl_articles.models import Publication, PublicationImage, Article
 from asl_articles.tags import do_get_tags
 from asl_articles.utils import get_request_args, clean_request_args, encode_tags, decode_tags, apply_attrs, \
     make_ok_response
@@ -75,6 +76,7 @@ def create_publication():
     vals[ "time_created" ] = datetime.datetime.now()
     pub = Publication( **vals )
     db.session.add( pub )
+    _save_image( pub )
     db.session.commit()
     _logger.debug( "- New ID: %d", pub.pub_id )
 
@@ -84,6 +86,28 @@ def create_publication():
         extras[ "publications" ] = do_get_publications()
         extras[ "tags" ] = do_get_tags()
     return make_ok_response( updated=updated, extras=extras, warnings=warnings )
+
+def _save_image( pub ):
+    """Save the publication's image."""
+
+    # check if a new image was provided
+    image_data = request.json.get( "imageData" )
+    if not image_data:
+        return
+
+    # yup - delete the old one from the database
+    PublicationImage.query.filter( PublicationImage.pub_id == pub.pub_id ).delete()
+    if image_data == "{remove}":
+        # NOTE: The front-end sends this if it wants the publication to have no image.
+        return
+
+    # add the new image to the database
+    image_data = base64.b64decode( image_data )
+    fname = request.json.get( "imageFilename" )
+    img = PublicationImage( pub_id=pub.pub_id, image_filename=fname, image_data=image_data )
+    db.session.add( img )
+    db.session.flush()
+    _logger.debug( "Created new image: %s, #bytes=%d", fname, len(image_data) )
 
 # ---------------------------------------------------------------------
 
@@ -104,8 +128,9 @@ def update_publication():
     pub = Publication.query.get( pub_id )
     if not pub:
         abort( 404 )
-    vals[ "time_updated" ] = datetime.datetime.now()
     apply_attrs( pub, vals )
+    _save_image( pub )
+    vals[ "time_updated" ] = datetime.datetime.now()
     db.session.commit()
 
     # generate the response

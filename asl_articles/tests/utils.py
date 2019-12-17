@@ -21,7 +21,7 @@ _flask_app = None # nb: this may not be set (if we're talking to an existing Fla
 
 # ---------------------------------------------------------------------
 
-def init_tests( webdriver, flask_app, dbconn, fixtures_fname=None ):
+def init_tests( webdriver, flask_app, dbconn, **kwargs ):
     """Prepare to run tests."""
 
     # initialize
@@ -30,13 +30,14 @@ def init_tests( webdriver, flask_app, dbconn, fixtures_fname=None ):
     _flask_app = flask_app
 
     # initialize the database
+    fixtures = kwargs.pop( "fixtures", None )
     if dbconn:
-        init_db( dbconn, fixtures_fname )
+        init_db( dbconn, fixtures )
     else:
-        assert fixtures_fname is None
+        assert fixtures is None
 
     # load the home page
-    webdriver.get( webdriver.make_url( "/" ) )
+    webdriver.get( webdriver.make_url( "/", **kwargs ) )
     wait_for_elem( 2, "#search-form" )
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -57,8 +58,11 @@ def init_db( dbconn, fixtures_fname ):
         data = {}
 
     # load the test data into the database
-    for table_name in ["publisher","publication","article"]:
-        model = getattr( asl_articles.models, table_name.capitalize() )
+    table_names = [ "publisher", "publication", "article" ]
+    table_names.extend( [ "author", "article_author" ] )
+    table_names.extend( [ "publisher_image", "publication_image", "article_image" ] )
+    for table_name in table_names:
+        model = asl_articles.models.get_model_from_table_name( table_name )
         session.query( model ).delete()
         if table_name in data:
             session.bulk_insert_mappings( model, data[table_name] )
@@ -207,6 +211,21 @@ def check_toast( toast_type, expected, contains=False, check_others=True ):
 
 def _make_toast_stored_msg_id( toast_type ):
     return "{}_toast".format( toast_type )
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+def send_upload_data( data, func ):
+    """Send data to the front-end, to simulate uploading a file.
+
+    Because Selenium can't control a browser's native "open file" dialog, we need a different mechanism
+    to test features that require uploading a file. We store the data we want to upload as a base64-encoded
+    string in a hidden textarea, and the front-end Javascript loads it from there.
+    """
+    # send the data to the front-end
+    set_stored_msg( "upload", data )
+    func() # nb: the caller must initiate the upload process
+    # wait for the front-end to acknowledge receipt of the data
+    wait_for( 2, lambda: get_stored_msg("upload") == "" )
 
 # ---------------------------------------------------------------------
 

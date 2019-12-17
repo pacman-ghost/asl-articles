@@ -38,6 +38,18 @@ export function makeOptionalLink( caption, url ) {
     return link ;
 }
 
+export function bytesDisplayString( nBytes )
+{
+    if ( nBytes === 1 )
+        return "1 byte" ;
+    var vals = [ "bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" ] ;
+    for ( let i=1 ; i < vals.length ; i++ ) {
+        if ( nBytes < Math.pow( 1024, i ) )
+            return ( Math.round( ( nBytes / Math.pow(1024,i-1) ) * 100 ) / 100 ) + " " + vals[i-1] ;
+    }
+    return nBytes ;
+}
+
 export function slugify( val ) {
     return val.toLowerCase().replace( " ", "-" ) ;
 }

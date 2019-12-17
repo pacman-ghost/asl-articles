@@ -1,11 +1,14 @@
 """ Test publication operations. """
 
+import os
 import urllib.request
+import urllib.error
 import json
+import base64
 
 from asl_articles.tests.utils import init_tests, init_db, do_search, get_result_names, \
     wait_for, wait_for_elem, find_child, find_children, set_elem_text, \
-    set_toast_marker, check_toast, check_ask_dialog, check_error_msg
+    set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg
 from asl_articles.tests.react_select import ReactSelect
 
 # ---------------------------------------------------------------------
@@ -14,7 +17,7 @@ def test_edit_publication( webdriver, flask_app, dbconn ):
     """Test editing publications."""
 
     # initialize
-    init_tests( webdriver, flask_app, dbconn, "publications.json" )
+    init_tests( webdriver, flask_app, dbconn, fixtures="publications.json" )
 
     # edit "ASL Journal #2"
     results = do_search( "asl journal" )
@@ -103,7 +106,7 @@ def test_delete_publication( webdriver, flask_app, dbconn ):
     """Test deleting publications."""
 
     # initialize
-    init_tests( webdriver, flask_app, dbconn, "publications.json" )
+    init_tests( webdriver, flask_app, dbconn, fixtures="publications.json" )
 
     # start to delete publication "ASL Journal #1", but cancel the operation
     results = do_search( "ASL Journal" )
@@ -141,11 +144,81 @@ def test_delete_publication( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
+def test_images( webdriver, flask_app, dbconn ):
+    """Test publication images."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, max_image_upload_size=2*1024 )
+
+    def check_image( expected ):
+        find_child( ".edit", pub_sr ).click()
+        dlg = wait_for_elem( 2, "#modal-form" )
+        if expected:
+            # make sure there is an image
+            img = find_child( ".row.image img.image", dlg )
+            image_url = img.get_attribute( "src" )
+            assert "/images/publication/{}".format( pub_id ) in image_url
+            # make sure the "remove image" icon is visible
+            btn = find_child( ".row.image .remove-image", dlg )
+            assert btn.is_displayed()
+            # make sure the publication's image is correct
+            resp = urllib.request.urlopen( image_url ).read()
+            assert resp == open(expected,"rb").read()
+        else:
+            # make sure there is no image
+            img = find_child( ".row.image img.image", dlg )
+            assert img.get_attribute( "src" ).endswith( "/images/placeholder.png" )
+            # make sure the "remove image" icon is hidden
+            btn = find_child( ".row.image .remove-image", dlg )
+            assert not btn.is_displayed()
+            # make sure the publication's image is not available
+            url = flask_app.url_for( "get_image", image_type="publication", image_id=pub_id )
+            try:
+                resp = urllib.request.urlopen( url )
+                assert False, "Should never get here!"
+            except urllib.error.HTTPError as ex:
+                assert ex.code == 404
+        find_child( ".cancel", dlg ).click()
+
+    # create an publication with no image
+    _create_publication( {"name": "Test Publication" } )
+    results = find_children( "#search-results .search-result" )
+    assert len(results) == 1
+    pub_sr = results[0]
+    pub_id = pub_sr.get_attribute( "testing--pub_id" )
+    check_image( None )
+
+    # add an image to the publication
+    fname = os.path.join( os.path.split(__file__)[0], "fixtures/images/1.gif" )
+    _edit_publication( pub_sr, { "image": fname } )
+    check_image( fname )
+
+    # change the publication's image
+    fname = os.path.join( os.path.split(__file__)[0], "fixtures/images/2.gif" )
+    _edit_publication( pub_sr, { "image": fname } )
+    check_image( fname )
+
+    # remove the publication's image
+    _edit_publication( pub_sr, { "image": None } )
+    check_image( None )
+
+    # try to upload an image that's too large
+    find_child( ".edit", pub_sr ).click()
+    dlg = wait_for_elem( 2, "#modal-form" )
+    data = base64.b64encode( 5000 * b" " )
+    data = "{}|{}".format( "too-big.png", data.decode("ascii") )
+    send_upload_data( data,
+        lambda: find_child( ".row.image img.image", dlg ).click()
+    )
+    check_error_msg( "The file must be no more than 2 KB in size." )
+
+# ---------------------------------------------------------------------
+
 def test_parent_publisher( webdriver, flask_app, dbconn ):
     """Test setting a publication's parent publisher."""
 
     # initialize
-    init_tests( webdriver, flask_app, dbconn, "parents.json" )
+    init_tests( webdriver, flask_app, dbconn, fixtures="parents.json" )
     pub_sr = None
 
     def check_results( expected_parent ):
@@ -309,13 +382,13 @@ def _create_publication( vals, toast_type="info" ):
     # create the new publication
     find_child( "#menu .new-publication" ).click()
     dlg = wait_for_elem( 2, "#modal-form" )
-    for k,v in vals.items():
-        if k == "tags":
+    for key,val in vals.items():
+        if key == "tags":
             select = ReactSelect( find_child( ".tags .react-select", dlg ) )
-            select.update_multiselect_values( *v )
+            select.update_multiselect_values( *val )
         else:
-            sel = ".{} {}".format( k , "textarea" if k == "description" else "input" )
-            set_elem_text( find_child( sel, dlg ), v )
+            sel = ".{} {}".format( key , "textarea" if key == "description" else "input" )
+            set_elem_text( find_child( sel, dlg ), val )
     find_child( "button.ok", dlg ).click()
     if toast_type:
         # check that the new publication was created successfully
@@ -328,16 +401,25 @@ def _edit_publication( result, vals, toast_type="info", expected_error=None ):
     # update the specified publication's details
     find_child( ".edit", result ).click()
     dlg = wait_for_elem( 2, "#modal-form" )
-    for k,v in vals.items():
-        if k == "publisher":
+    for key,val in vals.items():
+        if key == "image":
+            if val:
+                data = base64.b64encode( open( val, "rb" ).read() )
+                data = "{}|{}".format( os.path.split(val)[1], data.decode("ascii") )
+                send_upload_data( data,
+                    lambda: find_child( ".image img", dlg ).click()
+                )
+            else:
+                find_child( ".remove-image", dlg ).click()
+        elif key == "publisher":
             select = ReactSelect( find_child( ".publisher .react-select", dlg ) )
-            select.select_by_name( v )
-        elif k == "tags":
+            select.select_by_name( val )
+        elif key == "tags":
             select = ReactSelect( find_child( ".tags .react-select", dlg ) )
-            select.update_multiselect_values( *v )
+            select.update_multiselect_values( *val )
         else:
-            sel = ".{} {}".format( k , "textarea" if k == "description" else "input" )
-            set_elem_text( find_child( sel, dlg ), v )
+            sel = ".{} {}".format( key , "textarea" if key == "description" else "input" )
+            set_elem_text( find_child( sel, dlg ), val )
     set_toast_marker( toast_type )
     find_child( "button.ok", dlg ).click()
     if expected_error:

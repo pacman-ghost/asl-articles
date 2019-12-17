@@ -1,8 +1,13 @@
 """ Test publisher operations. """
 
+import os
+import urllib.request
+import urllib.error
+import base64
+
 from asl_articles.tests.utils import init_tests, init_db, do_search, get_result_names, \
     wait_for, wait_for_elem, find_child, find_children, set_elem_text, \
-    set_toast_marker, check_toast, check_ask_dialog, check_error_msg
+    set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg
 
 # ---------------------------------------------------------------------
 
@@ -10,7 +15,7 @@ def test_edit_publisher( webdriver, flask_app, dbconn ):
     """Test editing publishers."""
 
     # initialize
-    init_tests( webdriver, flask_app, dbconn, "basic.json" )
+    init_tests( webdriver, flask_app, dbconn, fixtures="basic.json" )
 
     # edit "Avalon Hill"
     results = do_search( "" )
@@ -89,7 +94,7 @@ def test_delete_publisher( webdriver, flask_app, dbconn ):
     """Test deleting publishers."""
 
     # initialize
-    init_tests( webdriver, flask_app, dbconn, "basic.json" )
+    init_tests( webdriver, flask_app, dbconn, fixtures="basic.json" )
 
     # start to delete publisher "Le Franc Tireur", but cancel the operation
     results = do_search( "" )
@@ -123,6 +128,76 @@ def test_delete_publisher( webdriver, flask_app, dbconn ):
     # check that the search result was deleted from the database
     results = do_search( "" )
     assert get_result_names( results ) == [ "Avalon Hill", "Multiman Publishing" ]
+
+# ---------------------------------------------------------------------
+
+def test_images( webdriver, flask_app, dbconn ):
+    """Test publisher images."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, max_image_upload_size=2*1024 )
+
+    def check_image( expected ):
+        find_child( ".edit", publ_sr ).click()
+        dlg = wait_for_elem( 2, "#modal-form" )
+        if expected:
+            # make sure there is an image
+            img = find_child( ".row.image img.image", dlg )
+            image_url = img.get_attribute( "src" )
+            assert "/images/publisher/{}".format( publ_id ) in image_url
+            # make sure the "remove image" icon is visible
+            btn = find_child( ".row.image .remove-image", dlg )
+            assert btn.is_displayed()
+            # make sure the publisher's image is correct
+            resp = urllib.request.urlopen( image_url ).read()
+            assert resp == open(expected,"rb").read()
+        else:
+            # make sure there is no image
+            img = find_child( ".row.image img.image", dlg )
+            assert img.get_attribute( "src" ).endswith( "/images/placeholder.png" )
+            # make sure the "remove image" icon is hidden
+            btn = find_child( ".row.image .remove-image", dlg )
+            assert not btn.is_displayed()
+            # make sure the publisher's image is not available
+            url = flask_app.url_for( "get_image", image_type="publisher", image_id=publ_id )
+            try:
+                resp = urllib.request.urlopen( url )
+                assert False, "Should never get here!"
+            except urllib.error.HTTPError as ex:
+                assert ex.code == 404
+        find_child( ".cancel", dlg ).click()
+
+    # create an publisher with no image
+    _create_publisher( { "name": "Test Publisher" } )
+    results = find_children( "#search-results .search-result" )
+    assert len(results) == 1
+    publ_sr = results[0]
+    publ_id = publ_sr.get_attribute( "testing--publ_id" )
+    check_image( None )
+
+    # add an image to the publisher
+    fname = os.path.join( os.path.split(__file__)[0], "fixtures/images/1.gif" )
+    _edit_publisher( publ_sr, { "image": fname } )
+    check_image( fname )
+
+    # change the publisher's image
+    fname = os.path.join( os.path.split(__file__)[0], "fixtures/images/2.gif" )
+    _edit_publisher( publ_sr, { "image": fname } )
+    check_image( fname )
+
+    # remove the publisher's image
+    _edit_publisher( publ_sr, { "image": None } )
+    check_image( None )
+
+    # try to upload an image that's too large
+    find_child( ".edit", publ_sr ).click()
+    dlg = wait_for_elem( 2, "#modal-form" )
+    data = base64.b64encode( 5000 * b" " )
+    data = "{}|{}".format( "too-big.png", data.decode("ascii") )
+    send_upload_data( data,
+        lambda: find_child( ".row.image img.image", dlg ).click()
+    )
+    check_error_msg( "The file must be no more than 2 KB in size." )
 
 # ---------------------------------------------------------------------
 
@@ -275,9 +350,9 @@ def _create_publisher( vals, toast_type="info" ):
     # create the new publisher
     find_child( "#menu .new-publisher" ).click()
     dlg = wait_for_elem( 2, "#modal-form" )
-    for k,v in vals.items():
-        sel = ".{} {}".format( k , "textarea" if k == "description" else "input" )
-        set_elem_text( find_child( sel, dlg ), v )
+    for key,val in vals.items():
+        sel = ".{} {}".format( key , "textarea" if key == "description" else "input" )
+        set_elem_text( find_child( sel, dlg ), val )
     find_child( "button.ok", dlg ).click()
     if toast_type:
         # check that the new publisher was created successfully
@@ -290,9 +365,19 @@ def _edit_publisher( result, vals, toast_type="info", expected_error=None ):
     # update the specified publisher's details
     find_child( ".edit", result ).click()
     dlg = wait_for_elem( 2, "#modal-form" )
-    for k,v in vals.items():
-        sel = ".{} {}".format( k , "textarea" if k == "description" else "input" )
-        set_elem_text( find_child( sel, dlg ), v )
+    for key,val in vals.items():
+        if key == "image":
+            if val:
+                data = base64.b64encode( open( val, "rb" ).read() )
+                data = "{}|{}".format( os.path.split(val)[1], data.decode("ascii") )
+                send_upload_data( data,
+                    lambda: find_child( ".image img", dlg ).click()
+                )
+            else:
+                find_child( ".remove-image", dlg ).click()
+        else:
+            sel = ".{} {}".format( key , "textarea" if key == "description" else "input" )
+            set_elem_text( find_child( sel, dlg ), val )
     set_toast_marker( toast_type )
     find_child( "button.ok", dlg ).click()
     if expected_error:

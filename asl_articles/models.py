@@ -1,5 +1,7 @@
 """ Define the database models. """
 
+# NOTE: Don't forget to keep the list of tables in init_db() in sync with the models defined here.
+
 from asl_articles import db
 
 # ---------------------------------------------------------------------
@@ -100,3 +102,60 @@ class ArticleAuthor( db.Model ):
         return "<ArticleAuthor:{}|{}:{},{}>".format( self.article_author_id,
             self.seq_no, self.article_id, self.author_id
         )
+
+# ---------------------------------------------------------------------
+
+# NOTE: I initially put all the images in a single table, but this makes cascading deletes tricky,
+# since we can't set up a foreign key relationship between these rows and their parent.
+# While it probably won't matter for a database this size, keeping large blobs in the main tables
+# is a bit icky, so we create separate tables for each type of image.
+
+class PublisherImage( db.Model ):
+    """Define the PublisherImage model."""
+
+    publ_id = db.Column( db.Integer,
+        db.ForeignKey( Publisher.__table__.c.publ_id, ondelete="CASCADE" ),
+        primary_key = True
+    )
+    image_filename = db.Column( db.String(500), nullable=False )
+    image_data = db.Column( db.LargeBinary, nullable=False )
+
+    def __repr__( self ):
+        return "<PublisherImage:{}|{}>".format( self.publ_id, len(self.image_data) )
+
+class PublicationImage( db.Model ):
+    """Define the PublicationImage model."""
+
+    pub_id = db.Column( db.Integer,
+        db.ForeignKey( Publication.__table__.c.pub_id, ondelete="CASCADE" ),
+        primary_key = True
+    )
+    image_filename = db.Column( db.String(500), nullable=False )
+    image_data = db.Column( db.LargeBinary, nullable=False )
+
+    def __repr__( self ):
+        return "<PublicationImage:{}|{}>".format( self.pub_id, len(self.image_data) )
+
+class ArticleImage( db.Model ):
+    """Define the ArticleImage model."""
+
+    article_id = db.Column( db.Integer,
+        db.ForeignKey( Article.__table__.c.article_id, ondelete="CASCADE" ),
+        primary_key = True
+    )
+    image_filename = db.Column( db.String(500), nullable=False )
+    image_data = db.Column( db.LargeBinary, nullable=False )
+
+    def __repr__( self ):
+        return "<ArticleImage:{}|{}>".format( self.article_id, len(self.image_data) )
+
+# ---------------------------------------------------------------------
+
+def get_model_from_table_name( table_name ):
+    """Return the model class for the specified table."""
+    pos = table_name.find( "_" )
+    if pos >= 0:
+        model_name = table_name[:pos].capitalize() + table_name[pos+1:].capitalize()
+    else:
+        model_name = table_name.capitalize()
+    return globals()[ model_name ]
