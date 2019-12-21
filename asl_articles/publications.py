@@ -54,6 +54,7 @@ def get_publication_vals( pub ):
         "pub_edition": pub.pub_edition,
         "pub_description": pub.pub_description,
         "pub_url": pub.pub_url,
+        "pub_image_id": pub.pub_id if pub.pub_image else None,
         "pub_tags": decode_tags( pub.pub_tags ),
         "publ_id": pub.publ_id,
     }
@@ -76,7 +77,7 @@ def create_publication():
     vals[ "time_created" ] = datetime.datetime.now()
     pub = Publication( **vals )
     db.session.add( pub )
-    _save_image( pub )
+    _save_image( pub, updated )
     db.session.commit()
     _logger.debug( "- New ID: %d", pub.pub_id )
 
@@ -87,7 +88,7 @@ def create_publication():
         extras[ "tags" ] = do_get_tags()
     return make_ok_response( updated=updated, extras=extras, warnings=warnings )
 
-def _save_image( pub ):
+def _save_image( pub, updated ):
     """Save the publication's image."""
 
     # check if a new image was provided
@@ -99,6 +100,7 @@ def _save_image( pub ):
     PublicationImage.query.filter( PublicationImage.pub_id == pub.pub_id ).delete()
     if image_data == "{remove}":
         # NOTE: The front-end sends this if it wants the publication to have no image.
+        updated[ "pub_image_id" ] = None
         return
 
     # add the new image to the database
@@ -108,6 +110,7 @@ def _save_image( pub ):
     db.session.add( img )
     db.session.flush()
     _logger.debug( "Created new image: %s, #bytes=%d", fname, len(image_data) )
+    updated[ "pub_image_id" ] = pub.pub_id
 
 # ---------------------------------------------------------------------
 
@@ -129,7 +132,7 @@ def update_publication():
     if not pub:
         abort( 404 )
     apply_attrs( pub, vals )
-    _save_image( pub )
+    _save_image( pub, updated )
     vals[ "time_updated" ] = datetime.datetime.now()
     db.session.commit()
 

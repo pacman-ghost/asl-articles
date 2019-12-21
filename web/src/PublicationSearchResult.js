@@ -12,13 +12,16 @@ export class PublicationSearchResult extends React.Component
 
     render() {
         const publ = gAppRef.caches.publishers[ this.props.data.publ_id ] ;
+        const image_url = gAppRef.makeFlaskImageUrl( "publication", this.props.data.pub_image_id, true ) ;
         let tags = [] ;
         if ( this.props.data.pub_tags )
             this.props.data.pub_tags.map( t => tags.push( <div key={t} className="tag"> {t} </div> ) ) ;
         return ( <div className="search-result publication"
                     ref = { r => gAppRef.setTestAttribute( r, "pub_id", this.props.data.pub_id ) }
             >
-            <div className="name"> { makeOptionalLink( this._makeDisplayName(), this.props.data.pub_url ) }
+            <div className="name">
+                { image_url && <img src={image_url} className="image" alt="Publication." /> }
+                { makeOptionalLink( this._makeDisplayName(), this.props.data.pub_url ) }
                 { publ && <span className="publisher"> ({publ.publ_name}) </span> }
                 <img src="/images/edit.png" className="edit" onClick={this.onEditPublication.bind(this)} alt="Edit this publication." />
                 <img src="/images/delete.png" className="delete" onClick={this.onDeletePublication.bind(this)} alt="Delete this publication." />

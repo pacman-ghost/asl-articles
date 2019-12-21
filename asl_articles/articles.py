@@ -42,6 +42,7 @@ def get_article_vals( article ):
         "article_id": article.article_id,
         "article_title": article.article_title,
         "article_subtitle": article.article_subtitle,
+        "article_image_id": article.article_id if article.article_image else None,
         "article_authors": [ a.author_id for a in authors ],
         "article_snippet": article.article_snippet,
         "article_url": article.article_url,
@@ -72,7 +73,7 @@ def create_article():
     new_article_id = article.article_id
     _save_authors( article, updated )
     _save_scenarios( article, updated )
-    _save_image( article )
+    _save_image( article, updated )
     db.session.commit()
     _logger.debug( "- New ID: %d", new_article_id )
 
@@ -156,7 +157,7 @@ def _save_scenarios( article, updated_fields ):
         # yup - let the caller know about them
         updated_fields[ "article_scenarios"] = scenario_ids
 
-def _save_image( article ):
+def _save_image( article, updated ):
     """Save the article's image."""
 
     # check if a new image was provided
@@ -168,6 +169,7 @@ def _save_image( article ):
     ArticleImage.query.filter( ArticleImage.article_id == article.article_id ).delete()
     if image_data == "{remove}":
         # NOTE: The front-end sends this if it wants the article to have no image.
+        updated[ "article_image_id" ] = None
         return
 
     # add the new image to the database
@@ -177,6 +179,7 @@ def _save_image( article ):
     db.session.add( img )
     db.session.flush()
     _logger.debug( "Created new image: %s, #bytes=%d", fname, len(image_data) )
+    updated[ "article_image_id" ] = article.article_id
 
 # ---------------------------------------------------------------------
 
@@ -200,7 +203,7 @@ def update_article():
     apply_attrs( article, vals )
     _save_authors( article, updated )
     _save_scenarios( article, updated )
-    _save_image( article )
+    _save_image( article, updated )
     vals[ "time_updated" ] = datetime.datetime.now()
     db.session.commit()
 

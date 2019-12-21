@@ -144,13 +144,24 @@ def test_delete_publication( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
-def test_images( webdriver, flask_app, dbconn ):
+def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-statements
     """Test publication images."""
 
     # initialize
     init_tests( webdriver, flask_app, dbconn, max_image_upload_size=2*1024 )
 
     def check_image( expected ):
+
+        # check the image in the publication's search result
+        img = find_child( "img.image", pub_sr )
+        if expected:
+            expected_url = flask_app.url_for( "get_image", image_type="publication", image_id=pub_id )
+            image_url = img.get_attribute( "src" ).split( "?" )[0]
+            assert image_url == expected_url
+        else:
+            assert not img
+
+        # check the image in the publisher's config
         find_child( ".edit", pub_sr ).click()
         dlg = wait_for_elem( 2, "#modal-form" )
         if expected:

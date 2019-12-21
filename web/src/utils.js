@@ -27,6 +27,10 @@ export function applyUpdatedVals( vals, newVals, updated, refs ) {
     // into the original table of values.
     for ( let r in refs )
         vals[ r ] = (updated && updated[r] !== undefined) ? updated[r] : newVals[r] ;
+    // NOTE: We sometimes want to force an entry into the vals that doesn't have
+    // an associated ref (i.e. UI element) e.g. XXX_image_id.
+    for ( let key in updated )
+        vals[ key ] = updated[ key ] ;
 }
 
 // --------------------------------------------------------------------

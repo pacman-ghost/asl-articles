@@ -2,6 +2,7 @@
 
 # NOTE: Don't forget to keep the list of tables in init_db() in sync with the models defined here.
 
+from sqlalchemy.orm import deferred
 from sqlalchemy.schema import UniqueConstraint
 
 from asl_articles import db
@@ -20,7 +21,8 @@ class Publisher( db.Model ):
     time_created = db.Column( db.TIMESTAMP(timezone=True) )
     time_updated = db.Column( db.TIMESTAMP(timezone=True) )
     #
-    publications = db.relationship( "Publication", backref="parent", passive_deletes=True )
+    publ_image = db.relationship( "PublisherImage", backref="parent_publ", passive_deletes=True )
+    publications = db.relationship( "Publication", backref="parent_publ", passive_deletes=True )
 
     def __repr__( self ):
         return "<Publisher:{}|{}>".format( self.publ_id, self.publ_name )
@@ -44,7 +46,8 @@ class Publication( db.Model ):
     time_created = db.Column( db.TIMESTAMP(timezone=True) )
     time_updated = db.Column( db.TIMESTAMP(timezone=True) )
     #
-    articles = db.relationship( "Article", backref="parent", passive_deletes=True )
+    pub_image = db.relationship( "PublicationImage", backref="parent_pub", passive_deletes=True )
+    articles = db.relationship( "Article", backref="parent_pub", passive_deletes=True )
 
     def __repr__( self ):
         return "<Publication:{}|{}>".format( self.pub_id, self.pub_name )
@@ -68,6 +71,7 @@ class Article( db.Model ):
     time_created = db.Column( db.TIMESTAMP(timezone=True) )
     time_updated = db.Column( db.TIMESTAMP(timezone=True) )
     #
+    article_image = db.relationship( "ArticleImage", backref="parent_article", passive_deletes=True )
     article_authors = db.relationship( "ArticleAuthor", backref="parent_article", passive_deletes=True )
     article_scenarios = db.relationship( "ArticleScenario", backref="parent_article", passive_deletes=True )
 
@@ -121,7 +125,7 @@ class PublisherImage( db.Model ):
         primary_key = True
     )
     image_filename = db.Column( db.String(500), nullable=False )
-    image_data = db.Column( db.LargeBinary, nullable=False )
+    image_data = deferred( db.Column( db.LargeBinary, nullable=False ) )
 
     def __repr__( self ):
         return "<PublisherImage:{}|{}>".format( self.publ_id, len(self.image_data) )
@@ -134,7 +138,7 @@ class PublicationImage( db.Model ):
         primary_key = True
     )
     image_filename = db.Column( db.String(500), nullable=False )
-    image_data = db.Column( db.LargeBinary, nullable=False )
+    image_data = deferred( db.Column( db.LargeBinary, nullable=False ) )
 
     def __repr__( self ):
         return "<PublicationImage:{}|{}>".format( self.pub_id, len(self.image_data) )
@@ -147,7 +151,7 @@ class ArticleImage( db.Model ):
         primary_key = True
     )
     image_filename = db.Column( db.String(500), nullable=False )
-    image_data = db.Column( db.LargeBinary, nullable=False )
+    image_data = deferred( db.Column( db.LargeBinary, nullable=False ) )
 
     def __repr__( self ):
         return "<ArticleImage:{}|{}>".format( self.article_id, len(self.image_data) )

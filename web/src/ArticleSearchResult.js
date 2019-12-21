@@ -12,6 +12,7 @@ export class ArticleSearchResult extends React.Component
 
     render() {
         const pub = gAppRef.caches.publications[ this.props.data.pub_id ] ;
+        const image_url = gAppRef.makeFlaskImageUrl( "article", this.props.data.article_image_id, true ) ;
         let tags = [] ;
         if ( this.props.data.article_tags )
             this.props.data.article_tags.map( t => tags.push( <div key={t} className="tag"> {t} </div> ) ) ;
@@ -20,8 +21,10 @@ export class ArticleSearchResult extends React.Component
         return ( <div className="search-result article"
                     ref = { r => gAppRef.setTestAttribute( r, "article_id", this.props.data.article_id ) }
             >
-            <div className="title name"> { makeOptionalLink( this.props.data.article_title, this.props.data.article_url ) }
-            { pub && <span className="publication"> ({pub.pub_name}) </span> }
+            <div className="title name">
+                { image_url && <img src={image_url} className="image" alt="Article." /> }
+                { makeOptionalLink( this.props.data.article_title, this.props.data.article_url ) }
+                { pub && <span className="publication"> ({pub.pub_name}) </span> }
                 <img src="/images/edit.png" className="edit" onClick={this.onEditArticle.bind(this)} alt="Edit this article." />
                 <img src="/images/delete.png" className="delete" onClick={this.onDeleteArticle.bind(this)} alt="Delete this article." />
                 { this.props.data.article_subtitle && <div className="subtitle" dangerouslySetInnerHTML={{ __html: this.props.data.article_subtitle }} /> }

@@ -58,6 +58,7 @@ def get_publisher_vals( publ ):
         "publ_name": publ.publ_name,
         "publ_description": publ.publ_description,
         "publ_url": publ.publ_url,
+        "publ_image_id": publ.publ_id if publ.publ_image else None,
     }
 
 # ---------------------------------------------------------------------
@@ -77,7 +78,7 @@ def create_publisher():
     vals[ "time_created" ] = datetime.datetime.now()
     publ = Publisher( **vals )
     db.session.add( publ )
-    _save_image( publ )
+    _save_image( publ, updated )
     db.session.commit()
     _logger.debug( "- New ID: %d", publ.publ_id )
 
@@ -87,7 +88,7 @@ def create_publisher():
         extras[ "publishers" ] = _do_get_publishers()
     return make_ok_response( updated=updated, extras=extras, warnings=warnings )
 
-def _save_image( publ ):
+def _save_image( publ, updated ):
     """Save the publisher's image."""
 
     # check if a new image was provided
@@ -99,6 +100,7 @@ def _save_image( publ ):
     PublisherImage.query.filter( PublisherImage.publ_id == publ.publ_id ).delete()
     if image_data == "{remove}":
         # NOTE: The front-end sends this if it wants the publisher to have no image.
+        updated[ "publ_image_id" ] = None
         return
 
     # add the new image to the database
@@ -108,6 +110,7 @@ def _save_image( publ ):
     db.session.add( img )
     db.session.flush()
     _logger.debug( "Created new image: %s, #bytes=%d", fname, len(image_data) )
+    updated[ "publ_image_id" ] = publ.publ_id
 
 # ---------------------------------------------------------------------
 
@@ -127,7 +130,7 @@ def update_publisher():
     publ = Publisher.query.get( publ_id )
     if not publ:
         abort( 404 )
-    _save_image( publ )
+    _save_image( publ, updated )
     apply_attrs( publ, vals )
     vals[ "time_updated" ] = datetime.datetime.now()
     db.session.commit()
