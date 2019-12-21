@@ -376,8 +376,8 @@ def _edit_article( result, vals, toast_type="info", expected_error=None ):
         elif key == "publication":
             select = ReactSelect( find_child( ".publication .react-select", dlg ) )
             select.select_by_name( val )
-        elif key == "tags":
-            select = ReactSelect( find_child( ".tags .react-select", dlg ) )
+        elif key in ["scenarios","tags"]:
+            select = ReactSelect( find_child( ".{} .react-select".format(key), dlg ) )
             select.update_multiselect_values( *val )
         else:
             sel = ".{} {}".format( key , "textarea" if key == "snippet" else "input" )

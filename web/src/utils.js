@@ -31,6 +31,36 @@ export function applyUpdatedVals( vals, newVals, updated, refs ) {
 
 // --------------------------------------------------------------------
 
+// NOTE: The format of a scenario display name is "SCENARIO NAME [SCENARIO ID]".
+
+export function makeScenarioDisplayName( scenario ) {
+    if ( scenario.scenario_name && scenario.scenario_display_id )
+        return scenario.scenario_name + " [" + scenario.scenario_display_id + "]" ;
+    else if ( scenario.scenario_name )
+        return scenario.scenario_name ;
+    else if ( scenario.scenario_display_id )
+        return scenario.scenario_display_id ;
+    else
+        return "???" ;
+}
+
+export function parseScenarioDisplayName( displayName ) {
+    // try to locate the scenario ID
+    displayName = displayName.trim() ;
+    let scenarioId=null, scenarioName=displayName ;
+    if ( displayName[ displayName.length-1 ] === "]" ) {
+        let pos = displayName.lastIndexOf( "[" ) ;
+        if ( pos !== -1 ) {
+            // found it - separate it from the scenario name
+            scenarioId = displayName.substr( pos+1, displayName.length-pos-2 ).trim() ;
+            scenarioName = displayName.substr( 0, pos ).trim() ;
+        }
+    }
+    return [ scenarioId, scenarioName ] ;
+}
+
+// --------------------------------------------------------------------
+
 export function makeOptionalLink( caption, url ) {
     let link = <span dangerouslySetInnerHTML={{ __html: caption }} /> ;
     if ( url )

@@ -27,7 +27,7 @@ export default class App extends React.Component
             searchSeqNo: 0,
             modalForm: null,
             askDialog: null,
-            startupTasks: [ "caches.publishers", "caches.publications", "caches.authors", "caches.tags" ],
+            startupTasks: [ "caches.publishers", "caches.publications", "caches.authors", "caches.scenarios", "caches.tags" ],
         } ;
 
         // initialize
@@ -93,37 +93,15 @@ export default class App extends React.Component
         // than trying to manually keep our caches in sync. It's less efficient, but it won't happen too often, there won't be
         // too many entries, and the database server is local.
         this.caches = {} ;
-        axios.get( this.makeFlaskUrl( "/publishers" ) )
-        .then( resp => {
-            this.caches.publishers = resp.data ;
-            this._onStartupTask( "caches.publishers" ) ;
-        } )
-        .catch( err => {
-            this.showErrorToast( <div> Couldn't load the publishers: <div className="monospace"> {err.toString()} </div> </div> ) ;
-        } ) ;
-        axios.get( this.makeFlaskUrl( "/publications" ) )
-        .then( resp => {
-            this.caches.publications = resp.data ;
-            this._onStartupTask( "caches.publications" ) ;
-        } )
-        .catch( err => {
-            this.showErrorToast( <div> Couldn't load the publications: <div className="monospace"> {err.toString()} </div> </div> ) ;
-        } ) ;
-        axios.get( this.makeFlaskUrl( "/authors" ) )
-        .then( resp => {
-            this.caches.authors = resp.data ;
-            this._onStartupTask( "caches.authors" ) ;
-        } )
-        .catch( err => {
-            this.showErrorToast( <div> Couldn't load the authors: <div className="monospace"> {err.toString()} </div> </div> ) ;
-        } ) ;
-        axios.get( this.makeFlaskUrl( "/tags" ) )
-        .then( resp => {
-            this.caches.tags = resp.data ;
-            this._onStartupTask( "caches.tags" ) ;
-        } )
-        .catch( err => {
-            this.showErrorToast( <div> Couldn't load the tags: <div className="monospace"> {err.toString()} </div> </div> ) ;
+        ["publishers","publications","authors","scenarios","tags"].forEach( (type) => {
+            axios.get( this.makeFlaskUrl( "/" + type ) )
+            .then( resp => {
+                this.caches[ type ] = resp.data ;
+                this._onStartupTask( "caches." + type ) ;
+            } )
+            .catch( err => {
+                this.showErrorToast( <div> Couldn't load the {type}: <div className="monospace"> {err.toString()} </div> </div> ) ;
+            } ) ;
         } ) ;
     }
 

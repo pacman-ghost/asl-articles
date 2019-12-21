@@ -10,8 +10,8 @@ from asl_articles.tests.test_articles import _create_article, _edit_article
 
 # ---------------------------------------------------------------------
 
-def test_authors( webdriver, flask_app, dbconn ):
-    """Test author operations."""
+def test_article_authors( webdriver, flask_app, dbconn ):
+    """Test article author operations."""
 
     # initialize
     init_tests( webdriver, flask_app, dbconn )

@@ -61,6 +61,7 @@ def init_db( dbconn, fixtures_fname ):
     table_names = [ "publisher", "publication", "article" ]
     table_names.extend( [ "author", "article_author" ] )
     table_names.extend( [ "publisher_image", "publication_image", "article_image" ] )
+    table_names.extend( [ "scenario", "article_scenario" ] )
     for table_name in table_names:
         model = asl_articles.models.get_model_from_table_name( table_name )
         session.query( model ).delete()

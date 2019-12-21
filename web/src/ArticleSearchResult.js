@@ -4,7 +4,7 @@ import Select from "react-select" ;
 import CreatableSelect from "react-select/creatable" ;
 import { gAppRef } from "./index.js" ;
 import { ImageFileUploader } from "./FileUploader.js" ;
-import { makeOptionalLink, unloadCreatableSelect, applyUpdatedVals } from "./utils.js" ;
+import { makeScenarioDisplayName, parseScenarioDisplayName, makeOptionalLink, unloadCreatableSelect, applyUpdatedVals } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -40,6 +40,7 @@ export class ArticleSearchResult extends React.Component
             .then( resp => {
                 // update the caches
                 gAppRef.caches.authors = resp.data.authors ;
+                gAppRef.caches.scenarios = resp.data.scenarios ;
                 gAppRef.caches.tags = resp.data.tags ;
                 // unload any updated values
                 applyUpdatedVals( newVals, newVals, resp.data.updated, refs ) ;
@@ -65,6 +66,7 @@ export class ArticleSearchResult extends React.Component
             .then( resp => {
                 // update the caches
                 gAppRef.caches.authors = resp.data.authors ;
+                gAppRef.caches.scenarios = resp.data.scenarios ;
                 gAppRef.caches.tags = resp.data.tags ;
                 // update the UI with the new details
                 applyUpdatedVals( this.props.data, newVals, resp.data.updated, refs ) ;
@@ -124,14 +126,25 @@ export class ArticleSearchResult extends React.Component
             return ReactDOMServer.renderToStaticMarkup( lhs.label ).localeCompare( ReactDOMServer.renderToStaticMarkup( rhs.label ) ) ;
         } ) ;
         // initialize the authors
-        let authors = [] ;
+        let allAuthors = [] ;
         for ( let a of Object.entries(gAppRef.caches.authors) )
-            authors.push( { value: a[1].author_id, label: a[1].author_name }  );
-        authors.sort( (lhs,rhs) => { return lhs.label.localeCompare( rhs.label ) ; } ) ;
+            allAuthors.push( { value: a[1].author_id, label: a[1].author_name }  );
+        allAuthors.sort( (lhs,rhs) => { return lhs.label.localeCompare( rhs.label ) ; } ) ;
         let currAuthors = [] ;
         if ( vals.article_authors ) {
             currAuthors = vals.article_authors.map( a => {
                 return { value: a, label: gAppRef.caches.authors[a].author_name }
+            } ) ;
+        }
+        // initialize the scenarios
+        let allScenarios = [] ;
+        for ( let s of Object.entries(gAppRef.caches.scenarios) )
+            allScenarios.push( { value: s[1].scenario_id, label: makeScenarioDisplayName(s[1]) } ) ;
+        allScenarios.sort( (lhs,rhs) => { return lhs.label.localeCompare( rhs.label ) ; } ) ;
+        let currScenarios = [] ;
+        if ( vals.article_scenarios ) {
+            currScenarios = vals.article_scenarios.map( s => {
+                return { value: s, label: makeScenarioDisplayName(gAppRef.caches.scenarios[s]) }
             } ) ;
         }
         // initialize the tags
@@ -151,7 +164,7 @@ export class ArticleSearchResult extends React.Component
                 <input type="text" defaultValue={vals.article_subtitle} ref={(r) => refs.article_subtitle=r} />
             </div>
             <div className="row authors"> <label> Authors: </label>
-                <CreatableSelect className="react-select" classNamePrefix="react-select" options={authors} isMulti
+                <CreatableSelect className="react-select" classNamePrefix="react-select" options={allAuthors} isMulti
                     defaultValue = {currAuthors}
                     ref = { (r) => refs.article_authors=r }
                 />
@@ -166,6 +179,12 @@ export class ArticleSearchResult extends React.Component
                 <CreatableSelect className="react-select" classNamePrefix="react-select" options={tags[1]} isMulti
                     defaultValue = {tags[0]}
                     ref = { (r) => refs.article_tags=r }
+                />
+            </div>
+            <div className="row scenarios"> <label> Scenarios: </label>
+                <CreatableSelect className="react-select" classNamePrefix="react-select" options={allScenarios} isMulti
+                    defaultValue = {currScenarios}
+                    ref = { (r) => refs.article_scenarios=r }
                 />
             </div>
             <div className="row snippet"> <label> Snippet: </label>
@@ -191,9 +210,17 @@ export class ArticleSearchResult extends React.Component
                             else
                                 newVals.article_authors.push( v.value ) ; // nb: integer = existing author ID
                         } ) ;
-                    }
-                    else if ( r === "article_tags" ) {
-                        let vals=  unloadCreatableSelect( refs[r] ) ;
+                    } else if ( r === "article_scenarios" ) {
+                        let vals =  unloadCreatableSelect( refs[r] ) ;
+                        newVals.article_scenarios = [] ;
+                        vals.forEach( v => {
+                            if ( v.__isNew__ )
+                                newVals.article_scenarios.push( parseScenarioDisplayName( v.label ) ) ; // nb: array = new scenario
+                            else
+                                newVals.article_scenarios.push( v.value ) ; // nb: integer = existing scenario ID
+                        } ) ;
+                    } else if ( r === "article_tags" ) {
+                        let vals =  unloadCreatableSelect( refs[r] ) ;
                         newVals[ r ] =  vals.map( v => v.label ) ;
                     } else
                         newVals[ r ] = refs[r].value.trim() ;

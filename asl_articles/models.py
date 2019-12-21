@@ -2,6 +2,8 @@
 
 # NOTE: Don't forget to keep the list of tables in init_db() in sync with the models defined here.
 
+from sqlalchemy.schema import UniqueConstraint
+
 from asl_articles import db
 
 # ---------------------------------------------------------------------
@@ -13,7 +15,7 @@ class Publisher( db.Model ):
     publ_name = db.Column( db.String(100), nullable=False )
     publ_description = db.Column( db.String(1000) )
     publ_url = db.Column( db.String(500) )
-    # NOTE: time_created should be non-nullable, but getting this to work on SQlite and Postgres
+    # NOTE: time_created should be non-nullable, but getting this to work on both SQLite and Postgres
     # is more trouble than it's worth :-/
     time_created = db.Column( db.TIMESTAMP(timezone=True) )
     time_updated = db.Column( db.TIMESTAMP(timezone=True) )
@@ -37,7 +39,7 @@ class Publication( db.Model ):
     publ_id = db.Column( db.Integer,
         db.ForeignKey( Publisher.__table__.c.publ_id, ondelete="CASCADE" )
     )
-    # NOTE: time_created should be non-nullable, but getting this to work on SQlite and Postgres
+    # NOTE: time_created should be non-nullable, but getting this to work on both SQLite and Postgres
     # is more trouble than it's worth :-/
     time_created = db.Column( db.TIMESTAMP(timezone=True) )
     time_updated = db.Column( db.TIMESTAMP(timezone=True) )
@@ -61,12 +63,13 @@ class Article( db.Model ):
     pub_id = db.Column( db.Integer,
         db.ForeignKey( Publication.__table__.c.pub_id, ondelete="CASCADE" )
     )
-    # NOTE: time_created should be non-nullable, but getting this to work on SQlite and Postgres
+    # NOTE: time_created should be non-nullable, but getting this to work on both SQLite and Postgres
     # is more trouble than it's worth :-/
     time_created = db.Column( db.TIMESTAMP(timezone=True) )
     time_updated = db.Column( db.TIMESTAMP(timezone=True) )
     #
     article_authors = db.relationship( "ArticleAuthor", backref="parent_article", passive_deletes=True )
+    article_scenarios = db.relationship( "ArticleScenario", backref="parent_article", passive_deletes=True )
 
     def __repr__( self ):
         return "<Article:{}|{}>".format( self.article_id, self.article_title )
@@ -148,6 +151,46 @@ class ArticleImage( db.Model ):
 
     def __repr__( self ):
         return "<ArticleImage:{}|{}>".format( self.article_id, len(self.image_data) )
+
+# ---------------------------------------------------------------------
+
+class Scenario( db.Model ):
+    """Define the Scenario model."""
+
+    scenario_id = db.Column( db.Integer, primary_key=True )
+    scenario_roar_id = db.Column( db.String(50) )
+    scenario_display_id = db.Column( db.String(50) )
+    scenario_name = db.Column( db.String(200), nullable=False )
+    #
+    article_scenarios = db.relationship( "ArticleScenario", backref="parent_scenario", passive_deletes=True )
+    #
+    # We would like to make rows unique by display ID and name, but there are some scenarios that have
+    # duplicate values for these e.g. "The T-Patchers [180]" was released in multiple publications.
+    __table_args__ = (
+        UniqueConstraint( "scenario_roar_id", "scenario_display_id", "scenario_name", name="unq_id_name" ),
+    )
+
+    def __repr__( self ):
+        return "<Scenario:{}|{}:{}>".format( self.scenario_id, self.scenario_display_id, self.scenario_name )
+
+class ArticleScenario( db.Model ):
+    """Define the link between Article's and Scenario's."""
+
+    article_scenario_id = db.Column( db.Integer, primary_key=True )
+    seq_no = db.Column( db.Integer, nullable=False )
+    article_id = db.Column( db.Integer,
+        db.ForeignKey( Article.__table__.c.article_id, ondelete="CASCADE" ),
+        nullable = False
+    )
+    scenario_id = db.Column( db.Integer,
+        db.ForeignKey( Scenario.__table__.c.scenario_id, ondelete="CASCADE" ),
+        nullable = False
+    )
+
+    def __repr__( self ):
+        return "<ArticleScenario:{}|{}:{},{}>".format( self.article_scenario_id,
+            self.seq_no, self.article_id, self.scenario_id
+        )
 
 # ---------------------------------------------------------------------
 

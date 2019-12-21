@@ -7,8 +7,9 @@ import logging
 from flask import request, jsonify, abort
 
 from asl_articles import app, db
-from asl_articles.models import Article, Author, ArticleAuthor, ArticleImage
+from asl_articles.models import Article, Author, ArticleAuthor, Scenario, ArticleScenario, ArticleImage
 from asl_articles.authors import do_get_authors
+from asl_articles.scenarios import do_get_scenarios
 from asl_articles.tags import do_get_tags
 from asl_articles.utils import get_request_args, clean_request_args, encode_tags, decode_tags, apply_attrs, \
     make_ok_response
@@ -34,6 +35,9 @@ def get_article_vals( article ):
     authors = sorted( article.article_authors,
         key = lambda a: a.seq_no
     )
+    scenarios = sorted( article.article_scenarios,
+        key = lambda a: a.seq_no
+    )
     return {
         "article_id": article.article_id,
         "article_title": article.article_title,
@@ -41,6 +45,7 @@ def get_article_vals( article ):
         "article_authors": [ a.author_id for a in authors ],
         "article_snippet": article.article_snippet,
         "article_url": article.article_url,
+        "article_scenarios": [ s.scenario_id for s in scenarios ],
         "article_tags": decode_tags( article.article_tags ),
         "pub_id": article.pub_id,
     }
@@ -66,6 +71,7 @@ def create_article():
     db.session.flush()
     new_article_id = article.article_id
     _save_authors( article, updated )
+    _save_scenarios( article, updated )
     _save_image( article )
     db.session.commit()
     _logger.debug( "- New ID: %d", new_article_id )
@@ -74,6 +80,7 @@ def create_article():
     extras = { "article_id": new_article_id }
     if request.args.get( "list" ):
         extras[ "authors" ] = do_get_authors()
+        extras[ "scenarios" ] = do_get_scenarios()
         extras[ "tags" ] = do_get_tags()
     return make_ok_response( updated=updated, extras=extras, warnings=warnings )
 
@@ -95,7 +102,8 @@ def _save_authors( article, updated_fields ):
             author_id = author
         else:
             # this is a new author - create it
-            assert isinstance( author, str )
+            if not isinstance( author, str ):
+                raise RuntimeError( "Expected an author name: {}".format( author ) )
             author = Author( author_name=author )
             db.session.add( author )
             db.session.flush()
@@ -111,6 +119,42 @@ def _save_authors( article, updated_fields ):
     if new_authors:
         # yup - let the caller know about them
         updated_fields[ "article_authors"] = author_ids
+
+def _save_scenarios( article, updated_fields ):
+    """Save the article's scenarios."""
+
+    # delete the existing article-scenario rows
+    db.session.query( ArticleScenario ) \
+        .filter( ArticleScenario.article_id == article.article_id ) \
+        .delete()
+
+    # add the article-scenario rows
+    scenarios = request.json.get( "article_scenarios", [] )
+    scenario_ids = []
+    new_scenarios = False
+    for seq_no,scenario in enumerate( scenarios ):
+        if isinstance( scenario, int ):
+            # this is an existing scenario
+            scenario_id = scenario
+        else:
+            # this is a new scenario - create it
+            if not isinstance( scenario, list ):
+                raise RuntimeError( "Expected a scenario ID and name: {}".format( scenario ) )
+            new_scenario = Scenario( scenario_display_id=scenario[0], scenario_name=scenario[1] )
+            db.session.add( new_scenario )
+            db.session.flush()
+            scenario_id = new_scenario.scenario_id
+            new_scenarios = True
+            _logger.debug( "Created new scenario \"%s [%s]\": id=%d", scenario[1], scenario[0], scenario_id )
+        db.session.add(
+            ArticleScenario( seq_no=seq_no, article_id=article.article_id, scenario_id=scenario_id )
+        )
+        scenario_ids.append( scenario_id )
+
+    # check if we created any new scenarios
+    if new_scenarios:
+        # yup - let the caller know about them
+        updated_fields[ "article_scenarios"] = scenario_ids
 
 def _save_image( article ):
     """Save the article's image."""
@@ -155,6 +199,7 @@ def update_article():
         abort( 404 )
     apply_attrs( article, vals )
     _save_authors( article, updated )
+    _save_scenarios( article, updated )
     _save_image( article )
     vals[ "time_updated" ] = datetime.datetime.now()
     db.session.commit()
@@ -163,6 +208,7 @@ def update_article():
     extras = {}
     if request.args.get( "list" ):
         extras[ "authors" ] = do_get_authors()
+        extras[ "scenarios" ] = do_get_scenarios()
         extras[ "tags" ] = do_get_tags()
     return make_ok_response( updated=updated, extras=extras, warnings=warnings )
 
