@@ -72,6 +72,16 @@ export function makeOptionalLink( caption, url ) {
     return link ;
 }
 
+export function makeCommaList( vals, extract ) {
+    let result = [] ;
+    for ( let i=0 ; i < vals.length ; ++i ) {
+        result.push( extract( vals[i] ) ) ;
+        if ( i < vals.length-1 )
+            result.push( ", " ) ;
+    }
+    return result ;
+}
+
 export function bytesDisplayString( nBytes )
 {
     if ( nBytes === 1 )

@@ -3,7 +3,7 @@
 import urllib.request
 import json
 
-from asl_articles.tests.utils import init_tests, find_child, wait_for_elem, find_search_result
+from asl_articles.tests.utils import init_tests, find_child, find_children, wait_for_elem, find_search_result
 from asl_articles.tests.react_select import ReactSelect
 
 from asl_articles.tests.test_articles import _create_article, _edit_article
@@ -64,8 +64,12 @@ def _check_authors( flask_app, all_authors, expected ):
     # check the authors in the UI
     for article_no,authors in enumerate( expected ):
 
-        # check the authors for the next article
+        # check the authors in the article's search result
         sr = find_search_result( "article {}".format( 1+article_no ) )
+        sr_authors = [ a.text for a in find_children( ".author", sr ) ]
+        assert sr_authors == authors
+
+        # check the authors in the article's config
         find_child( ".edit", sr ).click()
         dlg = wait_for_elem( 2, "#modal-form" )
         select = ReactSelect( find_child( ".authors .react-select", dlg ) )

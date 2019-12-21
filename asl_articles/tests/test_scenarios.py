@@ -3,7 +3,7 @@
 import urllib.request
 import json
 
-from asl_articles.tests.utils import init_tests, find_child, wait_for_elem, find_search_result
+from asl_articles.tests.utils import init_tests, find_child, find_children, wait_for_elem, find_search_result
 from asl_articles.tests.react_select import ReactSelect
 
 from asl_articles.tests.test_articles import _create_article, _edit_article
@@ -75,8 +75,12 @@ def _check_scenarios( flask_app, all_scenarios, expected ):
     # check the scenarios in the UI
     for article_no,scenarios in enumerate( expected ):
 
-        # check the scenarios for the next article
+        # check the scenarios in the article's search result
         sr = find_search_result( "article {}".format( 1+article_no ) )
+        sr_scenarios = [ s.text for s in find_children( ".scenario", sr ) ]
+        assert sr_scenarios == scenarios
+
+        # check the scenarios in the article's config
         find_child( ".edit", sr ).click()
         dlg = wait_for_elem( 2, "#modal-form" )
         select = ReactSelect( find_child( ".scenarios .react-select", dlg ) )

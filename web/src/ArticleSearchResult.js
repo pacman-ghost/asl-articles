@@ -1,7 +1,7 @@
 import React from "react" ;
 import { ArticleSearchResult2 } from "./ArticleSearchResult2.js" ;
 import { gAppRef } from "./index.js" ;
-import { makeOptionalLink, applyUpdatedVals } from "./utils.js" ;
+import { makeScenarioDisplayName, applyUpdatedVals, makeOptionalLink, makeCommaList } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -13,6 +13,12 @@ export class ArticleSearchResult extends React.Component
     render() {
         const pub = gAppRef.caches.publications[ this.props.data.pub_id ] ;
         const image_url = gAppRef.makeFlaskImageUrl( "article", this.props.data.article_image_id, true ) ;
+        const authors = makeCommaList( this.props.data.article_authors,
+            (a) => <span className="author" key={a}> {gAppRef.caches.authors[a].author_name} </span>
+        ) ;
+        const scenarios = makeCommaList( this.props.data.article_scenarios,
+            (s) => <span className="scenario" key={s}> { makeScenarioDisplayName( gAppRef.caches.scenarios[s] ) } </span>
+        ) ;
         let tags = [] ;
         if ( this.props.data.article_tags )
             this.props.data.article_tags.map( t => tags.push( <div key={t} className="tag"> {t} </div> ) ) ;
@@ -28,9 +34,11 @@ export class ArticleSearchResult extends React.Component
                 <img src="/images/edit.png" className="edit" onClick={this.onEditArticle.bind(this)} alt="Edit this article." />
                 <img src="/images/delete.png" className="delete" onClick={this.onDeleteArticle.bind(this)} alt="Delete this article." />
                 { this.props.data.article_subtitle && <div className="subtitle" dangerouslySetInnerHTML={{ __html: this.props.data.article_subtitle }} /> }
+                { authors.length > 0 && <div className="authors"> By {authors} </div> }
             </div>
             <div className="snippet" dangerouslySetInnerHTML={{__html: this.props.data.article_snippet}} />
-            { tags.length > 0 && <div className="tags"> <label>Tags:</label> {tags} </div> }
+            { scenarios.length > 0 && <div className="scenarios"> Scenarios: {scenarios} </div> }
+            { tags.length > 0 && <div className="tags"> Tags: {tags} </div> }
         </div> ) ;
     }
 

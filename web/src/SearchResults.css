@@ -7,18 +7,21 @@
 }
 
 .search-result .name { padding: 2px 5px ; }
-.search-result .image { float: left ; margin-right: 0.25em ; height: 1em ; }
 .search-result .name a { font-weight: bold ; text-decoration: none ; }
 .search-result .name .publisher { font-size: 80% ; font-style: italic ; }
 .search-result .name .publication { font-size: 80% ; font-style: italic ; }
 .search-result .name img.edit { margin-left: 0.5em ; height: 0.8em ; cursor: pointer ; }
 .search-result .name img.delete { float: right ; margin: 0.2em 0 0 0.5em ; height: 0.8em ; cursor: pointer ; }
+.search-result .image { float: left ; margin-right: 0.25em ; height: 1em ; }
+.search-result .authors { font-size: 80% ; font-style: italic ; color: #666 ; }
 .search-result .description { font-size: 80% ; padding: 2px 5px ; }
 
 .search-result.publisher .name { border: 1px solid #c0c0c0 ; background: #a0e0f0 ; }
 .search-result.publication .name { border: 1px solid #c0c0c0 ; background: #d0a080 ; }
 .search-result.article .title { border: 1px solid #c0c0c0 ; background: #60f000 ; }
 .search-result.article .subtitle { font-size: 80% ; font-style: italic ; }
+
+.search-result .scenarios { font-size: 80% ; font-style: italic ; color: #666 ; }
 
 .search-result .tags { margin-top: 0.25em ; font-size: 80% ; font-style: italic ; color: #666 ; }
 .search-result .tags .tag { display: inline ; margin-right: 0.25em ; padding: 0 2px ; border: 1px solid #ccc ; background: #f0f0f0 ; }
