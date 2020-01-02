@@ -57,6 +57,28 @@ export class PublicationSearchResult2
             return ReactDOMServer.renderToStaticMarkup( lhs.label ).localeCompare( ReactDOMServer.renderToStaticMarkup( rhs.label ) ) ;
         } ) ;
 
+        // initialize the publications
+        // NOTE: As a convenience, we provide a droplist of known publication names (without edition #'s),
+        // to make it easier to add a new edition of an existing publication.
+        let publications = {} ;
+        for ( let p of Object.entries(gAppRef.caches.publications) )
+            publications[ p[1].pub_name ] = p[1] ;
+        let publications2 = [] ;
+        for ( let pub_name in publications ) {
+            const pub = publications[ pub_name ] ;
+            publications2.push( { value: pub.pub_id, label: pub.pub_name } ) ;
+        }
+        publications2.sort( (lhs,rhs) => {
+            return ReactDOMServer.renderToStaticMarkup( lhs.label ).localeCompare( ReactDOMServer.renderToStaticMarkup( rhs.label ) ) ;
+        } ) ;
+        let currPub = null ;
+        for ( let pub of publications2 ) {
+            if ( pub.label === vals.pub_name ) {
+                currPub = pub ;
+                break ;
+            }
+        }
+
         // initialize the tags
         const tags = gAppRef.makeTagLists( vals.pub_tags ) ;
 
@@ -69,7 +91,10 @@ export class PublicationSearchResult2
                 <input type="file" accept="image/*" onChange={onUploadImage} style={{display:"none"}} ref={r => uploadImageRef=r} />
             </div>
             <div className="row name"> <label> Name: </label>
-                <input type="text" defaultValue={vals.pub_name} ref={(r) => refs.pub_name=r} />
+                <CreatableSelect className="react-select" classNamePrefix="react-select" options={publications2}
+                    defaultValue = {currPub}
+                    ref = { (r) => refs.pub_name=r }
+                />
             </div>
             <div className="row edition"> <label> Edition: </label>
                 <input type="text" defaultValue={vals.pub_edition} ref={(r) => refs.pub_edition=r} />
@@ -102,7 +127,10 @@ export class PublicationSearchResult2
                 for ( let r in refs ) {
                     if ( r === "publ_id" )
                         newVals[ r ] = refs[r].state.value && refs[r].state.value.value ;
-                    else if ( r === "pub_tags" ) {
+                    else if ( r === "pub_name" ) {
+                        if ( refs[r].state.value )
+                            newVals[ r ] = refs[r].state.value.label.trim() ;
+                    } else if ( r === "pub_tags" ) {
                         let vals = unloadCreatableSelect( refs[r] ) ;
                         newVals[ r ] = vals.map( v => v.label ) ;
                     } else
@@ -112,7 +140,7 @@ export class PublicationSearchResult2
                     newVals.imageData = imageData ;
                     newVals.imageFilename = imageFilename ;
                 }
-                if ( newVals.pub_name === "" ) {
+                if ( newVals.pub_name === undefined || newVals.pub_name === "" ) {
                     gAppRef.showErrorMsg( <div> Please specify the publication's name. </div>) ;
                     return ;
                 }

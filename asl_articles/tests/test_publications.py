@@ -6,6 +6,7 @@ import urllib.error
 import json
 import base64
 
+from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import StaleElementReferenceException
 
 from asl_articles.search import SEARCH_ALL
@@ -41,28 +42,13 @@ def test_edit_publication( webdriver, flask_app, dbconn ):
         [ "ASL Journal (updated)", "2a", "Updated ASLJ description.", ["abc","xyz"], "http://aslj-updated.com/" ]
     )
 
-    # try to remove all fields from "ASL Journal #2" (should fail)
-    edit_publication( result,
-        { "name": "", "edition": "", "description": "", "tags":["-abc","-xyz"], "url": "" },
-        expected_error = "Please specify the publication's name."
-    )
-
-    # enter something for the name
-    dlg = find_child( "#modal-form" )
-    set_elem_text( find_child( ".name input", dlg ), "Updated ASL Journal" )
-    find_child( "button.ok", dlg ).click()
-
-    # check that the search result was updated in the UI
-    results = find_children( "#search-results .search-result" )
-    result = results[1]
-    assert find_child( ".name a", result ) is None
-    assert find_child( ".name", result ).text == "Updated ASL Journal"
-    assert find_child( ".description", result ).text == ""
-    assert find_children( ".tag", result ) == []
+    # NOTE: We used to try to remove all fields from "ASL Journal #2" (which should fail, since we can't
+    # have an empty name), but we can no longer remove an existing publication name (which is OK, since we
+    # don't want to allow that, only change it).
 
     # check that the search result was updated in the database
     results = do_search( '"ASL Journal"' )
-    assert get_result_names( results ) == [ "ASL Journal (1)", "Updated ASL Journal" ]
+    assert get_result_names( results ) == [ "ASL Journal (1)", "ASL Journal (updated) (2a)" ]
 
 # ---------------------------------------------------------------------
 
@@ -78,7 +64,8 @@ def test_create_publication( webdriver, flask_app, dbconn ):
 
     # enter a name and other details
     dlg = find_child( "#modal-form" ) # nb: the form is still on-screen
-    set_elem_text( find_child( ".name input", dlg ), "New publication" )
+    elem = find_child( ".name .react-select input", dlg )
+    elem.send_keys( "New publication", Keys.RETURN )
     set_elem_text( find_child( ".edition input", dlg ), "#1" )
     set_elem_text( find_child( ".description textarea", dlg ), "New publication description." )
     select = ReactSelect( find_child( ".tags .react-select", dlg ) )
@@ -406,7 +393,11 @@ def create_publication( vals, toast_type="info" ):
     find_child( "#menu .new-publication" ).click()
     dlg = wait_for_elem( 2, "#modal-form" )
     for key,val in vals.items():
-        if key == "tags":
+        if key == "name":
+            elem = find_child( ".name .react-select input" )
+            set_elem_text( elem, val )
+            elem.send_keys( Keys.RETURN )
+        elif key == "tags":
             select = ReactSelect( find_child( ".tags .react-select", dlg ) )
             select.update_multiselect_values( *val )
         else:
@@ -434,6 +425,10 @@ def edit_publication( result, vals, toast_type="info", expected_error=None ):
                 )
             else:
                 find_child( ".remove-image", dlg ).click()
+        elif key == "name":
+            elem = find_child( ".name .react-select input" )
+            set_elem_text( elem, val )
+            elem.send_keys( Keys.RETURN )
         elif key == "publisher":
             select = ReactSelect( find_child( ".publisher .react-select", dlg ) )
             select.select_by_name( val )

@@ -55,10 +55,10 @@ export class ArticleSearchResult2
         publications.sort( (lhs,rhs) => {
             return ReactDOMServer.renderToStaticMarkup( lhs.label ).localeCompare( ReactDOMServer.renderToStaticMarkup( rhs.label ) ) ;
         } ) ;
-        let currPub = 0 ;
+        let currPub = publications[0] ;
         for ( let i=1; i < publications.length ; ++i ) {
             if ( publications[i].value === vals.pub_id ) {
-                currPub = i ;
+                currPub = publications[i] ;
                 break ;
             }
         }
@@ -112,7 +112,7 @@ export class ArticleSearchResult2
             </div>
             <div className="row publication"> <label> Publication: </label>
                 <Select className="react-select" classNamePrefix="react-select" options={publications} isSearchable={true}
-                    defaultValue = { publications[ currPub ] }
+                    defaultValue = {currPub}
                     ref = { (r) => refs.pub_id=r }
                 />
             </div>
