@@ -33,17 +33,40 @@ export function applyUpdatedVals( vals, newVals, updated, refs ) {
         vals[ key ] = updated[ key ] ;
 }
 
+export function removeSpecialFields( vals ) {
+    // NOTE: This removes special fields sent to us by the backend containing content that has search terms highlighted.
+    // We only really need to remove author names for articles, since the backend sends us these (possibly highlighted)
+    // as well as the ID's, but they could be incorrect after the user has edited an article. However, for consistency,
+    // we remove all these special fields for everything.
+    let keysToDelete = [] ;
+    for ( let key in vals ) {
+        if ( key[ key.length-1 ] === "!" )
+            keysToDelete.push( key ) ;
+    }
+    keysToDelete.forEach( k => delete vals[k] ) ;
+}
+
 // --------------------------------------------------------------------
 
 // NOTE: The format of a scenario display name is "SCENARIO NAME [SCENARIO ID]".
 
 export function makeScenarioDisplayName( scenario ) {
-    if ( scenario.scenario_name && scenario.scenario_display_id )
-        return scenario.scenario_name + " [" + scenario.scenario_display_id + "]" ;
-    else if ( scenario.scenario_name )
-        return scenario.scenario_name ;
-    else if ( scenario.scenario_display_id )
-        return scenario.scenario_display_id ;
+    let scenario_display_id, scenario_name
+    if ( Array.isArray( scenario ) ) {
+        // we've been given a scenario ID/name
+        scenario_display_id = scenario[0] ;
+        scenario_name = scenario[1] ;
+    } else {
+        // we've been given a scenario object (dict)
+        scenario_display_id = scenario.scenario_display_id ;
+        scenario_name = scenario.scenario_name ;
+    }
+    if ( scenario_name && scenario_display_id )
+        return scenario_name + " [" + scenario_display_id + "]" ;
+    else if ( scenario_name )
+        return scenario_name ;
+    else if ( scenario_display_id )
+        return scenario_display_id ;
     else
         return "???" ;
 }
@@ -74,10 +97,12 @@ export function makeOptionalLink( caption, url ) {
 
 export function makeCommaList( vals, extract ) {
     let result = [] ;
-    for ( let i=0 ; i < vals.length ; ++i ) {
-        result.push( extract( vals[i] ) ) ;
-        if ( i < vals.length-1 )
-            result.push( ", " ) ;
+    if ( vals ) {
+        for ( let i=0 ; i < vals.length ; ++i ) {
+            result.push( extract( vals[i] ) ) ;
+            if ( i < vals.length-1 )
+                result.push( ", " ) ;
+        }
     }
     return result ;
 }

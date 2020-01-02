@@ -6,8 +6,11 @@ import urllib.error
 import json
 import base64
 
-from asl_articles.tests.utils import init_tests, init_db, do_search, get_result_names, \
-    wait_for, wait_for_elem, find_child, find_children, set_elem_text, \
+from selenium.common.exceptions import StaleElementReferenceException
+
+from asl_articles.search import SEARCH_ALL
+from asl_articles.tests.utils import init_tests, load_fixtures, do_search, get_result_names, \
+    wait_for, wait_for_elem, find_child, find_children, find_search_result, set_elem_text, \
     set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg
 from asl_articles.tests.react_select import ReactSelect
 
@@ -20,10 +23,10 @@ def test_edit_publication( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn, fixtures="publications.json" )
 
     # edit "ASL Journal #2"
-    results = do_search( "asl journal" )
+    results = do_search( '"asl journal"' )
     assert len(results) == 2
     result = results[1]
-    _edit_publication( result, {
+    edit_publication( result, {
         "name": "  ASL Journal (updated)  ",
         "edition": "  2a  ",
         "description": "  Updated ASLJ description.  ",
@@ -39,7 +42,7 @@ def test_edit_publication( webdriver, flask_app, dbconn ):
     )
 
     # try to remove all fields from "ASL Journal #2" (should fail)
-    _edit_publication( result,
+    edit_publication( result,
         { "name": "", "edition": "", "description": "", "tags":["-abc","-xyz"], "url": "" },
         expected_error = "Please specify the publication's name."
     )
@@ -58,7 +61,7 @@ def test_edit_publication( webdriver, flask_app, dbconn ):
     assert find_children( ".tag", result ) == []
 
     # check that the search result was updated in the database
-    results = do_search( "ASL Journal" )
+    results = do_search( '"ASL Journal"' )
     assert get_result_names( results ) == [ "ASL Journal (1)", "Updated ASL Journal" ]
 
 # ---------------------------------------------------------------------
@@ -70,7 +73,7 @@ def test_create_publication( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn )
 
     # try creating a publication with no name (should fail)
-    _create_publication( {}, toast_type=None )
+    create_publication( {}, toast_type=None )
     check_error_msg( "Please specify the publication's name." )
 
     # enter a name and other details
@@ -109,11 +112,10 @@ def test_delete_publication( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn, fixtures="publications.json" )
 
     # start to delete publication "ASL Journal #1", but cancel the operation
-    results = do_search( "ASL Journal" )
+    results = do_search( '"ASL Journal"' )
     assert len(results) == 2
-    result = results[1]
-    assert find_child( ".name", result ).text == "ASL Journal (2)"
-    find_child( ".delete", result ).click()
+    sr = find_search_result( "ASL Journal (2)", results )
+    find_child( ".delete", sr ).click()
     check_ask_dialog( ( "Delete this publication?", "ASL Journal (2)" ), "cancel" )
 
     # check that search results are unchanged on-screen
@@ -121,13 +123,12 @@ def test_delete_publication( webdriver, flask_app, dbconn ):
     assert results2 == results
 
     # check that the search results are unchanged in the database
-    results3 = do_search( "ASL Journal" )
+    results3 = do_search( '"ASL Journal"' )
     assert results3 == results
 
     # delete the publication "ASL Journal 2"
-    result = results3[1]
-    assert find_child( ".name", result ).text == "ASL Journal (2)"
-    find_child( ".delete", result ).click()
+    sr = find_search_result( "ASL Journal (2)", results3 )
+    find_child( ".delete", sr ).click()
     set_toast_marker( "info" )
     check_ask_dialog( ( "Delete this publication?", "ASL Journal (2)" ), "ok" )
     wait_for( 2,
@@ -139,7 +140,7 @@ def test_delete_publication( webdriver, flask_app, dbconn ):
     assert get_result_names( results ) == [ "ASL Journal (1)" ]
 
     # check that the search result was deleted from the database
-    results = do_search( "ASL Journal" )
+    results = do_search( '"ASL Journal"' )
     assert get_result_names( results ) == [ "ASL Journal (1)" ]
 
 # ---------------------------------------------------------------------
@@ -192,7 +193,7 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
         find_child( ".cancel", dlg ).click()
 
     # create an publication with no image
-    _create_publication( {"name": "Test Publication" } )
+    create_publication( {"name": "Test Publication" } )
     results = find_children( "#search-results .search-result" )
     assert len(results) == 1
     pub_sr = results[0]
@@ -201,16 +202,16 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
 
     # add an image to the publication
     fname = os.path.join( os.path.split(__file__)[0], "fixtures/images/1.gif" )
-    _edit_publication( pub_sr, { "image": fname } )
+    edit_publication( pub_sr, { "image": fname } )
     check_image( fname )
 
     # change the publication's image
     fname = os.path.join( os.path.split(__file__)[0], "fixtures/images/2.gif" )
-    _edit_publication( pub_sr, { "image": fname } )
+    edit_publication( pub_sr, { "image": fname } )
     check_image( fname )
 
     # remove the publication's image
-    _edit_publication( pub_sr, { "image": None } )
+    edit_publication( pub_sr, { "image": None } )
     check_image( None )
 
     # try to upload an image that's too large
@@ -252,7 +253,7 @@ def test_parent_publisher( webdriver, flask_app, dbconn ):
             assert pub["publ_id"] is None
 
         # check that the parent publisher was updated in the UI
-        results = do_search( "MMP News" )
+        results = do_search( '"MMP News"' )
         assert len(results) == 1
         pub_sr = results[0]
         elem = find_child( ".name .publisher", pub_sr )
@@ -262,18 +263,18 @@ def test_parent_publisher( webdriver, flask_app, dbconn ):
             assert elem is None
 
     # create a publication with no parent publisher
-    _create_publication( { "name": "MMP News" } )
+    create_publication( { "name": "MMP News" } )
     results = find_children( "#search-results .search-result" )
     assert len(results) == 1
     pub_sr = results[0]
     check_results( None )
 
     # change the publication to have a publisher
-    _edit_publication( pub_sr, { "publisher": "Multiman Publishing" } )
+    edit_publication( pub_sr, { "publisher": "Multiman Publishing" } )
     check_results( (1, "Multiman Publishing") )
 
     # change the publication back to having no publisher
-    _edit_publication( pub_sr, { "publisher": "(none)" } )
+    edit_publication( pub_sr, { "publisher": "(none)" } )
     check_results( None )
 
 # ---------------------------------------------------------------------
@@ -282,30 +283,41 @@ def test_cascading_deletes( webdriver, flask_app, dbconn ):
     """Test cascading deletes."""
 
     # initialize
-    init_tests( webdriver, flask_app, None )
+    session = init_tests( webdriver, flask_app, dbconn )
 
     def do_test( pub_name, expected_warning, expected_articles ):
 
         # initialize
-        init_db( dbconn, "cascading-deletes-2.json" )
-        results = do_search( "" )
+        load_fixtures( session, "cascading-deletes-2.json" )
+        results = do_search( SEARCH_ALL )
 
         # delete the specified publication
-        results = [ r for r in results if find_child( ".name", r ).text == pub_name ]
-        assert len( results ) == 1
-        find_child( ".delete", results[0] ).click()
+        sr = find_search_result( pub_name, results )
+        find_child( ".delete", sr ).click()
         check_ask_dialog( ( "Delete this publication?", pub_name, expected_warning ), "ok" )
 
+        def check_results():
+            results = wait_for( 2, lambda: get_results( len(expected_articles) ) )
+            assert set( results ) == set( expected_articles )
+        def get_results( expected_len ):
+            # NOTE: The UI will remove anything that has been deleted, so we need to
+            # give it a bit of time to finish doing this.
+            results = find_children( "#search-results .search-result" )
+            try:
+                results = [ find_child( ".name span", r ).text for r in results ]
+            except StaleElementReferenceException:
+                return None
+            results = [ r for r in results if r.startswith( "article" ) ]
+            if len(results) == expected_len:
+                return results
+            return None
+
         # check that deleted associated articles were removed from the UI
-        def check_articles( results ):
-            results = [ find_child( ".name span", r ).text for r in results ]
-            articles = [ r for r in results if r.startswith( "article" ) ]
-            assert articles == expected_articles
-        check_articles( find_children( "#search-results .search-result" ) )
+        check_results()
 
         # check that associated articles were removed from the database
         results = do_search( "article" )
-        check_articles( results )
+        check_results()
 
     # do the tests
     do_test( "Cascading Deletes 1",
@@ -327,7 +339,7 @@ def test_unicode( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn )
 
     # create a publication with Unicode content
-    _create_publication( {
+    create_publication( {
         "name": "japan = \u65e5\u672c",
         "edition": "\u263a",
         "tags": [ "+\u0e51", "+\u0e52", "+\u0e53" ],
@@ -354,7 +366,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn )
 
     # create a publication with HTML content
-    _create_publication( {
+    create_publication( {
         "name": "name: <span style='boo!'> <b>bold</b> <xxx>xxx</xxx> <i>italic</i>",
         "edition": "<i>2</i>",
         "description": "bad stuff here: <script>HCF</script>"
@@ -372,7 +384,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     assert check_toast( "warning", "Some values had HTML removed.", contains=True )
 
     # update the publication with new HTML content
-    _edit_publication( result, {
+    edit_publication( result, {
         "name": "<div style='...'>updated</div>"
     }, toast_type="warning" )
     def check_result():
@@ -385,7 +397,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
-def _create_publication( vals, toast_type="info" ):
+def create_publication( vals, toast_type="info" ):
     """Create a new publication."""
     # initialize
     if toast_type:
@@ -407,7 +419,7 @@ def _create_publication( vals, toast_type="info" ):
             lambda: check_toast( toast_type, "created OK", contains=True )
         )
 
-def _edit_publication( result, vals, toast_type="info", expected_error=None ):
+def edit_publication( result, vals, toast_type="info", expected_error=None ):
     """Edit a publication's details."""
     # update the specified publication's details
     find_child( ".edit", result ).click()

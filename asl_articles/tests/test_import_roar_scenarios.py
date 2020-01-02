@@ -5,7 +5,7 @@ import os
 import json
 
 from asl_articles.models import Scenario
-from asl_articles.tests.utils import init_db
+from asl_articles.tests.utils import init_tests
 
 sys.path.append( os.path.join( os.path.split(__file__)[0], "../../tools/" ) )
 from import_roar_scenarios import import_roar_scenarios
@@ -16,7 +16,7 @@ def test_import_roar_scenarios( dbconn ):
     """Test importing ROAR scenarios."""
 
     # initialize
-    session = init_db( dbconn, None )
+    session = init_tests( None, None, dbconn )
     roar_fname = os.path.join( os.path.split(__file__)[0], "fixtures/roar-scenarios.json" )
     roar_data = json.load( open( roar_fname, "r" ) )
 
@@ -73,7 +73,7 @@ def test_scenario_matching( dbconn ):
     """Test matching ROAR scenarios with scenarios in the database."""
 
     # initialize
-    session = init_db( dbconn, None )
+    session = init_tests( None, None, dbconn )
     roar_fname = os.path.join( os.path.split(__file__)[0], "fixtures/roar-scenarios.json" )
 
     # put a scenario in the database that has no ROAR ID

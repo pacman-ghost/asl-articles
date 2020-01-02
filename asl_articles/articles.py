@@ -11,6 +11,7 @@ from asl_articles.models import Article, Author, ArticleAuthor, Scenario, Articl
 from asl_articles.authors import do_get_authors
 from asl_articles.scenarios import do_get_scenarios
 from asl_articles.tags import do_get_tags
+from asl_articles import search
 from asl_articles.utils import get_request_args, clean_request_args, encode_tags, decode_tags, apply_attrs, \
     make_ok_response
 
@@ -30,7 +31,7 @@ def get_article( article_id ):
     _logger.debug( "- %s", article )
     return jsonify( get_article_vals( article ) )
 
-def get_article_vals( article ):
+def get_article_vals( article, add_type=False ):
     """Extract public fields from an Article record."""
     authors = sorted( article.article_authors,
         key = lambda a: a.seq_no
@@ -38,7 +39,7 @@ def get_article_vals( article ):
     scenarios = sorted( article.article_scenarios,
         key = lambda a: a.seq_no
     )
-    return {
+    vals = {
         "article_id": article.article_id,
         "article_title": article.article_title,
         "article_subtitle": article.article_subtitle,
@@ -50,6 +51,9 @@ def get_article_vals( article ):
         "article_tags": decode_tags( article.article_tags ),
         "pub_id": article.pub_id,
     }
+    if add_type:
+        vals[ "type" ] = "article"
+    return vals
 
 # ---------------------------------------------------------------------
 
@@ -61,9 +65,10 @@ def create_article():
     vals = get_request_args( request.json, _FIELD_NAMES,
         log = ( _logger, "Create article:" )
     )
-    vals[ "article_tags" ] = encode_tags( vals.get( "article_tags" ) )
     warnings = []
     updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
+    # NOTE: Tags are stored in the database using \n as a separator, so we need to encode *after* cleaning them.
+    vals[ "article_tags" ] = encode_tags( vals.get( "article_tags" ) )
 
     # create the new article
     vals[ "time_created" ] = datetime.datetime.now()
@@ -76,6 +81,7 @@ def create_article():
     _save_image( article, updated )
     db.session.commit()
     _logger.debug( "- New ID: %d", new_article_id )
+    search.add_or_update_article( None, article )
 
     # generate the response
     extras = { "article_id": new_article_id }
@@ -192,9 +198,10 @@ def update_article():
     vals = get_request_args( request.json, _FIELD_NAMES,
         log = ( _logger, "Update article: id={}".format( article_id ) )
     )
-    vals[ "article_tags" ] = encode_tags( vals.get( "article_tags" ) )
     warnings = []
     updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
+    # NOTE: Tags are stored in the database using \n as a separator, so we need to encode *after* cleaning them.
+    vals[ "article_tags" ] = encode_tags( vals.get( "article_tags" ) )
 
     # update the article
     article = Article.query.get( article_id )
@@ -206,6 +213,7 @@ def update_article():
     _save_image( article, updated )
     vals[ "time_updated" ] = datetime.datetime.now()
     db.session.commit()
+    search.add_or_update_article( None, article )
 
     # generate the response
     extras = {}
@@ -231,6 +239,7 @@ def delete_article( article_id ):
     # delete the article
     db.session.delete( article )
     db.session.commit()
+    search.delete_articles( [ article ] )
 
     # generate the response
     extras = {}

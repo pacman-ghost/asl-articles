@@ -14,6 +14,15 @@ from asl_articles.utils import to_bool
 
 # ---------------------------------------------------------------------
 
+def _on_startup():
+    """Do startup initialization."""
+
+    # initialize the search index
+    _logger = logging.getLogger( "startup" )
+    asl_articles.search.init_search( db.session, _logger )
+
+# ---------------------------------------------------------------------
+
 def _load_config( cfg, fname, section ):
     """Load config settings from a file."""
     if not os.path.isfile( fname ):
@@ -84,3 +93,6 @@ import asl_articles.utils #pylint: disable=cyclic-import
 
 # initialize
 asl_articles.utils.load_html_whitelists( app )
+
+# register startup initialization
+app.before_first_request( _on_startup )

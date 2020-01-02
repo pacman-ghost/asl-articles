@@ -1,7 +1,7 @@
 import React from "react" ;
 import { PublisherSearchResult2 } from "./PublisherSearchResult2.js"
 import { gAppRef } from "./index.js" ;
-import { makeOptionalLink, pluralString, applyUpdatedVals } from "./utils.js" ;
+import { makeOptionalLink, pluralString, applyUpdatedVals, removeSpecialFields } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -11,17 +11,19 @@ export class PublisherSearchResult extends React.Component
 {
 
     render() {
+        const display_name = this.props.data[ "publ_name!" ] || this.props.data.publ_name ;
+        const display_description = this.props.data[ "publ_description!" ] || this.props.data.publ_description ;
         const image_url = gAppRef.makeFlaskImageUrl( "publisher", this.props.data.publ_image_id, true ) ;
         return ( <div className="search-result publisher"
                     ref = { r => gAppRef.setTestAttribute( r, "publ_id", this.props.data.publ_id ) }
             >
             <div className="name">
                 { image_url && <img src={image_url} className="image" alt="Publisher." /> }
-                { makeOptionalLink( this.props.data.publ_name, this.props.data.publ_url ) }
+                { makeOptionalLink( display_name, this.props.data.publ_url ) }
                 <img src="/images/edit.png" className="edit" onClick={this.onEditPublisher.bind(this)} alt="Edit this publisher." />
                 <img src="/images/delete.png" className="delete" onClick={this.onDeletePublisher.bind(this)} alt="Delete this publisher." />
             </div>
-            <div className="description" dangerouslySetInnerHTML={{__html: this.props.data.publ_description}} />
+            <div className="description" dangerouslySetInnerHTML={{__html: display_description}} />
         </div> ) ;
     }
 
@@ -57,6 +59,7 @@ export class PublisherSearchResult extends React.Component
                 gAppRef.caches.publishers = resp.data.publishers ;
                 // update the UI with the new details
                 applyUpdatedVals( this.props.data, newVals, resp.data.updated, refs ) ;
+                removeSpecialFields( this.props.data ) ;
                 this.forceUpdate() ;
                 if ( resp.data.warnings )
                     gAppRef.showWarnings( "The publisher was updated OK.", resp.data.warnings ) ;

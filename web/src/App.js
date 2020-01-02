@@ -33,6 +33,7 @@ export default class App extends React.Component
         // initialize
         this.args = queryString.parse( window.location.search ) ;
         this._storeMsgs = this.isTestMode() && this.args.store_msgs ;
+        this._disableSearchResultHighlighting = this.isTestMode() && this.args.no_sr_hilite ;
         this._fakeUploads = this.isTestMode() && this.args.fake_uploads ;
 
         // figure out the base URL of the Flask backend server
@@ -63,7 +64,7 @@ export default class App extends React.Component
                         onClick={ (e) => { e.preventDefault() ; ArticleSearchResult.onNewArticle( this._onNewArticle.bind(this) ) ; } }
                     >New article</a>]
                 </div>
-                <SearchForm onSearch={this.onSearch.bind(this)} />
+                <SearchForm onSearch={this.onSearch.bind(this)} ref="searchForm" />
                 <SearchResults seqNo={this.state.searchSeqNo} searchResults={this.state.searchResults} />
             </div> ) ;
         }
@@ -107,11 +108,19 @@ export default class App extends React.Component
 
     onSearch( query ) {
         // run the search
+        query = query.trim() ;
+        if ( query.length === 0 ) {
+            this.focusQueryString() ;
+            this.showErrorMsg( "Please enter something to search for." )
+            return ;
+        }
         axios.post( this.makeFlaskUrl( "/search" ), {
-            query: query
+            query: query,
+            no_hilite: this._disableSearchResultHighlighting,
         } )
         .then( resp => {
             this.setState( { searchResults: resp.data, searchSeqNo: this.state.searchSeqNo+1 } ) ;
+            this.focusQueryString() ;
         } )
         .catch( err => {
             this.showErrorToast( <div> The search query failed: <div className="monospace"> {err.toString()} </div> </div> ) ;
@@ -154,6 +163,7 @@ export default class App extends React.Component
 
     closeModalForm() {
         this.setState( { modalForm: null } ) ;
+        setTimeout( () => { this.focusQueryString() ; }, 100 ) ;
     }
 
     showInfoToast( msg ) { this._doShowToast( "info", msg, 5*1000 ) ; }
@@ -267,6 +277,8 @@ export default class App extends React.Component
         this.state.startupTasks.splice( pos, 1 ) ;
         this.setState( { startupTasks: this.state.startupTasks } ) ;
     }
+
+    focusQueryString() { this.refs.searchForm.focusQueryString() ; }
 
     isTestMode() { return process.env.REACT_APP_TEST_MODE ; }
     isFakeUploads() { return this._fakeUploads ; }

@@ -5,8 +5,11 @@ import urllib.request
 import urllib.error
 import base64
 
-from asl_articles.tests.utils import init_tests, init_db, do_search, get_result_names, \
-    wait_for, wait_for_elem, find_child, find_children, set_elem_text, \
+from selenium.common.exceptions import StaleElementReferenceException
+
+from asl_articles.search import SEARCH_ALL, SEARCH_ALL_PUBLISHERS
+from asl_articles.tests.utils import init_tests, load_fixtures, do_search, get_result_names, \
+    wait_for, wait_for_elem, find_child, find_children, find_search_result, set_elem_text, \
     set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg
 
 # ---------------------------------------------------------------------
@@ -15,13 +18,13 @@ def test_edit_publisher( webdriver, flask_app, dbconn ):
     """Test editing publishers."""
 
     # initialize
-    init_tests( webdriver, flask_app, dbconn, fixtures="basic.json" )
+    init_tests( webdriver, flask_app, dbconn, fixtures="publishers.json" )
 
     # edit "Avalon Hill"
-    results = do_search( "" )
+    results = do_search( SEARCH_ALL_PUBLISHERS )
     result = results[0]
     assert find_child( ".name", result ).text == "Avalon Hill"
-    _edit_publisher( result, {
+    edit_publisher( result, {
         "name": "  Avalon Hill (updated)  ",
         "description": "  Updated AH description.  ",
         "url": "  http://ah-updated.com  "
@@ -33,7 +36,7 @@ def test_edit_publisher( webdriver, flask_app, dbconn ):
     _check_result( result, [ "Avalon Hill (updated)", "Updated AH description.", "http://ah-updated.com/" ] )
 
     # try to remove all fields from "Avalon Hill" (should fail)
-    _edit_publisher( result,
+    edit_publisher( result,
         { "name": "", "description": "", "url": "" },
         expected_error = "Please specify the publisher's name."
     )
@@ -51,8 +54,9 @@ def test_edit_publisher( webdriver, flask_app, dbconn ):
     assert find_child( ".description", result ).text == ""
 
     # check that the search result was updated in the database
-    results = do_search( "" )
-    assert get_result_names( results ) == [ "Le Franc Tireur", "Multiman Publishing", "Updated Avalon Hill" ]
+    results = do_search( SEARCH_ALL_PUBLISHERS )
+    assert set( get_result_names( results ) ) == \
+        set([ "Le Franc Tireur", "Multiman Publishing", "Updated Avalon Hill" ])
 
 # ---------------------------------------------------------------------
 
@@ -63,7 +67,7 @@ def test_create_publisher( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn )
 
     # try creating a publisher with no name (should fail)
-    _create_publisher( {}, toast_type=None )
+    create_publisher( {}, toast_type=None )
     check_error_msg( "Please specify the publisher's name." )
 
     # enter a name and other details
@@ -94,13 +98,13 @@ def test_delete_publisher( webdriver, flask_app, dbconn ):
     """Test deleting publishers."""
 
     # initialize
-    init_tests( webdriver, flask_app, dbconn, fixtures="basic.json" )
+    init_tests( webdriver, flask_app, dbconn, fixtures="publishers.json" )
 
     # start to delete publisher "Le Franc Tireur", but cancel the operation
-    results = do_search( "" )
-    result = results[1]
-    assert find_child( ".name", result ).text == "Le Franc Tireur"
-    find_child( ".delete", result ).click()
+    results = do_search( SEARCH_ALL_PUBLISHERS )
+    sr = find_search_result( "Le Franc Tireur", results )
+    assert find_child( ".name", sr ).text == "Le Franc Tireur"
+    find_child( ".delete", sr ).click()
     check_ask_dialog( ( "Delete this publisher?", "Le Franc Tireur" ), "cancel" )
 
     # check that search results are unchanged on-screen
@@ -108,13 +112,12 @@ def test_delete_publisher( webdriver, flask_app, dbconn ):
     assert results2 == results
 
     # check that the search results are unchanged in the database
-    results3 = do_search( "" )
+    results3 = do_search( SEARCH_ALL_PUBLISHERS )
     assert results3 == results
 
     # delete the publisher "Le Franc Tireur"
-    result = results3[1]
-    assert find_child( ".name", result ).text == "Le Franc Tireur"
-    find_child( ".delete", result ).click()
+    sr = find_search_result( "Le Franc Tireur", results3 )
+    find_child( ".delete", sr ).click()
     set_toast_marker( "info" )
     check_ask_dialog( ( "Delete this publisher?", "Le Franc Tireur" ), "ok" )
     wait_for( 2,
@@ -123,11 +126,11 @@ def test_delete_publisher( webdriver, flask_app, dbconn ):
 
     # check that search result was removed on-screen
     results = find_children( "#search-results .search-result" )
-    assert get_result_names( results ) == [ "Avalon Hill", "Multiman Publishing" ]
+    assert set( get_result_names( results ) ) == set([ "Avalon Hill", "Multiman Publishing" ])
 
     # check that the search result was deleted from the database
-    results = do_search( "" )
-    assert get_result_names( results ) == [ "Avalon Hill", "Multiman Publishing" ]
+    results = do_search( SEARCH_ALL_PUBLISHERS )
+    assert set( get_result_names( results ) ) == set([ "Avalon Hill", "Multiman Publishing" ])
 
 # ---------------------------------------------------------------------
 
@@ -179,7 +182,7 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
         find_child( ".cancel", dlg ).click()
 
     # create an publisher with no image
-    _create_publisher( { "name": "Test Publisher" } )
+    create_publisher( { "name": "Test Publisher" } )
     results = find_children( "#search-results .search-result" )
     assert len(results) == 1
     publ_sr = results[0]
@@ -188,16 +191,16 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
 
     # add an image to the publisher
     fname = os.path.join( os.path.split(__file__)[0], "fixtures/images/1.gif" )
-    _edit_publisher( publ_sr, { "image": fname } )
+    edit_publisher( publ_sr, { "image": fname } )
     check_image( fname )
 
     # change the publisher's image
     fname = os.path.join( os.path.split(__file__)[0], "fixtures/images/2.gif" )
-    _edit_publisher( publ_sr, { "image": fname } )
+    edit_publisher( publ_sr, { "image": fname } )
     check_image( fname )
 
     # remove the publisher's image
-    _edit_publisher( publ_sr, { "image": None } )
+    edit_publisher( publ_sr, { "image": None } )
     check_image( None )
 
     # try to upload an image that's too large
@@ -216,36 +219,45 @@ def test_cascading_deletes( webdriver, flask_app, dbconn ):
     """Test cascading deletes."""
 
     # initialize
-    init_tests( webdriver, flask_app, None )
+    session = init_tests( webdriver, flask_app, dbconn )
 
-    def check_results( results, sr_type, expected, expected_deletions ):
+    def check_results( sr_type, expected, expected_deletions ):
         expected = [ "{} {}".format( sr_type, p ) for p in expected ]
         expected = [ e for e in expected if e not in expected_deletions ]
-        results = [ find_child( ".name span", r ).text for r in results ]
+        results = wait_for( 2, lambda: get_results( sr_type, len(expected) ) )
+        assert set( results ) == set( expected )
+    def get_results( sr_type, expected_len ):
+        # NOTE: The UI will remove anything that has been deleted, so we need to
+        # give it a bit of time to finish doing this.
+        results = find_children( "#search-results .search-result" )
+        try:
+            results = [ find_child( ".name span", r ).text for r in results ]
+        except StaleElementReferenceException:
+            return None
         results = [ r for r in results if r.startswith( sr_type ) ]
-        assert results == expected
+        if len(results) == expected_len:
+            return results
+        return None
 
     def do_test( publ_name, expected_warning, expected_deletions ):
 
         # initialize
-        init_db( dbconn, "cascading-deletes-1.json" )
-        results = do_search( "" )
+        load_fixtures( session, "cascading-deletes-1.json" )
+        results = do_search( SEARCH_ALL )
 
         # delete the specified publisher
-        results = [ r for r in results if find_child( ".name", r ).text == publ_name ]
-        assert len( results ) == 1
-        find_child( ".delete", results[0] ).click()
+        sr = find_search_result( publ_name, results )
+        find_child( ".delete", sr ).click()
         check_ask_dialog( ( "Delete this publisher?", publ_name, expected_warning ), "ok" )
 
         # check that deleted associated publications/articles were removed from the UI
-        results = find_children( "#search-results .search-result" )
         def check_publications():
-            check_results( results,
+            check_results(
                 "publication", [ "2", "3", "4", "5a", "5b", "6a", "6b", "7a", "7b", "8a", "8b" ],
                 expected_deletions
             )
         def check_articles():
-            check_results( results,
+            check_results(
                 "article", [ "3", "4a", "4b", "6a", "7a", "7b", "8a.1", "8a.2", "8b.1", "8b.2" ],
                 expected_deletions
             )
@@ -253,7 +265,7 @@ def test_cascading_deletes( webdriver, flask_app, dbconn ):
         check_articles()
 
         # check that associated publications/articles were removed from the database
-        results = do_search( "" )
+        results = do_search( SEARCH_ALL )
         check_publications()
         check_articles()
 
@@ -299,7 +311,7 @@ def test_unicode( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn )
 
     # create a publisher with Unicode content
-    _create_publisher( {
+    create_publisher( {
         "name": "japan = \u65e5\u672c",
         "url": "http://\ud55c\uad6d.com",
         "description": "greece = \u0395\u03bb\u03bb\u03ac\u03b4\u03b1"
@@ -323,7 +335,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn )
 
     # create a publisher with HTML content
-    _create_publisher( {
+    create_publisher( {
         "name": "name: <span style='boo!'> <b>bold</b> <xxx>xxx</xxx> <i>italic</i>",
         "description": "bad stuff here: <script>HCF</script>"
     }, toast_type="warning" )
@@ -340,7 +352,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     assert check_toast( "warning", "Some values had HTML removed.", contains=True )
 
     # update the publisher with new HTML content
-    _edit_publisher( result, {
+    edit_publisher( result, {
         "name": "<div style='...'>updated</div>"
     }, toast_type="warning" )
     def check_result():
@@ -353,7 +365,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
-def _create_publisher( vals, toast_type="info" ):
+def create_publisher( vals, toast_type="info" ):
     """Create a new publisher."""
     # initialize
     if toast_type:
@@ -371,7 +383,7 @@ def _create_publisher( vals, toast_type="info" ):
             lambda: check_toast( toast_type, "created OK", contains=True )
         )
 
-def _edit_publisher( result, vals, toast_type="info", expected_error=None ):
+def edit_publisher( result, vals, toast_type="info", expected_error=None ):
     """Edit a publisher's details."""
     # update the specified publisher's details
     find_child( ".edit", result ).click()

@@ -6,6 +6,7 @@ from flask import jsonify
 
 from asl_articles import app, db
 from asl_articles.models import Publication, Article
+from asl_articles.utils import decode_tags
 
 # ---------------------------------------------------------------------
 
@@ -25,7 +26,7 @@ def do_get_tags():
         for row in query:
             if not row[0]:
                 continue
-            for tag in row[0].split( ";" ):
+            for tag in decode_tags( row[0] ):
                 tags[ tag ] = tags[ tag ] + 1
     count_tags( db.session.query( Publication.pub_tags ) )
     count_tags( db.session.query( Article.article_tags ) )

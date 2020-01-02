@@ -20,10 +20,10 @@ def test_edit_article( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn, fixtures="articles.json" )
 
     # edit "What To Do If You Have A Tin Can"
-    results = do_search( "tin can" )
+    results = do_search( '"tin can"' )
     assert len(results) == 1
     result = results[0]
-    _edit_article( result, {
+    edit_article( result, {
         "title": "  Updated title  ",
         "subtitle": "  Updated subtitle  ",
         "snippet": "  Updated snippet.  ",
@@ -39,7 +39,7 @@ def test_edit_article( webdriver, flask_app, dbconn ):
     )
 
     # try to remove all fields from the article (should fail)
-    _edit_article( result,
+    edit_article( result,
         { "title": "", "subtitle": "", "snippet": "", "tags": ["-abc","-xyz"], "url": "" },
         expected_error = "Please specify the article's title."
     )
@@ -58,7 +58,7 @@ def test_edit_article( webdriver, flask_app, dbconn ):
     assert find_children( ".tag", result ) == []
 
     # check that the search result was updated in the database
-    results = do_search( "tin can" )
+    results = do_search( '"tin can"' )
     _check_result( results[0], [ "Tin Cans Rock!", None, "", [], None ] )
 
 # ---------------------------------------------------------------------
@@ -70,7 +70,7 @@ def test_create_article( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn )
 
     # try creating a article with no name (should fail)
-    _create_article( {}, toast_type=None )
+    create_article( {}, toast_type=None )
     check_error_msg( "Please specify the article's title." )
 
     # enter a name and other details
@@ -190,7 +190,7 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
         find_child( ".cancel", dlg ).click()
 
     # create an article with no image
-    _create_article( { "title": "Test Article" } )
+    create_article( { "title": "Test Article" } )
     results = find_children( "#search-results .search-result" )
     assert len(results) == 1
     article_sr = results[0]
@@ -199,16 +199,16 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
 
     # add an image to the article
     fname = os.path.join( os.path.split(__file__)[0], "fixtures/images/1.gif" )
-    _edit_article( article_sr, { "image": fname } )
+    edit_article( article_sr, { "image": fname } )
     check_image( fname )
 
     # change the article's image
     fname = os.path.join( os.path.split(__file__)[0], "fixtures/images/2.gif" )
-    _edit_article( article_sr, { "image": fname } )
+    edit_article( article_sr, { "image": fname } )
     check_image( fname )
 
     # remove the article's image
-    _edit_article( article_sr, { "image": None } )
+    edit_article( article_sr, { "image": None } )
     check_image( None )
 
     # try to upload an image that's too large
@@ -250,7 +250,7 @@ def test_parent_publisher( webdriver, flask_app, dbconn ):
             assert article["pub_id"] is None
 
         # check that the parent publication was updated in the UI
-        results = do_search( "My Article" )
+        results = do_search( '"My Article"' )
         assert len(results) == 1
         article_sr = results[0]
         elem = find_child( ".title .publication", article_sr )
@@ -260,18 +260,18 @@ def test_parent_publisher( webdriver, flask_app, dbconn ):
             assert elem is None
 
     # create an article with no parent publication
-    _create_article( { "title": "My Article" } )
+    create_article( { "title": "My Article" } )
     results = find_children( "#search-results .search-result" )
     assert len(results) == 1
     article_sr = results[0]
     check_results( None )
 
     # change the article to have a publication
-    _edit_article( article_sr, { "publication": "ASL Journal" } )
+    edit_article( article_sr, { "publication": "ASL Journal" } )
     check_results( (1, "ASL Journal") )
 
     # change the article back to having no publication
-    _edit_article( article_sr, { "publication": "(none)" } )
+    edit_article( article_sr, { "publication": "(none)" } )
     check_results( None )
 
 # ---------------------------------------------------------------------
@@ -283,7 +283,7 @@ def test_unicode( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn )
 
     # create a article with Unicode content
-    _create_article( {
+    create_article( {
         "title": "japan = \u65e5\u672c",
         "subtitle": "s.korea = \ud55c\uad6d",
         "snippet": "greece = \u0395\u03bb\u03bb\u03ac\u03b4\u03b1",
@@ -311,7 +311,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn )
 
     # create a article with HTML content
-    _create_article( {
+    create_article( {
         "title": "title: <span style='boo!'> <b>bold</b> <xxx>xxx</xxx> <i>italic</i>",
         "subtitle": "<i>italicized subtitle</i>",
         "snippet": "bad stuff here: <script>HCF</script>"
@@ -331,7 +331,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     assert check_toast( "warning", "Some values had HTML removed.", contains=True )
 
     # update the article with new HTML content
-    _edit_article( result, {
+    edit_article( result, {
         "title": "<div style='...'>updated</div>"
     }, toast_type="warning" )
     def check_result():
@@ -344,7 +344,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
-def _create_article( vals, toast_type="info" ):
+def create_article( vals, toast_type="info" ):
     """Create a new article."""
     # initialize
     if toast_type:
@@ -353,8 +353,8 @@ def _create_article( vals, toast_type="info" ):
     find_child( "#menu .new-article" ).click()
     dlg = wait_for_elem( 2, "#modal-form" )
     for key,val in vals.items():
-        if key == "tags":
-            select = ReactSelect( find_child( ".tags .react-select", dlg ) )
+        if key in ["authors","scenarios","tags"]:
+            select = ReactSelect( find_child( ".{} .react-select".format(key), dlg ) )
             select.update_multiselect_values( *val )
         else:
             sel = ".{} {}".format( key , "textarea" if key == "snippet" else "input" )
@@ -366,7 +366,7 @@ def _create_article( vals, toast_type="info" ):
             lambda: check_toast( toast_type, "created OK", contains=True )
         )
 
-def _edit_article( result, vals, toast_type="info", expected_error=None ):
+def edit_article( result, vals, toast_type="info", expected_error=None ):
     """Edit a article's details."""
     # update the specified article's details
     find_child( ".edit", result ).click()
@@ -381,13 +381,10 @@ def _edit_article( result, vals, toast_type="info", expected_error=None ):
                 )
             else:
                 find_child( ".remove-image", dlg ).click()
-        elif key == "authors":
-            select = ReactSelect( find_child( ".authors .react-select", dlg ) )
-            select.update_multiselect_values( *val )
         elif key == "publication":
             select = ReactSelect( find_child( ".publication .react-select", dlg ) )
             select.select_by_name( val )
-        elif key in ["scenarios","tags"]:
+        elif key in ["authors","scenarios","tags"]:
             select = ReactSelect( find_child( ".{} .react-select".format(key), dlg ) )
             select.update_multiselect_values( *val )
         else:

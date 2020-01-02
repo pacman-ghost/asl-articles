@@ -63,21 +63,31 @@ def make_ok_response( extras=None, updated=None, warnings=None ):
 
 # ---------------------------------------------------------------------
 
-def clean_html( val ):
+def clean_html( val, allow_tags=None, safe_attrs=None ):
     """Sanitize HTML using a whitelist."""
 
     # check if we need to do anything
+    if val is None:
+        return None
     val = val.strip()
     if not val:
         return val
 
     # strip the HTML
     args = {}
-    if _html_whitelists["tags"]:
-        args[ "allow_tags" ] = _html_whitelists["tags"]
+    if allow_tags is None:
+        allow_tags = _html_whitelists.get( "tags" )
+    elif allow_tags == []:
+        allow_tags = [ "" ] # nb: this is how we remove everything :-/
+    if allow_tags:
+        args[ "allow_tags" ] = allow_tags
         args[ "remove_unknown_tags" ] = None
-    if _html_whitelists["attrs"]:
-        args[ "safe_attrs" ] = _html_whitelists["attrs"]
+    if safe_attrs is None:
+        safe_attrs = _html_whitelists.get( "attrs" )
+    elif safe_attrs == []:
+        safe_attrs = [ "" ] # nb: this is how we remove everything :-/
+    if safe_attrs:
+        args[ "safe_attrs" ] = safe_attrs
     cleaner = lxml.html.clean.Cleaner( **args )
     buf = cleaner.clean_html( val )
 
@@ -114,18 +124,15 @@ def load_html_whitelists( app ):
 
 def encode_tags( tags ):
     """Encode tags prior to storing them in the database."""
-    # FUDGE! We store tags as a single string in the database, using ; as a separator, which means
-    # that we can't have a semicolon in a tag itself :-/, so we replace them with a comma.
     if not tags:
         return None
-    tags = [ t.replace( ";", "," ) for t in tags ]
-    return ";".join( t.lower() for t in tags )
+    return "\n".join( t.lower() for t in tags )
 
 def decode_tags( tags ):
     """Decode tags after loading them from the database."""
     if not tags:
         return None
-    return tags.split( ";" )
+    return tags.split( "\n" )
 
 # ---------------------------------------------------------------------
 

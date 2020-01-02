@@ -1,7 +1,7 @@
 import React from "react" ;
 import { PublicationSearchResult2 } from "./PublicationSearchResult2.js" ;
 import { gAppRef } from "./index.js" ;
-import { makeOptionalLink, pluralString, applyUpdatedVals } from "./utils.js" ;
+import { makeOptionalLink, pluralString, applyUpdatedVals, removeSpecialFields } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -11,22 +11,36 @@ export class PublicationSearchResult extends React.Component
 {
 
     render() {
+        const display_description = this.props.data[ "pub_description!" ] || this.props.data.pub_description ;
         const publ = gAppRef.caches.publishers[ this.props.data.publ_id ] ;
         const image_url = gAppRef.makeFlaskImageUrl( "publication", this.props.data.pub_image_id, true ) ;
         let tags = [] ;
-        if ( this.props.data.pub_tags )
-            this.props.data.pub_tags.map( t => tags.push( <div key={t} className="tag"> {t} </div> ) ) ;
+        if ( this.props.data[ "tags!" ] ) {
+            // the backend has provided us with a list of tags (possibly highlighted) - use them directly
+            // NOTE: We don't normally show HTML in tags, but in this case we need to, in order to be able to highlight
+            // matching search terms. This will have the side-effect of rendering any HTML that may be in the tag,
+            // but we can live with that.
+            this.props.data[ "tags!" ].map(
+                t => tags.push( <div key={t} className="tag" dangerouslySetInnerHTML={{__html: t}} /> )
+            ) ;
+        } else {
+            if ( this.props.data.pub_tags ) {
+                this.props.data.pub_tags.map(
+                    t => tags.push( <div key={t} className="tag"> {t} </div> )
+                ) ;
+            }
+        }
         return ( <div className="search-result publication"
                     ref = { r => gAppRef.setTestAttribute( r, "pub_id", this.props.data.pub_id ) }
             >
             <div className="name">
                 { image_url && <img src={image_url} className="image" alt="Publication." /> }
-                { makeOptionalLink( this._makeDisplayName(), this.props.data.pub_url ) }
+                { makeOptionalLink( this._makeDisplayName(true), this.props.data.pub_url ) }
                 { publ && <span className="publisher"> ({publ.publ_name}) </span> }
                 <img src="/images/edit.png" className="edit" onClick={this.onEditPublication.bind(this)} alt="Edit this publication." />
                 <img src="/images/delete.png" className="delete" onClick={this.onDeletePublication.bind(this)} alt="Delete this publication." />
             </div>
-            <div className="description" dangerouslySetInnerHTML={{__html: this.props.data.pub_description}} />
+            <div className="description" dangerouslySetInnerHTML={{__html: display_description}} />
             { tags.length > 0 && <div className="tags"> <label>Tags:</label> {tags} </div> }
         </div> ) ;
     }
@@ -65,6 +79,7 @@ export class PublicationSearchResult extends React.Component
                 gAppRef.caches.tags = resp.data.tags ;
                 // update the UI with the new details
                 applyUpdatedVals( this.props.data, newVals, resp.data.updated, refs ) ;
+                removeSpecialFields( this.props.data ) ;
                 this.forceUpdate() ;
                 if ( resp.data.warnings )
                     gAppRef.showWarnings( "The publication was updated OK.", resp.data.warnings ) ;
@@ -95,7 +110,7 @@ export class PublicationSearchResult extends React.Component
             }
             const content = ( <div>
                 Delete this publication?
-                <div style={{margin:"0.5em 0 0.5em 2em",fontStyle:"italic"}} dangerouslySetInnerHTML = {{ __html: this._makeDisplayName() }} />
+                <div style={{margin:"0.5em 0 0.5em 2em",fontStyle:"italic"}} dangerouslySetInnerHTML = {{ __html: this._makeDisplayName(false) }} />
                 {warning}
             </div> ) ;
             gAppRef.ask( content, "ask", {
@@ -133,11 +148,16 @@ export class PublicationSearchResult extends React.Component
         } ) ;
     }
 
-    _makeDisplayName() {
+    _makeDisplayName( allowAlternateContent ) {
+        let pub_name = null ;
+        if ( allowAlternateContent && this.props.data["pub_name!"] )
+            pub_name = this.props.data[ "pub_name!" ] ;
+        if ( ! pub_name )
+            pub_name = this.props.data.pub_name ;
         if ( this.props.data.pub_edition )
-            return this.props.data.pub_name + " (" + this.props.data.pub_edition + ")" ;
+            return pub_name + " (" + this.props.data.pub_edition + ")" ;
         else
-            return this.props.data.pub_name ;
+            return pub_name ;
     }
 
 }

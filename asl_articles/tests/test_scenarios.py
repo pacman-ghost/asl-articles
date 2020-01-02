@@ -6,7 +6,7 @@ import json
 from asl_articles.tests.utils import init_tests, find_child, find_children, wait_for_elem, find_search_result
 from asl_articles.tests.react_select import ReactSelect
 
-from asl_articles.tests.test_articles import _create_article, _edit_article
+from asl_articles.tests.test_articles import create_article, edit_article
 
 # ---------------------------------------------------------------------
 
@@ -21,12 +21,12 @@ def test_article_scenarios( webdriver, flask_app, dbconn ):
     ] )
 
     # create some test articles
-    _create_article( { "title": "article 1" } )
-    _create_article( { "title": "article 2" } )
+    create_article( { "title": "article 1" } )
+    create_article( { "title": "article 2" } )
     _check_scenarios( flask_app, all_scenarios, [ [], [] ] )
 
     # add a scenario to article #1
-    _edit_article( find_search_result( "article 1" ), {
+    edit_article( find_search_result( "article 1" ), {
         "scenarios": [ "+Test Scenario 1 [TEST 1]" ]
     } )
     _check_scenarios( flask_app, all_scenarios, [
@@ -35,7 +35,7 @@ def test_article_scenarios( webdriver, flask_app, dbconn ):
     ] )
 
     # add scenarios to article #2
-    _edit_article( find_search_result( "article 2" ), {
+    edit_article( find_search_result( "article 2" ), {
         "scenarios": [ "+Test Scenario 3 [TEST 3]", "+No scenario ID" ]
     } )
     _check_scenarios( flask_app, all_scenarios, [
@@ -44,7 +44,7 @@ def test_article_scenarios( webdriver, flask_app, dbconn ):
     ] )
 
     # add/remove scenarios to article #2
-    _edit_article( find_search_result( "article 2" ), {
+    edit_article( find_search_result( "article 2" ), {
         "scenarios": [ "+Test Scenario 1 [TEST 1]", "-Test Scenario 3 [TEST 3]" ]
     } )
     _check_scenarios( flask_app, all_scenarios, [
@@ -53,7 +53,7 @@ def test_article_scenarios( webdriver, flask_app, dbconn ):
     ] )
 
     # add an unknown scenario to article #1
-    _edit_article( find_search_result( "article 1" ), {
+    edit_article( find_search_result( "article 1" ), {
         "scenarios": [ "+new scenario [NEW]" ]
     } )
     _check_scenarios( flask_app, all_scenarios, [

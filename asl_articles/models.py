@@ -1,6 +1,6 @@
 """ Define the database models. """
 
-# NOTE: Don't forget to keep the list of tables in init_db() in sync with the models defined here.
+# NOTE: Don't forget to keep the list of tables in init_tests() in sync with the models defined here.
 
 from sqlalchemy.orm import deferred
 from sqlalchemy.schema import UniqueConstraint

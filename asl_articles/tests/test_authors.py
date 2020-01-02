@@ -6,7 +6,7 @@ import json
 from asl_articles.tests.utils import init_tests, find_child, find_children, wait_for_elem, find_search_result
 from asl_articles.tests.react_select import ReactSelect
 
-from asl_articles.tests.test_articles import _create_article, _edit_article
+from asl_articles.tests.test_articles import create_article, edit_article
 
 # ---------------------------------------------------------------------
 
@@ -17,25 +17,25 @@ def test_article_authors( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn )
 
     # create some test articles
-    _create_article( { "title": "article 1" } )
-    _create_article( { "title": "article 2" } )
+    create_article( { "title": "article 1" } )
+    create_article( { "title": "article 2" } )
     all_authors = set()
     _check_authors( flask_app, all_authors, [ [], [] ] )
 
     # add an author to article #1
-    _edit_article( find_search_result( "article 1" ), {
+    edit_article( find_search_result( "article 1" ), {
         "authors": [ "+andrew" ]
     } )
     _check_authors( flask_app, all_authors, [ ["andrew"], [] ] )
 
     # add authors to article #2
-    _edit_article( find_search_result( "article 2" ), {
+    edit_article( find_search_result( "article 2" ), {
         "authors": [ "+bob", "+charlie" ]
     } )
     _check_authors( flask_app, all_authors, [ ["andrew"], ["bob","charlie"] ] )
 
     # add/remove authors to article #2
-    _edit_article( find_search_result( "article 2" ), {
+    edit_article( find_search_result( "article 2" ), {
         "authors": [ "+dan", "-charlie", "+andrew" ]
     } )
     _check_authors( flask_app, all_authors, [ ["andrew"], ["bob","dan","andrew"] ] )
@@ -43,7 +43,7 @@ def test_article_authors( webdriver, flask_app, dbconn ):
     # add new/existing authors to article #1
     # NOTE: The main thing we're checking here is that despite new and existing authors
     # being added to the article, their order is preserved.
-    _edit_article( find_search_result( "article 1" ), {
+    edit_article( find_search_result( "article 1" ), {
         "authors": [ "+bob", "+new1", "+charlie", "+new2" ]
     } )
     _check_authors( flask_app, all_authors, [

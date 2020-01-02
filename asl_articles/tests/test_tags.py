@@ -7,8 +7,8 @@ from asl_articles.tests.utils import init_tests, wait_for_elem, find_child, find
     find_search_result, get_result_names
 from asl_articles.tests.react_select import ReactSelect
 
-from asl_articles.tests.test_publications import _create_publication, _edit_publication
-from asl_articles.tests.test_articles import _create_article, _edit_article
+from asl_articles.tests.test_publications import create_publication, edit_publication
+from asl_articles.tests.test_articles import create_article, edit_article
 
 # ---------------------------------------------------------------------
 
@@ -19,15 +19,15 @@ def test_tags( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn )
 
     # create a test publication and article
-    _create_publication( { "name": "publication 1" } )
-    _create_article( { "title": "article 1" } )
+    create_publication( { "name": "publication 1" } )
+    create_article( { "title": "article 1" } )
     _check_tags( flask_app, {
         "publication 1": [],
         "article 1": []
     } )
 
     # add some tags to the publication
-    _edit_publication( find_search_result( "publication 1" ), {
+    edit_publication( find_search_result( "publication 1" ), {
         "tags": [ "+aaa", "+bbb" ]
     } )
     _check_tags( flask_app, {
@@ -36,7 +36,7 @@ def test_tags( webdriver, flask_app, dbconn ):
     } )
 
     # add some tags to the article
-    _edit_article( find_search_result( "article 1" ), {
+    edit_article( find_search_result( "article 1" ), {
         "tags": [ "+bbb", "+ccc" ]
     } )
     _check_tags( flask_app, {
@@ -45,7 +45,7 @@ def test_tags( webdriver, flask_app, dbconn ):
     } )
 
     # remove some tags from the publication
-    _edit_article( find_search_result( "publication 1" ), {
+    edit_article( find_search_result( "publication 1" ), {
         "tags": [ "-bbb" ]
     } )
     _check_tags( flask_app, {
@@ -54,7 +54,7 @@ def test_tags( webdriver, flask_app, dbconn ):
     } )
 
     # remove some tags from the article
-    _edit_article( find_search_result( "article 1" ), {
+    edit_article( find_search_result( "article 1" ), {
         "tags": [ "-ccc", "-bbb" ]
     } )
     _check_tags( flask_app, {
@@ -63,7 +63,7 @@ def test_tags( webdriver, flask_app, dbconn ):
     } )
 
     # add duplicate tags to the publication
-    _edit_article( find_search_result( "publication 1" ), {
+    edit_article( find_search_result( "publication 1" ), {
         "tags": [ "+bbb", "+aaa", "+eee" ]
     } )
     _check_tags( flask_app, {

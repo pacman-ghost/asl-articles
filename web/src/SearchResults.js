@@ -12,7 +12,9 @@ export class SearchResults extends React.Component
 
     render() {
         let results ;
-        if ( ! this.props.searchResults || this.props.searchResults.length === 0 )
+        if ( this.props.searchResults && this.props.searchResults.error !== undefined )
+            results = "ERROR: " + this.props.searchResults.error ;
+        else if ( ! this.props.searchResults || this.props.searchResults.length === 0 )
             results = (this.props.seqNo === 0) ? null : <div className="no-results"> No results. </div> ;
         else {
             results = [] ;

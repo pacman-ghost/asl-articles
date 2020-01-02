@@ -3,6 +3,7 @@
 import os
 import json
 import uuid
+import logging
 
 import sqlalchemy
 import sqlalchemy.orm
@@ -14,6 +15,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 
+from asl_articles import search
 import asl_articles.models
 
 _webdriver = None
@@ -32,32 +34,38 @@ def init_tests( webdriver, flask_app, dbconn, **kwargs ):
     # initialize the database
     fixtures = kwargs.pop( "fixtures", None )
     if dbconn:
-        init_db( dbconn, fixtures )
+        Session = sqlalchemy.orm.sessionmaker( bind=dbconn )
+        session = Session()
+        load_fixtures( session, fixtures )
     else:
         assert fixtures is None
+        session = None
+
+    # never highlight search results unless explicitly enabled
+    if "no_sr_hilite" not in kwargs:
+        kwargs[ "no_sr_hilite" ] = 1
 
     # load the home page
-    webdriver.get( webdriver.make_url( "/", **kwargs ) )
-    wait_for_elem( 2, "#search-form" )
+    if webdriver:
+        webdriver.get( webdriver.make_url( "/", **kwargs ) )
+        wait_for_elem( 2, "#search-form" )
+
+    return session
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-def init_db( dbconn, fixtures_fname ):
-    """Load the database with test data."""
+def load_fixtures( session, fname ):
+    """Load fixtures into the database."""
 
-    # create a database session
-    Session = sqlalchemy.orm.sessionmaker( bind=dbconn )
-    session = Session()
-
-    # load the test data
-    if fixtures_fname:
+    # load the fixtures
+    if fname:
         dname = os.path.join( os.path.split(__file__)[0], "fixtures/" )
-        fname = os.path.join( dname, fixtures_fname )
+        fname = os.path.join( dname, fname )
         data = json.load( open( fname, "r" ) )
     else:
         data = {}
 
-    # load the test data into the database
+    # save the fixture data in the database
     table_names = [ "publisher", "publication", "article" ]
     table_names.extend( [ "author", "article_author" ] )
     table_names.extend( [ "publisher_image", "publication_image", "article_image" ] )
@@ -69,7 +77,8 @@ def init_db( dbconn, fixtures_fname ):
             session.bulk_insert_mappings( model, data[table_name] )
     session.commit()
 
-    return session
+    # rebuild the search index
+    search.init_search( session, logging.getLogger("search") )
 
 # ---------------------------------------------------------------------
 
@@ -105,16 +114,17 @@ def do_search( query ):
 def get_result_names( results ):
     """Get the names from a list of search results."""
     return [
-        find_child( ".name", r ).text
+        find_child( ".name span", r ).text
         for r in results
     ]
 
-def find_search_result( name ):
+def find_search_result( name, results=None ):
     """Find a search result."""
-    elems = find_children( "#search-results .search-result" )
-    elems = [ e for e in elems if find_child( ".name span", e ).text == name ]
-    assert len(elems) == 1
-    return elems[0]
+    if not results:
+        results = find_children( "#search-results .search-result" )
+    results = [ r for r in results if find_child( ".name span", r ).text == name ]
+    assert len(results) == 1
+    return results[0]
 
 # ---------------------------------------------------------------------
 

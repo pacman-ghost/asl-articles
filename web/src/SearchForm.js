@@ -20,6 +20,8 @@ export default class SearchForm extends React.Component
             <input type="text" className="query"
                 value = {this.state.queryString}
                 onChange = { e => this.setState( { queryString: e.target.value } ) }
+                ref = "queryString"
+                autoFocus
             />
             <button type="submit"> Go </button>
             </form>
@@ -30,5 +32,7 @@ export default class SearchForm extends React.Component
         evt.preventDefault() ;
         this.props.onSearch( this.state.queryString ) ;
     }
+
+    focusQueryString() { this.refs.queryString.focus() ; }
 
 }

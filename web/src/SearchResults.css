@@ -25,3 +25,5 @@
 
 .search-result .tags { margin-top: 0.25em ; font-size: 80% ; font-style: italic ; color: #666 ; }
 .search-result .tags .tag { display: inline ; margin-right: 0.25em ; padding: 0 2px ; border: 1px solid #ccc ; background: #f0f0f0 ; }
+
+.search-result .hilite { padding: 0 2px ; background: #f0e0b0 ; }

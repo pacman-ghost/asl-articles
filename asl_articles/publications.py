@@ -9,6 +9,7 @@ from flask import request, jsonify, abort
 from asl_articles import app, db
 from asl_articles.models import Publication, PublicationImage, Article
 from asl_articles.tags import do_get_tags
+from asl_articles import search
 from asl_articles.utils import get_request_args, clean_request_args, encode_tags, decode_tags, apply_attrs, \
     make_ok_response
 
@@ -46,9 +47,9 @@ def get_publication( pub_id ):
     _logger.debug( "- %s ; #articles=%d", pub, vals["nArticles"] )
     return jsonify( vals )
 
-def get_publication_vals( pub ):
+def get_publication_vals( pub, add_type=False ):
     """Extract public fields from a Publication record."""
-    return {
+    vals = {
         "pub_id": pub.pub_id,
         "pub_name": pub.pub_name,
         "pub_edition": pub.pub_edition,
@@ -58,6 +59,9 @@ def get_publication_vals( pub ):
         "pub_tags": decode_tags( pub.pub_tags ),
         "publ_id": pub.publ_id,
     }
+    if add_type:
+        vals[ "type" ] = "publication"
+    return vals
 
 # ---------------------------------------------------------------------
 
@@ -69,9 +73,10 @@ def create_publication():
     vals = get_request_args( request.json, _FIELD_NAMES,
         log = ( _logger, "Create publication:" )
     )
-    vals[ "pub_tags" ] = encode_tags( vals.get( "pub_tags" ) )
     warnings = []
     updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
+    # NOTE: Tags are stored in the database using \n as a separator, so we need to encode *after* cleaning them.
+    vals[ "pub_tags" ] = encode_tags( vals.get( "pub_tags" ) )
 
     # create the new publication
     vals[ "time_created" ] = datetime.datetime.now()
@@ -80,6 +85,7 @@ def create_publication():
     _save_image( pub, updated )
     db.session.commit()
     _logger.debug( "- New ID: %d", pub.pub_id )
+    search.add_or_update_publication( None, pub )
 
     # generate the response
     extras = { "pub_id": pub.pub_id }
@@ -123,9 +129,10 @@ def update_publication():
     vals = get_request_args( request.json, _FIELD_NAMES,
         log = ( _logger, "Update publication: id={}".format( pub_id ) )
     )
-    vals[ "pub_tags" ] = encode_tags( vals.get( "pub_tags" ) )
     warnings = []
     updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
+    # NOTE: Tags are stored in the database using \n as a separator, so we need to encode *after* cleaning them.
+    vals[ "pub_tags" ] = encode_tags( vals.get( "pub_tags" ) )
 
     # update the publication
     pub = Publication.query.get( pub_id )
@@ -135,6 +142,7 @@ def update_publication():
     _save_image( pub, updated )
     vals[ "time_updated" ] = datetime.datetime.now()
     db.session.commit()
+    search.add_or_update_publication( None, pub )
 
     # generate the response
     extras = {}
@@ -164,6 +172,8 @@ def delete_publication( pub_id ):
     # delete the publication
     db.session.delete( pub )
     db.session.commit()
+    search.delete_publications( [ pub ] )
+    search.delete_articles( deleted_articles )
 
     # generate the response
     extras = { "deleteArticles": deleted_articles }

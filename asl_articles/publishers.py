@@ -9,6 +9,7 @@ from flask import request, jsonify, abort
 from asl_articles import app, db
 from asl_articles.models import Publisher, PublisherImage, Publication, Article
 from asl_articles.publications import do_get_publications
+from asl_articles import search
 from asl_articles.utils import get_request_args, clean_request_args, make_ok_response, apply_attrs
 
 _logger = logging.getLogger( "db" )
@@ -51,15 +52,18 @@ def get_publisher( publ_id ):
     _logger.debug( "- %s ; #publications=%d ; #articles=%d", publ, vals["nPublications"], vals["nArticles"] )
     return jsonify( vals )
 
-def get_publisher_vals( publ ):
+def get_publisher_vals( publ, add_type=False ):
     """Extract public fields from a Publisher record."""
-    return {
+    vals = {
         "publ_id": publ.publ_id,
         "publ_name": publ.publ_name,
         "publ_description": publ.publ_description,
         "publ_url": publ.publ_url,
         "publ_image_id": publ.publ_id if publ.publ_image else None,
     }
+    if add_type:
+        vals[ "type" ] = "publisher"
+    return vals
 
 # ---------------------------------------------------------------------
 
@@ -81,6 +85,7 @@ def create_publisher():
     _save_image( publ, updated )
     db.session.commit()
     _logger.debug( "- New ID: %d", publ.publ_id )
+    search.add_or_update_publisher( None, publ )
 
     # generate the response
     extras = { "publ_id": publ.publ_id }
@@ -134,6 +139,7 @@ def update_publisher():
     apply_attrs( publ, vals )
     vals[ "time_updated" ] = datetime.datetime.now()
     db.session.commit()
+    search.add_or_update_publisher( None, publ )
 
     # generate the response
     extras = {}
@@ -168,6 +174,9 @@ def delete_publisher( publ_id ):
     # delete the publisher
     db.session.delete( publ )
     db.session.commit()
+    search.delete_publishers( [ publ ] )
+    search.delete_publications( deleted_pubs )
+    search.delete_articles( deleted_articles )
 
     extras = { "deletedPublications": deleted_pubs, "deletedArticles": deleted_articles }
     if request.args.get( "list" ):

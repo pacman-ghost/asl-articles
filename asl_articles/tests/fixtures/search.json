@@ -1,0 +1,96 @@
+{
+
+"publisher": [
+    { "publ_id": 1,
+      "publ_name": "Multi-Man Publishing",
+      "publ_description": "Designers and producers of Advanced Squad Leader and other fine wargames."
+    },
+    { "publ_id": 2,
+      "publ_name": "View From The Trenches",
+      "publ_description": "Britain's Premier ASL Journal",
+      "publ_url": "http://vftt.co.uk"
+    }
+],
+
+"publication": [
+    { "pub_id": 10,
+      "pub_name": "ASL Journal",
+      "pub_edition": 4,
+      "pub_tags": "aslj",
+      "publ_id": 1
+    },
+    { "pub_id": 11,
+      "pub_name": "ASL Journal",
+      "pub_edition": 5,
+      "pub_tags": "aslj",
+      "publ_id": 1
+    },
+    { "pub_id": 12,
+      "pub_name": "View From The Trenches",
+      "pub_edition": 100,
+      "pub_description": "Fantastic 100th issue!",
+      "pub_tags": "vftt",
+      "publ_id": 2
+    }
+],
+
+"article": [
+    { "article_id": 500,
+      "article_title": "Hit 'Em High, Or Hit 'Em Low",
+      "article_subtitle": "Some things about light mortars you might like to know",
+      "article_snippet": "Light mortars in ASL can be game winners depending on what they can shoot at, how low you roll and how often you get rate.",
+      "article_tags": "aslj\nmortars",
+      "pub_id": 10
+    },
+    { "article_id": 501,
+      "article_title": "'Bolts From Above",
+      "article_snippet": "Infantry often found itself battling the elements as well as the enemy. ASL has made provisions for the inclusion of inclement weather conditions, such as rain and snow.",
+      "article_tags": "aslj\nweather",
+      "pub_id": 10
+    },
+    { "article_id": 510,
+      "article_title": "The Jungle Isn't Neutral",
+      "article_subtitle": "Up close and personal in the PTO",
+      "article_snippet": "British Lieutenant Colonel F. Spencer Chapman wrote a memoir of jungle fighting in Malaysia titled \"The Jungle Is Neutral.\"",
+      "article_tags": "aslj\nPTO",
+      "pub_id": 11
+    },
+    { "article_id": 511,
+      "article_title": "Hunting DUKWs and Buffalos",
+      "article_subtitle": "Scenario Analysis: HS17 \"Water Foul\"",
+      "article_snippet": "This scenario features a late-war Canadian assault on a German-occupied flooded town - an unusual tactical challenge in ASL.",
+      "article_tags": "aslj",
+      "pub_id": 11
+    },
+    { "article_id": 520,
+      "article_title": "Jagdpanzer 38(t) Hetzer",
+      "article_snippet": "In the 1930s the Germans conducted a number of military exercises which showed that close support from light field guns was helpful for infantry operations.",
+      "pub_id": 12
+    }
+],
+
+"article_author": [
+    { "seq_no": 1, "article_id": 500, "author_id": 1000 },
+    { "seq_no": 1, "article_id": 510, "author_id": 1001 },
+    { "seq_no": 1, "article_id": 511, "author_id": 1002 },
+    { "seq_no": 1, "article_id": 520, "author_id": 1003 }
+],
+
+"author": [
+    { "author_id": 1000, "author_name": "Simon Spinetti" },
+    { "author_id": 1001, "author_name": "Mark Pitcavage" },
+    { "author_id": 1002, "author_name": "Oliver Giancola" },
+    { "author_id": 1003, "author_name": "Michael Davies" }
+],
+
+"article_scenario": [
+    { "seq_no": 1, "article_id": 511, "scenario_id": 2000 },
+    { "seq_no": 1, "article_id": 511, "scenario_id": 2001 }
+],
+
+"scenario": [
+    { "scenario_id": 2000, "scenario_display_id": "HS17", "scenario_name": "Water Foul" },
+    { "scenario_id": 2001, "scenario_name": "No Scenario ID" }
+]
+
+}
