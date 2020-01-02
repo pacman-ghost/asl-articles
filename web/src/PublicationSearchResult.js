@@ -148,16 +148,17 @@ export class PublicationSearchResult extends React.Component
         } ) ;
     }
 
-    _makeDisplayName( allowAlternateContent ) {
+    static makeDisplayName( vals, allowAlternateContent ) {
         let pub_name = null ;
-        if ( allowAlternateContent && this.props.data["pub_name!"] )
-            pub_name = this.props.data[ "pub_name!" ] ;
+        if ( allowAlternateContent && vals["pub_name!"] )
+            pub_name = vals[ "pub_name!" ] ;
         if ( ! pub_name )
-            pub_name = this.props.data.pub_name ;
-        if ( this.props.data.pub_edition )
-            return pub_name + " (" + this.props.data.pub_edition + ")" ;
+            pub_name = vals.pub_name ;
+        if ( vals.pub_edition )
+            return pub_name + " (" + vals.pub_edition + ")" ;
         else
             return pub_name ;
     }
+    _makeDisplayName( allowAlternateContent ) { return PublicationSearchResult.makeDisplayName( this.props.data, allowAlternateContent ) ; }
 
 }

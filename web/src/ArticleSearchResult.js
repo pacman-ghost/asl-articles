@@ -1,5 +1,6 @@
 import React from "react" ;
 import { ArticleSearchResult2 } from "./ArticleSearchResult2.js" ;
+import { PublicationSearchResult } from "./PublicationSearchResult.js" ;
 import { gAppRef } from "./index.js" ;
 import { makeScenarioDisplayName, applyUpdatedVals, removeSpecialFields, makeOptionalLink, makeCommaList } from "./utils.js" ;
 
@@ -60,13 +61,14 @@ export class ArticleSearchResult extends React.Component
         }
         // NOTE: The "title" field is also given the CSS class "name" so that the normal CSS will apply to it.
         // Some tests also look for a generic ".name" class name when checking search results.
+        const pub_display_name = pub ? PublicationSearchResult.makeDisplayName( pub ) : null ;
         return ( <div className="search-result article"
                     ref = { r => gAppRef.setTestAttribute( r, "article_id", this.props.data.article_id ) }
             >
             <div className="title name">
                 { image_url && <img src={image_url} className="image" alt="Article." /> }
                 { makeOptionalLink( display_title, this.props.data.article_url ) }
-                { pub && <span className="publication"> ({pub.pub_name}) </span> }
+                { pub_display_name && <span className="publication"> [{pub_display_name}] </span> }
                 <img src="/images/edit.png" className="edit" onClick={this.onEditArticle.bind(this)} alt="Edit this article." />
                 <img src="/images/delete.png" className="delete" onClick={this.onDeleteArticle.bind(this)} alt="Delete this article." />
                 { display_subtitle && <div className="subtitle" dangerouslySetInnerHTML={{ __html: display_subtitle }} /> }

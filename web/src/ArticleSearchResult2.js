@@ -2,6 +2,7 @@ import React from "react" ;
 import ReactDOMServer from "react-dom/server" ;
 import Select from "react-select" ;
 import CreatableSelect from "react-select/creatable" ;
+import { PublicationSearchResult } from "./PublicationSearchResult.js" ;
 import { gAppRef } from "./index.js" ;
 import { ImageFileUploader } from "./FileUploader.js" ;
 import { makeScenarioDisplayName, parseScenarioDisplayName, unloadCreatableSelect } from "./utils.js" ;
@@ -44,18 +45,23 @@ export class ArticleSearchResult2
 
         // initialize the publications
         let publications = [ { value: null, label: <i>(none)</i> } ] ;
-        let currPub = 0 ;
         for ( let p of Object.entries(gAppRef.caches.publications) ) {
+            const pub_display_name = PublicationSearchResult.makeDisplayName( p[1] ) ;
             publications.push( {
                 value: p[1].pub_id,
-                label: <span dangerouslySetInnerHTML={{__html: p[1].pub_name}} />
+                label: <span dangerouslySetInnerHTML={{__html: pub_display_name}} />
             } ) ;
-            if ( p[1].pub_id === vals.pub_id )
-                currPub = publications.length - 1 ;
         }
         publications.sort( (lhs,rhs) => {
             return ReactDOMServer.renderToStaticMarkup( lhs.label ).localeCompare( ReactDOMServer.renderToStaticMarkup( rhs.label ) ) ;
         } ) ;
+        let currPub = 0 ;
+        for ( let i=1; i < publications.length ; ++i ) {
+            if ( publications[i].value === vals.pub_id ) {
+                currPub = i ;
+                break ;
+            }
+        }
 
         // initialize the authors
         let allAuthors = [] ;

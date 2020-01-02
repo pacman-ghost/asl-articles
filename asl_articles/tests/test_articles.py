@@ -236,7 +236,7 @@ def test_parent_publisher( webdriver, flask_app, dbconn ):
         nonlocal article_sr
         elem = find_child( ".title .publication", article_sr )
         if expected_parent:
-            assert elem.text == "({})".format( expected_parent[1] )
+            assert elem.text == "[{}]".format( expected_parent[1] )
         else:
             assert elem is None
 
@@ -255,7 +255,7 @@ def test_parent_publisher( webdriver, flask_app, dbconn ):
         article_sr = results[0]
         elem = find_child( ".title .publication", article_sr )
         if expected_parent:
-            assert elem.text == "({})".format( expected_parent[1] )
+            assert elem.text == "[{}]".format( expected_parent[1] )
         else:
             assert elem is None
 
