@@ -122,6 +122,13 @@ def load_html_whitelists( app ):
 
 # ---------------------------------------------------------------------
 
+def clean_tags( tags, warnings ):
+    """Remove HTML from tags."""
+    cleaned_tags = [ clean_html( t, allow_tags=[], safe_attrs=[] ) for t in tags ]
+    if cleaned_tags != tags:
+        warnings.append( "Some values had HTML removed." )
+    return cleaned_tags
+
 def encode_tags( tags ):
     """Encode tags prior to storing them in the database."""
     if not tags:

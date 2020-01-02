@@ -10,8 +10,8 @@ from asl_articles import app, db
 from asl_articles.models import Publication, PublicationImage, Article
 from asl_articles.tags import do_get_tags
 from asl_articles import search
-from asl_articles.utils import get_request_args, clean_request_args, encode_tags, decode_tags, apply_attrs, \
-    make_ok_response
+from asl_articles.utils import get_request_args, clean_request_args, clean_tags, encode_tags, decode_tags, \
+    apply_attrs, make_ok_response
 
 _logger = logging.getLogger( "db" )
 
@@ -75,8 +75,12 @@ def create_publication():
     )
     warnings = []
     updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
+
     # NOTE: Tags are stored in the database using \n as a separator, so we need to encode *after* cleaning them.
-    vals[ "pub_tags" ] = encode_tags( vals.get( "pub_tags" ) )
+    cleaned_tags = clean_tags( vals.get("pub_tags"), warnings )
+    vals[ "pub_tags" ] = encode_tags( cleaned_tags )
+    if cleaned_tags != vals.get( "pub_tags" ):
+        updated[ "pub_tags" ] = decode_tags( vals["pub_tags"] )
 
     # create the new publication
     vals[ "time_created" ] = datetime.datetime.now()
@@ -131,8 +135,12 @@ def update_publication():
     )
     warnings = []
     updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
+
     # NOTE: Tags are stored in the database using \n as a separator, so we need to encode *after* cleaning them.
-    vals[ "pub_tags" ] = encode_tags( vals.get( "pub_tags" ) )
+    cleaned_tags = clean_tags( vals.get("pub_tags"), warnings )
+    vals[ "pub_tags" ] = encode_tags( cleaned_tags )
+    if cleaned_tags != vals.get( "pub_tags" ):
+        updated[ "pub_tags" ] = decode_tags( vals["pub_tags"] )
 
     # update the publication
     pub = Publication.query.get( pub_id )

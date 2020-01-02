@@ -73,6 +73,33 @@ def test_tags( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
+def test_clean_html( webdriver, flask_app, dbconn ):
+    """Test cleaning HTML from tags."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn )
+
+    # try to create a publication with HTML tags
+    create_publication( {
+        "name": "test publication",
+        "tags": [ "+<b>bold</b>" ]
+    }, toast_type="warning" )
+    _check_tags( flask_app, {
+        "test publication": [ "bold" ]
+    } )
+
+    # try to create an article with HTML tags
+    create_article( {
+        "title": "test article",
+        "tags": [ "+<i>italic</i>" ]
+    }, toast_type="warning" )
+    _check_tags( flask_app, {
+        "test publication": [ "bold" ],
+        "test article": [ "italic" ]
+    } )
+
+# ---------------------------------------------------------------------
+
 def _check_tags( flask_app, expected ):
     """Check the tags in the UI and database."""
 

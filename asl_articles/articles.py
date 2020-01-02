@@ -12,8 +12,8 @@ from asl_articles.authors import do_get_authors
 from asl_articles.scenarios import do_get_scenarios
 from asl_articles.tags import do_get_tags
 from asl_articles import search
-from asl_articles.utils import get_request_args, clean_request_args, encode_tags, decode_tags, apply_attrs, \
-    make_ok_response
+from asl_articles.utils import get_request_args, clean_request_args, clean_tags, encode_tags, decode_tags, \
+    apply_attrs, make_ok_response
 
 _logger = logging.getLogger( "db" )
 
@@ -67,8 +67,12 @@ def create_article():
     )
     warnings = []
     updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
+
     # NOTE: Tags are stored in the database using \n as a separator, so we need to encode *after* cleaning them.
-    vals[ "article_tags" ] = encode_tags( vals.get( "article_tags" ) )
+    cleaned_tags = clean_tags( vals.get("article_tags"), warnings )
+    vals[ "article_tags" ] = encode_tags( cleaned_tags )
+    if cleaned_tags != vals.get( "article_tags" ):
+        updated[ "article_tags" ] = decode_tags( vals["article_tags"] )
 
     # create the new article
     vals[ "time_created" ] = datetime.datetime.now()
@@ -200,8 +204,12 @@ def update_article():
     )
     warnings = []
     updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
+
     # NOTE: Tags are stored in the database using \n as a separator, so we need to encode *after* cleaning them.
-    vals[ "article_tags" ] = encode_tags( vals.get( "article_tags" ) )
+    cleaned_tags = clean_tags( vals.get("article_tags"), warnings )
+    vals[ "article_tags" ] = encode_tags( cleaned_tags )
+    if cleaned_tags != vals.get( "article_tags" ):
+        updated[ "article_tags" ] = decode_tags( vals["article_tags"] )
 
     # update the article
     article = Article.query.get( article_id )

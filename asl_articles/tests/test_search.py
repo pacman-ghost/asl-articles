@@ -286,7 +286,7 @@ def test_html_stripping( webdriver, flask_app, dbconn ):
         "edition": "75<u>L</u>",
         "description": "This is some <b>bold text</b>, this is <i>italic</i>.",
         "tags": [ "+<b>bold</b>", "+<i>italic</i>" ]
-    } )
+    }, toast_type="warning" )
     create_article( {
          "title": "An <i>italic</i> article",
          "subtitle": "A <b>bold</b> subtitle",
@@ -294,7 +294,7 @@ def test_html_stripping( webdriver, flask_app, dbconn ):
          "tags": [ "+<b>bold</b>", "+<i>italic</i>" ],
          "scenarios": [ "+<b>bold</b> [B1]", "+<i>italic</i> [I1]" ],
          "snippet": "This is some <b>bold text</b>, this is <i>italic</i>."
-    } )
+    }, toast_type="warning" )
 
     # check if the search index contains any HTML
     def is_html_clean( val ):
