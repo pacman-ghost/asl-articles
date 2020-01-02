@@ -1,6 +1,15 @@
 import React from "react" ;
+import ReactDOMServer from "react-dom/server" ;
 
 // --------------------------------------------------------------------
+
+export function sortSelectableOptions( options ) {
+    options.sort( (lhs,rhs) => {
+        lhs = ReactDOMServer.renderToStaticMarkup( lhs.label ) ;
+        rhs = ReactDOMServer.renderToStaticMarkup( rhs.label ) ;
+        return lhs.localeCompare( rhs ) ;
+    } ) ;
+}
 
 export function unloadCreatableSelect( sel ) {
     // unload the values from a CreatableSelect

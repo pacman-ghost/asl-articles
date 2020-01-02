@@ -1,11 +1,10 @@
 import React from "react" ;
-import ReactDOMServer from "react-dom/server" ;
 import Select from "react-select" ;
 import CreatableSelect from "react-select/creatable" ;
 import { PublicationSearchResult } from "./PublicationSearchResult.js" ;
 import { gAppRef } from "./index.js" ;
 import { ImageFileUploader } from "./FileUploader.js" ;
-import { makeScenarioDisplayName, parseScenarioDisplayName, unloadCreatableSelect } from "./utils.js" ;
+import { makeScenarioDisplayName, parseScenarioDisplayName, sortSelectableOptions, unloadCreatableSelect } from "./utils.js" ;
 
 // --------------------------------------------------------------------
 
@@ -52,9 +51,7 @@ export class ArticleSearchResult2
                 label: <span dangerouslySetInnerHTML={{__html: pub_display_name}} />
             } ) ;
         }
-        publications.sort( (lhs,rhs) => {
-            return ReactDOMServer.renderToStaticMarkup( lhs.label ).localeCompare( ReactDOMServer.renderToStaticMarkup( rhs.label ) ) ;
-        } ) ;
+        sortSelectableOptions( publications ) ;
         let currPub = publications[0] ;
         for ( let i=1; i < publications.length ; ++i ) {
             if ( publications[i].value === vals.pub_id ) {

@@ -1,10 +1,9 @@
 import React from "react" ;
-import ReactDOMServer from "react-dom/server" ;
 import Select from "react-select" ;
 import CreatableSelect from "react-select/creatable" ;
 import { gAppRef } from "./index.js" ;
 import { ImageFileUploader } from "./FileUploader.js" ;
-import { unloadCreatableSelect } from "./utils.js" ;
+import { sortSelectableOptions, unloadCreatableSelect } from "./utils.js" ;
 
 // --------------------------------------------------------------------
 
@@ -53,9 +52,7 @@ export class PublicationSearchResult2
             if ( p[1].publ_id === vals.publ_id )
                 currPubl = publishers.length - 1 ;
         }
-        publishers.sort( (lhs,rhs) => {
-            return ReactDOMServer.renderToStaticMarkup( lhs.label ).localeCompare( ReactDOMServer.renderToStaticMarkup( rhs.label ) ) ;
-        } ) ;
+        sortSelectableOptions( publishers ) ;
 
         // initialize the publications
         // NOTE: As a convenience, we provide a droplist of known publication names (without edition #'s),
@@ -68,9 +65,7 @@ export class PublicationSearchResult2
             const pub = publications[ pub_name ] ;
             publications2.push( { value: pub.pub_id, label: pub.pub_name } ) ;
         }
-        publications2.sort( (lhs,rhs) => {
-            return ReactDOMServer.renderToStaticMarkup( lhs.label ).localeCompare( ReactDOMServer.renderToStaticMarkup( rhs.label ) ) ;
-        } ) ;
+        sortSelectableOptions( publications2 ) ;
         let currPub = null ;
         for ( let pub of publications2 ) {
             if ( pub.label === vals.pub_name ) {
