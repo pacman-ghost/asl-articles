@@ -3,7 +3,7 @@
 import urllib.request
 import json
 
-from asl_articles.tests.utils import init_tests, find_child, find_children, wait_for_elem, find_search_result
+from asl_articles.tests.utils import init_tests, find_child, find_children, wait_for, wait_for_elem, find_search_result
 from asl_articles.tests.react_select import ReactSelect
 
 from asl_articles.tests.test_articles import create_article, edit_article
@@ -72,23 +72,31 @@ def _check_scenarios( flask_app, all_scenarios, expected ):
     for scenarios in expected:
         all_scenarios.update( scenarios )
 
+    def check_scenarios( sr_name, expected ):
+        sr = find_search_result( sr_name )
+        sr_scenarios = [ s.text for s in find_children( ".scenario", sr ) ]
+        if sr_scenarios == expected:
+            return sr
+        return None
+
     # check the scenarios in the UI
-    for article_no,scenarios in enumerate( expected ):
+    for article_no,expected_scenarios in enumerate( expected ):
 
         # check the scenarios in the article's search result
-        sr = find_search_result( "article {}".format( 1+article_no ) )
-        sr_scenarios = [ s.text for s in find_children( ".scenario", sr ) ]
-        assert sr_scenarios == scenarios
+        sr_name = "article {}".format( 1+article_no )
+        sr = wait_for( 2,
+            lambda n=sr_name, e=expected_scenarios: check_scenarios( n, e )
+        )
 
         # check the scenarios in the article's config
         find_child( ".edit", sr ).click()
         dlg = wait_for_elem( 2, "#modal-form" )
-        select = ReactSelect( find_child( ".scenarios .react-select", dlg ) )
-        assert select.get_multiselect_values() == scenarios
+        select = ReactSelect( find_child( ".row.scenarios .react-select", dlg ) )
+        assert select.get_multiselect_values() == expected_scenarios
 
         # check that the list of available scenarios is correct
         assert select.get_multiselect_choices() == \
-            sorted( all_scenarios.difference( scenarios ), key=lambda s: s.lower() )
+            sorted( all_scenarios.difference( expected_scenarios ), key=lambda s: s.lower() )
 
         # close the dialog
         find_child( "button.cancel", dlg ).click()

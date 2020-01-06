@@ -9,9 +9,10 @@ import base64
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import StaleElementReferenceException
 
-from asl_articles.search import SEARCH_ALL
-from asl_articles.tests.utils import init_tests, load_fixtures, do_search, get_result_names, \
-    wait_for, wait_for_elem, find_child, find_children, find_search_result, set_elem_text, \
+from asl_articles.search import SEARCH_ALL, SEARCH_ALL_PUBLICATIONS, SEARCH_ALL_ARTICLES
+from asl_articles.tests.utils import init_tests, load_fixtures, \
+    do_search, get_search_results, get_search_result_names, check_search_result, \
+    wait_for, wait_for_elem, wait_for_not_elem, find_child, find_children, find_search_result, set_elem_text, \
     set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg
 from asl_articles.tests.react_select import ReactSelect
 
@@ -24,10 +25,9 @@ def test_edit_publication( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn, fixtures="publications.json" )
 
     # edit "ASL Journal #2"
-    results = do_search( '"asl journal"' )
-    assert len(results) == 2
-    result = results[1]
-    edit_publication( result, {
+    results = do_search( SEARCH_ALL_PUBLICATIONS )
+    sr = find_search_result( "ASL Journal (2)", results )
+    edit_publication( sr, {
         "name": "  ASL Journal (updated)  ",
         "edition": "  2a  ",
         "description": "  Updated ASLJ description.  ",
@@ -36,19 +36,18 @@ def test_edit_publication( webdriver, flask_app, dbconn ):
     } )
 
     # check that the search result was updated in the UI
-    results = find_children( "#search-results .search-result" )
-    result = results[1]
-    _check_result( result,
-        [ "ASL Journal (updated)", "2a", "Updated ASLJ description.", ["abc","xyz"], "http://aslj-updated.com/" ]
-    )
+    expected = [ "ASL Journal (updated)", "2a", "Updated ASLJ description.", ["abc","xyz"], "http://aslj-updated.com/" ]
+    sr = find_search_result( "ASL Journal (updated) (2a)" )
+    check_search_result( sr, _check_sr, expected )
 
     # NOTE: We used to try to remove all fields from "ASL Journal #2" (which should fail, since we can't
     # have an empty name), but we can no longer remove an existing publication name (which is OK, since we
     # don't want to allow that, only change it).
 
-    # check that the search result was updated in the database
-    results = do_search( '"ASL Journal"' )
-    assert get_result_names( results ) == [ "ASL Journal (1)", "ASL Journal (updated) (2a)" ]
+    # check that the publication was updated in the database
+    results = do_search( SEARCH_ALL_PUBLICATIONS )
+    sr = find_search_result( "ASL Journal (updated) (2a)", results )
+    check_search_result( sr, _check_sr, expected )
 
 # ---------------------------------------------------------------------
 
@@ -56,39 +55,32 @@ def test_create_publication( webdriver, flask_app, dbconn ):
     """Test creating new publications."""
 
     # initialize
-    init_tests( webdriver, flask_app, dbconn )
+    init_tests( webdriver, flask_app, dbconn, fixtures="publications.json" )
+    do_search( SEARCH_ALL_PUBLICATIONS )
 
     # try creating a publication with no name (should fail)
     create_publication( {}, toast_type=None )
     check_error_msg( "Please specify the publication's name." )
 
     # enter a name and other details
-    dlg = find_child( "#modal-form" ) # nb: the form is still on-screen
-    elem = find_child( ".name .react-select input", dlg )
-    elem.send_keys( "New publication", Keys.RETURN )
-    set_elem_text( find_child( ".edition input", dlg ), "#1" )
-    set_elem_text( find_child( ".description textarea", dlg ), "New publication description." )
-    select = ReactSelect( find_child( ".tags .react-select", dlg ) )
-    select.update_multiselect_values( "+111", "+222", "+333" )
-    set_elem_text( find_child( ".url input", dlg ), "http://new-publication.com" )
-    set_toast_marker( "info" )
-    find_child( "button.ok", dlg ).click()
-    wait_for( 2,
-        lambda: check_toast( "info", "created OK", contains=True )
-    )
+    edit_publication( None, { # nb: the form is still on-screen
+        "name": "New publication",
+        "edition": "#1",
+        "description": "New publication description.",
+        "tags": [ "+111", "+222", "+333" ],
+        "url": "http://new-publication.com"
+    } )
 
     # check that the new publication appears in the UI
-    def check_new_publication( result ):
-        _check_result( result, [
-            "New publication", "#1", "New publication description.", ["111","222","333"], "http://new-publication.com/"
-        ] )
-    results = find_children( "#search-results .search-result" )
-    check_new_publication( results[0] )
+    expected = [ "New publication", "#1", "New publication description.",
+        ["111","222","333"], "http://new-publication.com/"
+    ]
+    check_search_result( "New publication (#1)", _check_sr, expected )
 
     # check that the new publication has been saved in the database
-    results = do_search( "new" )
-    assert len( results ) == 1
-    check_new_publication( results[0] )
+    results = do_search( SEARCH_ALL_PUBLICATIONS )
+    sr = find_search_result( "New publication (#1)", results )
+    check_search_result( sr, _check_sr, expected )
 
 # ---------------------------------------------------------------------
 
@@ -98,37 +90,34 @@ def test_delete_publication( webdriver, flask_app, dbconn ):
     # initialize
     init_tests( webdriver, flask_app, dbconn, fixtures="publications.json" )
 
-    # start to delete publication "ASL Journal #1", but cancel the operation
-    results = do_search( '"ASL Journal"' )
-    assert len(results) == 2
-    sr = find_search_result( "ASL Journal (2)", results )
+    # start to delete a publication, but cancel the operation
+    article_name = "ASL Journal (2)"
+    results = do_search( SEARCH_ALL_PUBLICATIONS )
+    sr = find_search_result( article_name, results )
     find_child( ".delete", sr ).click()
-    check_ask_dialog( ( "Delete this publication?", "ASL Journal (2)" ), "cancel" )
+    check_ask_dialog( ( "Delete this publication?", article_name ), "cancel" )
 
     # check that search results are unchanged on-screen
-    results2 = find_children( "#search-results .search-result" )
+    results2 = get_search_results()
     assert results2 == results
 
     # check that the search results are unchanged in the database
-    results3 = do_search( '"ASL Journal"' )
+    results3 = do_search( SEARCH_ALL_PUBLICATIONS )
     assert results3 == results
 
-    # delete the publication "ASL Journal 2"
-    sr = find_search_result( "ASL Journal (2)", results3 )
+    # delete the publication
+    sr = find_search_result( article_name, results3 )
     find_child( ".delete", sr ).click()
     set_toast_marker( "info" )
-    check_ask_dialog( ( "Delete this publication?", "ASL Journal (2)" ), "ok" )
-    wait_for( 2,
-        lambda: check_toast( "info", "The publication was deleted." )
-    )
+    check_ask_dialog( ( "Delete this publication?", article_name ), "ok" )
+    wait_for( 2, lambda: check_toast( "info", "The publication was deleted." ) )
 
     # check that search result was removed on-screen
-    results = find_children( "#search-results .search-result" )
-    assert get_result_names( results ) == [ "ASL Journal (1)" ]
+    wait_for( 2, lambda: article_name not in get_search_result_names() )
 
     # check that the search result was deleted from the database
-    results = do_search( '"ASL Journal"' )
-    assert get_result_names( results ) == [ "ASL Journal (1)" ]
+    results = do_search( SEARCH_ALL_PUBLICATIONS )
+    assert article_name not in get_search_result_names( results )
 
 # ---------------------------------------------------------------------
 
@@ -141,13 +130,15 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
     def check_image( expected ):
 
         # check the image in the publication's search result
-        img = find_child( "img.image", pub_sr )
-        if expected:
-            expected_url = flask_app.url_for( "get_image", image_type="publication", image_id=pub_id )
-            image_url = img.get_attribute( "src" ).split( "?" )[0]
-            assert image_url == expected_url
-        else:
-            assert not img
+        def check_sr_image( expected ):
+            img = find_child( "img.image", pub_sr )
+            if expected:
+                expected_url = flask_app.url_for( "get_image", image_type="publication", image_id=pub_id )
+                image_url = img.get_attribute( "src" ).split( "?" )[0]
+                return image_url == expected_url
+            else:
+                return not img
+        wait_for( 2, lambda: check_sr_image( expected ) )
 
         # check the image in the publisher's config
         find_child( ".edit", pub_sr ).click()
@@ -162,7 +153,7 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
             assert btn.is_displayed()
             # make sure the publication's image is correct
             resp = urllib.request.urlopen( image_url ).read()
-            assert resp == open(expected,"rb").read()
+            assert resp == open( expected, "rb" ).read()
         else:
             # make sure there is no image
             img = find_child( ".row.image img.image", dlg )
@@ -181,7 +172,7 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
 
     # create an publication with no image
     create_publication( {"name": "Test Publication" } )
-    results = find_children( "#search-results .search-result" )
+    results = get_search_results()
     assert len(results) == 1
     pub_sr = results[0]
     pub_id = pub_sr.get_attribute( "testing--pub_id" )
@@ -218,51 +209,56 @@ def test_parent_publisher( webdriver, flask_app, dbconn ):
 
     # initialize
     init_tests( webdriver, flask_app, dbconn, fixtures="parents.json" )
-    pub_sr = None
 
-    def check_results( expected_parent ):
+    def check_result( sr, expected_parent ): #pylint: disable=too-many-return-statements
 
         # check that the parent publisher was updated in the UI
-        nonlocal pub_sr
-        elem = find_child( ".name .publisher", pub_sr )
+        elem = find_child( ".name .publisher", sr )
         if expected_parent:
-            assert elem.text == "({})".format( expected_parent[1] )
+            if elem.text != "({})".format( expected_parent[1] ):
+                return None
         else:
-            assert elem is None
+            if elem is not None:
+                return None
 
         # check that the parent publisher was updated in the database
-        pub_id = pub_sr.get_attribute( "testing--pub_id" )
+        pub_id = sr.get_attribute( "testing--pub_id" )
         url = flask_app.url_for( "get_publication", pub_id=pub_id )
         pub = json.load( urllib.request.urlopen( url ) )
         if expected_parent:
-            assert pub["publ_id"] == expected_parent[0]
+            if pub["publ_id"] != expected_parent[0]:
+                return None
         else:
-            assert pub["publ_id"] is None
+            if pub["publ_id"] is not None:
+                return None
 
         # check that the parent publisher was updated in the UI
         results = do_search( '"MMP News"' )
         assert len(results) == 1
-        pub_sr = results[0]
-        elem = find_child( ".name .publisher", pub_sr )
+        sr = results[0]
+        elem = find_child( ".name .publisher", sr )
         if expected_parent:
-            assert elem.text == "({})".format( expected_parent[1] )
+            if elem.text != "({})".format( expected_parent[1] ):
+                return None
         else:
-            assert elem is None
+            if elem is not None:
+                return None
+
+        return sr
 
     # create a publication with no parent publisher
     create_publication( { "name": "MMP News" } )
-    results = find_children( "#search-results .search-result" )
+    results = get_search_results()
     assert len(results) == 1
-    pub_sr = results[0]
-    check_results( None )
+    sr = wait_for( 2, lambda: check_result( results[0], None ) )
 
     # change the publication to have a publisher
-    edit_publication( pub_sr, { "publisher": "Multiman Publishing" } )
-    check_results( (1, "Multiman Publishing") )
+    edit_publication( sr, { "publisher": "Multiman Publishing" } )
+    sr = wait_for( 2, lambda: check_result( sr, (1, "Multiman Publishing") ) )
 
     # change the publication back to having no publisher
-    edit_publication( pub_sr, { "publisher": "(none)" } )
-    check_results( None )
+    edit_publication( sr, { "publisher": "(none)" } )
+    sr = wait_for( 2, lambda: check_result( results[0], None ) )
 
 # ---------------------------------------------------------------------
 
@@ -289,9 +285,8 @@ def test_cascading_deletes( webdriver, flask_app, dbconn ):
         def get_results( expected_len ):
             # NOTE: The UI will remove anything that has been deleted, so we need to
             # give it a bit of time to finish doing this.
-            results = find_children( "#search-results .search-result" )
             try:
-                results = [ find_child( ".name span", r ).text for r in results ]
+                results = get_search_result_names()
             except StaleElementReferenceException:
                 return None
             results = [ r for r in results if r.startswith( "article" ) ]
@@ -303,7 +298,7 @@ def test_cascading_deletes( webdriver, flask_app, dbconn ):
         check_results()
 
         # check that associated articles were removed from the database
-        results = do_search( "article" )
+        results = do_search( SEARCH_ALL_ARTICLES )
         check_results()
 
     # do the tests
@@ -335,9 +330,9 @@ def test_unicode( webdriver, flask_app, dbconn ):
     } )
 
     # check that the new publication is showing the Unicode content correctly
-    results = do_search( "japan" )
+    results = do_search( SEARCH_ALL_PUBLICATIONS )
     assert len( results ) == 1
-    _check_result( results[0], [
+    check_search_result( results[0], _check_sr, [
         "japan = \u65e5\u672c",  "\u263a",
         "greece = \u0395\u03bb\u03bb\u03ac\u03b4\u03b1",
         [ "\u0e51", "\u0e52", "\u0e53" ],
@@ -360,112 +355,131 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     }, toast_type="warning" )
 
     # check that the HTML was cleaned
-    results = wait_for( 2,
-        lambda: find_children( "#search-results .search-result" )
-    )
-    assert len( results ) == 1
-    result = results[0]
-    _check_result( result, [ "name: bold xxx italic", "2", "bad stuff here:", [], None ] )
-    assert find_child( ".name span" ).get_attribute( "innerHTML" ) \
+    sr = check_search_result( None, _check_sr, [
+        "name: bold xxx italic", "2", "bad stuff here:", [], None
+    ] )
+    assert find_child( ".name span", sr ).get_attribute( "innerHTML" ) \
         == "name: <span> <b>bold</b> xxx <i>italic</i></span> (<i>2</i>)"
     assert check_toast( "warning", "Some values had HTML removed.", contains=True )
 
     # update the publication with new HTML content
-    edit_publication( result, {
+    edit_publication( sr, {
         "name": "<div style='...'>updated</div>"
     }, toast_type="warning" )
-    def check_result():
-        results = find_children( "#search-results .search-result" )
-        assert len( results ) == 1
-        result = results[0]
-        return find_child( ".name", result ).text == "updated (2)"
-    wait_for( 2, check_result )
+    results = get_search_results()
+    assert len(results) == 1
+    wait_for( 2, lambda: find_child( ".name", results[0] ).text == "updated (2)" )
     assert check_toast( "warning", "Some values had HTML removed.", contains=True )
 
 # ---------------------------------------------------------------------
 
 def create_publication( vals, toast_type="info" ):
     """Create a new publication."""
+
     # initialize
     if toast_type:
         set_toast_marker( toast_type )
+
     # create the new publication
     find_child( "#menu .new-publication" ).click()
     dlg = wait_for_elem( 2, "#modal-form" )
     for key,val in vals.items():
         if key == "name":
-            elem = find_child( ".name .react-select input" )
+            elem = find_child( ".row.name .react-select input", dlg )
             set_elem_text( elem, val )
             elem.send_keys( Keys.RETURN )
         elif key == "tags":
-            select = ReactSelect( find_child( ".tags .react-select", dlg ) )
+            select = ReactSelect( find_child( ".row.tags .react-select", dlg ) )
             select.update_multiselect_values( *val )
         else:
-            sel = ".{} {}".format( key , "textarea" if key == "description" else "input" )
+            sel = ".row.{} {}".format( key , "textarea" if key == "description" else "input" )
             set_elem_text( find_child( sel, dlg ), val )
     find_child( "button.ok", dlg ).click()
+
     if toast_type:
         # check that the new publication was created successfully
         wait_for( 2,
             lambda: check_toast( toast_type, "created OK", contains=True )
         )
+        wait_for_not_elem( 2, "#modal-form" )
 
-def edit_publication( result, vals, toast_type="info", expected_error=None ):
+def edit_publication( sr, vals, toast_type="info", expected_error=None ):
     """Edit a publication's details."""
-    # update the specified publication's details
-    find_child( ".edit", result ).click()
+
+    # initialize
+    if sr:
+        find_child( ".edit", sr ).click()
+    else:
+        pass # nb: we assume that the dialog is already on-screen
     dlg = wait_for_elem( 2, "#modal-form" )
+
+    # update the specified publication's details
     for key,val in vals.items():
         if key == "image":
             if val:
                 data = base64.b64encode( open( val, "rb" ).read() )
                 data = "{}|{}".format( os.path.split(val)[1], data.decode("ascii") )
                 send_upload_data( data,
-                    lambda: find_child( ".image img", dlg ).click()
+                    lambda: find_child( ".row.image img", dlg ).click()
                 )
             else:
-                find_child( ".remove-image", dlg ).click()
+                find_child( ".row.image .remove-image", dlg ).click()
         elif key == "name":
-            elem = find_child( ".name .react-select input" )
+            elem = find_child( ".row.name .react-select input", dlg )
             set_elem_text( elem, val )
             elem.send_keys( Keys.RETURN )
         elif key == "publisher":
-            select = ReactSelect( find_child( ".publisher .react-select", dlg ) )
+            select = ReactSelect( find_child( ".row.publisher .react-select", dlg ) )
             select.select_by_name( val )
         elif key == "tags":
-            select = ReactSelect( find_child( ".tags .react-select", dlg ) )
+            select = ReactSelect( find_child( ".row.tags .react-select", dlg ) )
             select.update_multiselect_values( *val )
         else:
-            sel = ".{} {}".format( key , "textarea" if key == "description" else "input" )
+            sel = ".row.{} {}".format( key , "textarea" if key == "description" else "input" )
             set_elem_text( find_child( sel, dlg ), val )
     set_toast_marker( toast_type )
     find_child( "button.ok", dlg ).click()
+
+    # check what happened
     if expected_error:
         # we were expecting an error, confirm the error message
         check_error_msg( expected_error )
     else:
         # we were expecting the update to work, confirm this
+        expected = "updated OK" if sr else "created OK"
         wait_for( 2,
-            lambda: check_toast( toast_type, "updated OK", contains=True )
+            lambda: check_toast( toast_type, expected, contains=True )
         )
+        wait_for_not_elem( 2, "#modal-form" )
 
 # ---------------------------------------------------------------------
 
-def _check_result( result, expected ):
-    """Check a result."""
+def _check_sr( sr, expected ):
+    """Check a search result."""
+
     # check the name and edition
     expected_name = expected[0]
     if expected[1]:
         expected_name += " ({})".format( expected[1] )
-    assert find_child( ".name", result ).text == expected_name
+    if find_child( ".name", sr ).text != expected_name:
+        return False
+
     # check the description
-    assert find_child( ".description", result ).text == expected[2]
+    if find_child( ".description", sr ).text != expected[2]:
+        return False
+
     # check the tags
-    tags = [ t.text for t in find_children( ".tag", result ) ]
-    assert tags == expected[3]
+    tags = [ t.text for t in find_children( ".tag", sr ) ]
+    if tags != expected[3]:
+        return False
+
     # check the publication's link
-    elem = find_child( ".name a", result )
+    elem = find_child( ".name a", sr )
     if elem:
-        assert elem.get_attribute( "href" ) == expected[4]
+        if elem.get_attribute( "href" ) != expected[4]:
+            return False
     else:
-        assert expected[4] is None
+        if expected[4] is not None:
+            return False
+
+    return True

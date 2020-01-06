@@ -3,8 +3,8 @@
 import urllib.request
 import json
 
-from asl_articles.tests.utils import init_tests, wait_for_elem, find_child, find_children, \
-    find_search_result, get_result_names
+from asl_articles.tests.utils import init_tests, find_search_result, get_search_results, get_search_result_names, \
+    wait_for, wait_for_elem, find_child, find_children
 from asl_articles.tests.react_select import ReactSelect
 
 from asl_articles.tests.test_publications import create_publication, edit_publication
@@ -100,7 +100,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
-def _check_tags( flask_app, expected ):
+def _check_tags( flask_app, expected ): #pylint: disable=too-many-locals
     """Check the tags in the UI and database."""
 
     # get the complete list of expected tags
@@ -108,20 +108,25 @@ def _check_tags( flask_app, expected ):
     for tags in expected.values():
         expected_available.update( tags )
 
+    def check_tags( sr ):
+        name = get_search_result_names( [sr] )[ 0 ]
+        tags = [ t.text for t in find_children( ".tag", sr ) ]
+        if tags == expected[name]:
+            return name
+        return None
+
     # check the tags in the UI
-    elems = find_children( "#search-results .search-result" )
-    assert set( get_result_names( elems ) ) == set( expected.keys() )
-    for sr in elems:
+    results = get_search_results()
+    assert set( get_search_result_names( results ) ) == set( expected.keys() )
+    for sr in results:
 
         # check the tags in the search result
-        name = find_child( ".name span", sr ).text
-        tags = [ t.text for t in find_children( ".tag", sr ) ]
-        assert tags == expected[ name ]
+        name = wait_for( 2, lambda sr=sr: check_tags( sr ) )
 
         # check the tags in the publication/article
         find_child( ".edit", sr ).click()
         dlg = wait_for_elem( 2, "#modal-form" )
-        select = ReactSelect( find_child( ".tags .react-select", dlg ) )
+        select = ReactSelect( find_child( ".row.tags .react-select", dlg ) )
         assert select.get_multiselect_values() == expected[ name ]
 
         # check that the list of available tags is correct
@@ -135,7 +140,7 @@ def _check_tags( flask_app, expected ):
         return [] if tags is None else tags
 
     # check the tags in the database
-    for sr in elems:
+    for sr in results:
         if sr.text.startswith( "publication" ):
             pub_id = sr.get_attribute( "testing--pub_id" )
             url = flask_app.url_for( "get_publication", pub_id=pub_id )

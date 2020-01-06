@@ -10,10 +10,11 @@ import sqlalchemy.orm
 import sqlalchemy.sql.expression
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 
 from asl_articles import search
 import asl_articles.models
@@ -109,22 +110,50 @@ def do_search( query ):
 
     # return the results
     wait_for( 2, lambda: get_seqno() != curr_seqno )
+    return get_search_results()
+
+def get_search_results():
+    """Get the search results."""
     return find_children( "#search-results .search-result" )
 
-def get_result_names( results ):
-    """Get the names from a list of search results."""
-    return [
-        find_child( ".name span", r ).text
-        for r in results
-    ]
+def get_search_result_names( results=None ):
+    """Get the names from the search results."""
+    if not results:
+        results = get_search_results()
+    return [ find_child( ".name span", r ).text for r in results ]
 
 def find_search_result( name, results=None ):
     """Find a search result."""
     if not results:
-        results = find_children( "#search-results .search-result" )
+        results = get_search_results()
     results = [ r for r in results if find_child( ".name span", r ).text == name ]
     assert len(results) == 1
     return results[0]
+
+def check_search_result( sr, check, expected ):
+    """Check a search result in the UI."""
+
+    # figure out which search result to check
+    if not sr:
+        # NOTE: If the caller doesn't explicitly provide a search result, we assume we're working with
+        # a single search result that is already on-screen.
+        results = get_search_results()
+        assert len(results) == 1
+        sr = results[0]
+    elif isinstance( sr, str ):
+        sr = find_search_result( sr )
+    else:
+        assert isinstance( sr, WebElement )
+
+    # wait for the search result to match what we expect
+    def check_sr():
+        try:
+            if check( sr, expected ):
+                return sr
+            return None
+        except StaleElementReferenceException:
+            return None # nb: the web page updated while we were checking it
+    return wait_for( 2, check_sr )
 
 # ---------------------------------------------------------------------
 
@@ -139,6 +168,12 @@ def wait_for_elem( timeout, sel, visible=True ):
     func = EC.visibility_of_element_located if visible else EC.presence_of_element_located
     return WebDriverWait( _webdriver, timeout, 0.1 ).until(
         func( ( By.CSS_SELECTOR, sel ) )
+    )
+
+def wait_for_not_elem( timeout, sel ):
+    """Wait for an element to be removed from the DOM."""
+    return WebDriverWait( _webdriver, timeout, 0.1 ).until(
+        EC.invisibility_of_element_located( ( By.CSS_SELECTOR, sel ) )
     )
 
 # ---------------------------------------------------------------------

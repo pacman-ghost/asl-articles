@@ -6,9 +6,11 @@ import urllib.error
 import json
 import base64
 
-from asl_articles.tests.utils import init_tests, do_search, get_result_names, \
-    wait_for, wait_for_elem, find_child, find_children, set_elem_text, \
-    set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg
+from asl_articles.search import SEARCH_ALL_ARTICLES
+from asl_articles.tests.utils import init_tests, \
+    do_search, get_search_results, find_search_result, get_search_result_names, check_search_result, \
+    wait_for, wait_for_elem, wait_for_not_elem, find_child, find_children, \
+    set_elem_text, set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg
 from asl_articles.tests.react_select import ReactSelect
 
 # ---------------------------------------------------------------------
@@ -19,11 +21,10 @@ def test_edit_article( webdriver, flask_app, dbconn ):
     # initialize
     init_tests( webdriver, flask_app, dbconn, fixtures="articles.json" )
 
-    # edit "What To Do If You Have A Tin Can"
-    results = do_search( '"tin can"' )
-    assert len(results) == 1
-    result = results[0]
-    edit_article( result, {
+    # edit an article
+    results = do_search( SEARCH_ALL_ARTICLES )
+    sr = find_search_result( "What To Do If You Have A Tin Can", results )
+    edit_article( sr, {
         "title": "  Updated title  ",
         "subtitle": "  Updated subtitle  ",
         "snippet": "  Updated snippet.  ",
@@ -32,34 +33,28 @@ def test_edit_article( webdriver, flask_app, dbconn ):
     } )
 
     # check that the search result was updated in the UI
-    results = find_children( "#search-results .search-result" )
-    result = results[0]
-    _check_result( result,
-        [ "Updated title", "Updated subtitle", "Updated snippet.", ["abc","xyz"], "http://updated-article.com/" ]
-    )
+    sr = check_search_result( "Updated title", _check_sr, [
+        "Updated title", "Updated subtitle", "Updated snippet.", ["abc","xyz"], "http://updated-article.com/"
+    ] )
 
     # try to remove all fields from the article (should fail)
-    edit_article( result,
+    edit_article( sr,
         { "title": "", "subtitle": "", "snippet": "", "tags": ["-abc","-xyz"], "url": "" },
         expected_error = "Please specify the article's title."
     )
 
     # enter something for the name
-    dlg = find_child( "#modal-form" )
-    set_elem_text( find_child( ".title input", dlg ), "Tin Cans Rock!" )
+    dlg = find_child( "#modal-form" ) # nb: the form is still on-screen
+    set_elem_text( find_child( ".row.title input", dlg ), "Tin Cans Rock!" )
     find_child( "button.ok", dlg ).click()
 
     # check that the search result was updated in the UI
-    results = find_children( "#search-results .search-result" )
-    result = results[0]
-    assert find_child( ".title a", result ) is None
-    assert find_child( ".title", result ).text == "Tin Cans Rock!"
-    assert find_child( ".snippet", result ).text == ""
-    assert find_children( ".tag", result ) == []
+    expected = [ "Tin Cans Rock!", None, "", [], None ]
+    check_search_result( expected[0], _check_sr, expected )
 
-    # check that the search result was updated in the database
-    results = do_search( '"tin can"' )
-    _check_result( results[0], [ "Tin Cans Rock!", None, "", [], None ] )
+    # check that the article was updated in the database
+    do_search( SEARCH_ALL_ARTICLES )
+    check_search_result( expected[0], _check_sr, expected )
 
 # ---------------------------------------------------------------------
 
@@ -67,38 +62,29 @@ def test_create_article( webdriver, flask_app, dbconn ):
     """Test creating new articles."""
 
     # initialize
-    init_tests( webdriver, flask_app, dbconn )
+    init_tests( webdriver, flask_app, dbconn, fixtures="articles.json" )
+    do_search( SEARCH_ALL_ARTICLES )
 
     # try creating a article with no name (should fail)
     create_article( {}, toast_type=None )
     check_error_msg( "Please specify the article's title." )
 
     # enter a name and other details
-    dlg = find_child( "#modal-form" ) # nb: the form is still on-screen
-    set_elem_text( find_child( ".title input", dlg ), "New article" )
-    set_elem_text( find_child( ".subtitle input", dlg ), "New subtitle" )
-    set_elem_text( find_child( ".snippet textarea", dlg ), "New snippet." )
-    select = ReactSelect( find_child( ".tags .react-select", dlg ) )
-    select.update_multiselect_values( "+111", "+222", "+333" )
-    set_elem_text( find_child( ".url input", dlg ), "http://new-snippet.com" )
-    set_toast_marker( "info" )
-    find_child( "button.ok", dlg ).click()
-    wait_for( 2,
-        lambda: check_toast( "info", "created OK", contains=True )
-    )
+    edit_article( None, { # nb: the form is still on-screen
+        "title": "New article",
+        "subtitle": "New subtitle",
+        "snippet": "New snippet.",
+        "tags": [ "+111", "+222", "+333" ],
+        "url": "http://new-snippet.com"
+    } )
 
     # check that the new article appears in the UI
-    def check_new_article( result ):
-        _check_result( result, [
-            "New article", "New subtitle", "New snippet.", ["111","222","333"], "http://new-snippet.com/"
-        ] )
-    results = find_children( "#search-results .search-result" )
-    check_new_article( results[0] )
+    expected = [ "New article", "New subtitle", "New snippet.", ["111","222","333"], "http://new-snippet.com/" ]
+    check_search_result( expected[0], _check_sr, expected )
 
     # check that the new article has been saved in the database
-    results = do_search( "new" )
-    assert len( results ) == 1
-    check_new_article( results[0] )
+    do_search( SEARCH_ALL_ARTICLES )
+    check_search_result( expected[0], _check_sr, expected )
 
 # ---------------------------------------------------------------------
 
@@ -108,37 +94,34 @@ def test_delete_article( webdriver, flask_app, dbconn ):
     # initialize
     init_tests( webdriver, flask_app, dbconn, fixtures="articles.json" )
 
-    # start to delete article "Smoke Gets In Your Eyes", but cancel the operation
-    results = do_search( "smoke" )
-    assert len(results) == 1
-    result = results[0]
-    find_child( ".delete", result ).click()
-    check_ask_dialog( ( "Delete this article?", "Smoke Gets In Your Eyes" ), "cancel" )
+    # start to delete an article, but cancel the operation
+    article_name = "Smoke Gets In Your Eyes"
+    results = do_search( SEARCH_ALL_ARTICLES )
+    sr = find_search_result( article_name, results )
+    find_child( ".delete", sr ).click()
+    check_ask_dialog( ( "Delete this article?", article_name ), "cancel" )
 
     # check that search results are unchanged on-screen
-    results2 = find_children( "#search-results .search-result" )
+    results2 = get_search_results()
     assert results2 == results
 
     # check that the search results are unchanged in the database
-    results3 = do_search( "smoke" )
+    results3 = do_search( SEARCH_ALL_ARTICLES )
     assert results3 == results
 
-    # delete the article "Smoke Gets In Your Eyes"
-    result = results3[0]
-    find_child( ".delete", result ).click()
+    # delete the article
+    sr = find_search_result( article_name, results3 )
+    find_child( ".delete", sr ).click()
     set_toast_marker( "info" )
-    check_ask_dialog( ( "Delete this article?", "Smoke Gets In Your Eyes" ), "ok" )
-    wait_for( 2,
-        lambda: check_toast( "info", "The article was deleted." )
-    )
+    check_ask_dialog( ( "Delete this article?", article_name ), "ok" )
+    wait_for( 2, lambda: check_toast( "info", "The article was deleted." ) )
 
     # check that search result was removed on-screen
-    results = find_children( "#search-results .search-result" )
-    assert get_result_names( results ) == []
+    wait_for( 2, lambda: article_name not in get_search_result_names() )
 
     # check that the search result was deleted from the database
-    results = do_search( "smoke" )
-    assert get_result_names( results ) == []
+    results = do_search( SEARCH_ALL_ARTICLES )
+    assert article_name not in get_search_result_names( results )
 
 # ---------------------------------------------------------------------
 
@@ -147,17 +130,20 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
 
     # initialize
     init_tests( webdriver, flask_app, dbconn, max_image_upload_size=2*1024 )
+    article_sr = article_id = None
 
     def check_image( expected ):
 
         # check the image in the article's search result
-        img = find_child( "img.image", article_sr )
-        if expected:
-            expected_url = flask_app.url_for( "get_image", image_type="article", image_id=article_id )
-            image_url = img.get_attribute( "src" ).split( "?" )[0]
-            assert image_url == expected_url
-        else:
-            assert not img
+        def check_sr_image():
+            img = find_child( "img.image", article_sr )
+            if expected:
+                expected_url = flask_app.url_for( "get_image", image_type="article", image_id=article_id )
+                image_url = img.get_attribute( "src" ).split( "?" )[0]
+                return image_url == expected_url
+            else:
+                return not img
+        wait_for( 2, check_sr_image )
 
         # check the image in the article's config
         find_child( ".edit", article_sr ).click()
@@ -172,7 +158,7 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
             assert btn.is_displayed()
             # make sure the article's image is correct
             resp = urllib.request.urlopen( image_url ).read()
-            assert resp == open(expected,"rb").read()
+            assert resp == open( expected, "rb" ).read()
         else:
             # make sure there is no image
             img = find_child( ".row.image img.image", dlg )
@@ -191,7 +177,7 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
 
     # create an article with no image
     create_article( { "title": "Test Article" } )
-    results = find_children( "#search-results .search-result" )
+    results = get_search_results()
     assert len(results) == 1
     article_sr = results[0]
     article_id = article_sr.get_attribute( "testing--article_id" )
@@ -228,51 +214,56 @@ def test_parent_publisher( webdriver, flask_app, dbconn ):
 
     # initialize
     init_tests( webdriver, flask_app, dbconn, fixtures="parents.json" )
-    article_sr = None
 
-    def check_results( expected_parent ):
+    def check_result( sr, expected_parent ): #pylint: disable=too-many-return-statements
 
         # check that the parent publication was updated in the UI
-        nonlocal article_sr
-        elem = find_child( ".title .publication", article_sr )
+        elem = find_child( ".title .publication", sr )
         if expected_parent:
-            assert elem.text == "[{}]".format( expected_parent[1] )
+            if elem.text != "[{}]".format( expected_parent[1] ):
+                return None
         else:
-            assert elem is None
+            if elem is not None:
+                return None
 
         # check that the parent publication was updated in the database
-        article_id = article_sr.get_attribute( "testing--article_id" )
+        article_id = sr.get_attribute( "testing--article_id" )
         url = flask_app.url_for( "get_article", article_id=article_id )
         article = json.load( urllib.request.urlopen( url ) )
         if expected_parent:
-            assert article["pub_id"] == expected_parent[0]
+            if article["pub_id"] != expected_parent[0]:
+                return None
         else:
-            assert article["pub_id"] is None
+            if article["pub_id"] is not None:
+                return None
 
         # check that the parent publication was updated in the UI
         results = do_search( '"My Article"' )
         assert len(results) == 1
-        article_sr = results[0]
-        elem = find_child( ".title .publication", article_sr )
+        sr = results[0]
+        elem = find_child( ".title .publication", sr )
         if expected_parent:
-            assert elem.text == "[{}]".format( expected_parent[1] )
+            if elem.text != "[{}]".format( expected_parent[1] ):
+                return None
         else:
-            assert elem is None
+            if elem is not None:
+                return None
+
+        return sr
 
     # create an article with no parent publication
     create_article( { "title": "My Article" } )
-    results = find_children( "#search-results .search-result" )
+    results = get_search_results()
     assert len(results) == 1
-    article_sr = results[0]
-    check_results( None )
+    sr = wait_for( 2, lambda: check_result( results[0], None ) )
 
     # change the article to have a publication
-    edit_article( article_sr, { "publication": "ASL Journal" } )
-    check_results( (1, "ASL Journal") )
+    edit_article( sr, { "publication": "ASL Journal" } )
+    sr = wait_for( 2, lambda: check_result( sr, (1, "ASL Journal") ) )
 
     # change the article back to having no publication
-    edit_article( article_sr, { "publication": "(none)" } )
-    check_results( None )
+    edit_article( sr, { "publication": "(none)" } )
+    sr = wait_for( 2, lambda: check_result( sr, None ) )
 
 # ---------------------------------------------------------------------
 
@@ -292,9 +283,9 @@ def test_unicode( webdriver, flask_app, dbconn ):
     } )
 
     # check that the new article is showing the Unicode content correctly
-    results = do_search( "japan" )
-    assert len( results ) == 1
-    _check_result( results[0], [
+    results = do_search( SEARCH_ALL_ARTICLES )
+    assert len(results) == 1
+    check_search_result( results[0], _check_sr, [
         "japan = \u65e5\u672c",
         "s.korea = \ud55c\uad6d",
         "greece = \u0395\u03bb\u03bb\u03ac\u03b4\u03b1",
@@ -318,108 +309,130 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     }, toast_type="warning" )
 
     # check that the HTML was cleaned
-    results = wait_for( 2,
-        lambda: find_children( "#search-results .search-result" )
-    )
-    assert len( results ) == 1
-    result = results[0]
-    _check_result( result, [ "title: bold xxx italic", "italicized subtitle", "bad stuff here:", [], None ] )
-    assert find_child( ".title span" ).get_attribute( "innerHTML" ) \
+    sr = check_search_result( None, _check_sr, [
+        "title: bold xxx italic", "italicized subtitle", "bad stuff here:", [], None
+    ] )
+    assert find_child( ".title span", sr ).get_attribute( "innerHTML" ) \
         == "title: <span> <b>bold</b> xxx <i>italic</i></span>"
-    assert find_child( ".subtitle" ).get_attribute( "innerHTML" ) \
+    assert find_child( ".subtitle", sr ).get_attribute( "innerHTML" ) \
         == "<i>italicized subtitle</i>"
     assert check_toast( "warning", "Some values had HTML removed.", contains=True )
 
     # update the article with new HTML content
-    edit_article( result, {
+    edit_article( sr, {
         "title": "<div style='...'>updated</div>"
     }, toast_type="warning" )
-    def check_result():
-        results = find_children( "#search-results .search-result" )
-        assert len( results ) == 1
-        result = results[0]
-        return find_child( ".title span", result ).text == "updated"
-    wait_for( 2, check_result )
+    wait_for( 2, lambda: get_search_result_names() == ["updated"] )
     assert check_toast( "warning", "Some values had HTML removed.", contains=True )
 
 # ---------------------------------------------------------------------
 
 def create_article( vals, toast_type="info" ):
     """Create a new article."""
+
     # initialize
     if toast_type:
         set_toast_marker( toast_type )
+
     # create the new article
     find_child( "#menu .new-article" ).click()
     dlg = wait_for_elem( 2, "#modal-form" )
     for key,val in vals.items():
         if key in ["authors","scenarios","tags"]:
-            select = ReactSelect( find_child( ".{} .react-select".format(key), dlg ) )
+            select = ReactSelect( find_child( ".row.{} .react-select".format(key), dlg ) )
             select.update_multiselect_values( *val )
         else:
-            sel = ".{} {}".format( key , "textarea" if key == "snippet" else "input" )
+            sel = ".row.{} {}".format( key , "textarea" if key == "snippet" else "input" )
             set_elem_text( find_child( sel, dlg ), val )
     find_child( "button.ok", dlg ).click()
+
     if toast_type:
         # check that the new article was created successfully
         wait_for( 2,
             lambda: check_toast( toast_type, "created OK", contains=True )
         )
+        wait_for_not_elem( 2, "#modal-form" )
 
-def edit_article( result, vals, toast_type="info", expected_error=None ):
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+def edit_article( sr, vals, toast_type="info", expected_error=None ):
     """Edit a article's details."""
-    # update the specified article's details
-    find_child( ".edit", result ).click()
+
+    # initialize
+    if sr:
+        find_child( ".edit", sr ).click()
+    else:
+        pass # nb: we assume that the dialog is already on-screen
     dlg = wait_for_elem( 2, "#modal-form" )
+
+    # update the specified article's details
     for key,val in vals.items():
         if key == "image":
             if val:
                 data = base64.b64encode( open( val, "rb" ).read() )
                 data = "{}|{}".format( os.path.split(val)[1], data.decode("ascii") )
                 send_upload_data( data,
-                    lambda: find_child( ".image img", dlg ).click()
+                    lambda: find_child( ".row.image img.image", dlg ).click()
                 )
             else:
-                find_child( ".remove-image", dlg ).click()
+                find_child( ".row.image .remove-image", dlg ).click()
         elif key == "publication":
-            select = ReactSelect( find_child( ".publication .react-select", dlg ) )
+            select = ReactSelect( find_child( ".row.publication .react-select", dlg ) )
             select.select_by_name( val )
         elif key in ["authors","scenarios","tags"]:
-            select = ReactSelect( find_child( ".{} .react-select".format(key), dlg ) )
+            select = ReactSelect( find_child( ".row.{} .react-select".format(key), dlg ) )
             select.update_multiselect_values( *val )
         else:
-            sel = ".{} {}".format( key , "textarea" if key == "snippet" else "input" )
+            sel = ".row.{} {}".format( key , "textarea" if key == "snippet" else "input" )
             set_elem_text( find_child( sel, dlg ), val )
     set_toast_marker( toast_type )
     find_child( "button.ok", dlg ).click()
+
+    # check what happened
     if expected_error:
         # we were expecting an error, confirm the error message
         check_error_msg( expected_error )
     else:
         # we were expecting the update to work, confirm this
+        expected = "updated OK" if sr else "created OK"
         wait_for( 2,
-            lambda: check_toast( toast_type, "updated OK", contains=True )
+            lambda: check_toast( toast_type, expected, contains=True )
         )
+        wait_for_not_elem( 2, "#modal-form" )
 
 # ---------------------------------------------------------------------
 
-def _check_result( result, expected ):
-    """Check a result."""
+def _check_sr( sr, expected ): #pylint: disable=too-many-return-statements
+    """Check a search result."""
+
     # check the title and subtitle
-    assert find_child( ".title span", result ).text == expected[0]
-    elem = find_child( ".subtitle", result )
-    if elem:
-        assert elem.text == expected[1]
+    names = get_search_result_names( [sr] )
+    if names[0] != expected[0]:
+        return False
+    elem = find_child( ".subtitle", sr )
+    if expected[1]:
+        if not elem or elem.text != expected[1]:
+            return False
     else:
-        assert expected[1] is None
+        if elem is not None:
+            return False
+
     # check the snippet
-    assert find_child( ".snippet", result ).text == expected[2]
+    if find_child( ".snippet", sr ).text != expected[2]:
+        return False
+
     # check the tags
-    tags = [ t.text for t in find_children( ".tag", result ) ]
-    assert tags == expected[3]
+    tags = [ t.text for t in find_children( ".tag", sr ) ]
+    if tags != expected[3]:
+        return False
+
     # check the article's link
-    elem = find_child( ".title a", result )
-    if elem:
-        assert elem.get_attribute( "href" ) == expected[4]
+    elem = find_child( ".title a", sr )
+    if expected[4]:
+        if not elem or elem.get_attribute( "href" ) != expected[4]:
+            return False
     else:
-        assert expected[4] is None
+        if elem is not None:
+            return False
+
+    return True

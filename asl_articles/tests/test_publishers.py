@@ -8,8 +8,9 @@ import base64
 from selenium.common.exceptions import StaleElementReferenceException
 
 from asl_articles.search import SEARCH_ALL, SEARCH_ALL_PUBLISHERS
-from asl_articles.tests.utils import init_tests, load_fixtures, do_search, get_result_names, \
-    wait_for, wait_for_elem, find_child, find_children, find_search_result, set_elem_text, \
+from asl_articles.tests.utils import init_tests, load_fixtures, \
+    do_search, get_search_results, get_search_result_names, check_search_result, \
+    wait_for, wait_for_elem, wait_for_not_elem, find_child, find_search_result, set_elem_text, \
     set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg
 
 # ---------------------------------------------------------------------
@@ -22,41 +23,36 @@ def test_edit_publisher( webdriver, flask_app, dbconn ):
 
     # edit "Avalon Hill"
     results = do_search( SEARCH_ALL_PUBLISHERS )
-    result = results[0]
-    assert find_child( ".name", result ).text == "Avalon Hill"
-    edit_publisher( result, {
+    sr = find_search_result( "Avalon Hill", results )
+    edit_publisher( sr, {
         "name": "  Avalon Hill (updated)  ",
         "description": "  Updated AH description.  ",
         "url": "  http://ah-updated.com  "
     } )
 
     # check that the search result was updated in the UI
-    results = find_children( "#search-results .search-result" )
-    result = results[0]
-    _check_result( result, [ "Avalon Hill (updated)", "Updated AH description.", "http://ah-updated.com/" ] )
+    sr = check_search_result( "Avalon Hill (updated)", _check_sr, [
+        "Avalon Hill (updated)", "Updated AH description.", "http://ah-updated.com/"
+    ] )
 
-    # try to remove all fields from "Avalon Hill" (should fail)
-    edit_publisher( result,
+    # try to remove all fields from the publisher (should fail)
+    edit_publisher( sr,
         { "name": "", "description": "", "url": "" },
         expected_error = "Please specify the publisher's name."
     )
 
     # enter something for the name
     dlg = find_child( "#modal-form" )
-    set_elem_text( find_child( ".name input", dlg ), "Updated Avalon Hill" )
+    set_elem_text( find_child( ".row.name input", dlg ), "Updated Avalon Hill" )
     find_child( "button.ok", dlg ).click()
 
     # check that the search result was updated in the UI
-    results = find_children( "#search-results .search-result" )
-    result = results[0]
-    assert find_child( ".name a", result ) is None
-    assert find_child( ".name", result ).text == "Updated Avalon Hill"
-    assert find_child( ".description", result ).text == ""
+    expected = [ "Updated Avalon Hill", "", None ]
+    check_search_result( expected[0], _check_sr, expected )
 
-    # check that the search result was updated in the database
+    # check that the publisher was updated in the database
     results = do_search( SEARCH_ALL_PUBLISHERS )
-    assert set( get_result_names( results ) ) == \
-        set([ "Le Franc Tireur", "Multiman Publishing", "Updated Avalon Hill" ])
+    check_search_result( expected[0], _check_sr, expected )
 
 # ---------------------------------------------------------------------
 
@@ -64,33 +60,27 @@ def test_create_publisher( webdriver, flask_app, dbconn ):
     """Test creating new publishers."""
 
     # initialize
-    init_tests( webdriver, flask_app, dbconn )
+    init_tests( webdriver, flask_app, dbconn, fixtures="publishers.json" )
+    do_search( SEARCH_ALL_PUBLISHERS )
 
     # try creating a publisher with no name (should fail)
     create_publisher( {}, toast_type=None )
     check_error_msg( "Please specify the publisher's name." )
 
     # enter a name and other details
-    dlg = find_child( "#modal-form" ) # nb: the form is still on-screen
-    set_elem_text( find_child( ".name input", dlg ), "New publisher" )
-    set_elem_text( find_child( ".url input", dlg ), "http://new-publisher.com" )
-    set_elem_text( find_child( ".description textarea", dlg ), "New publisher description." )
-    set_toast_marker( "info" )
-    find_child( "button.ok", dlg ).click()
-    wait_for( 2,
-        lambda: check_toast( "info", "created OK", contains=True )
-    )
+    edit_publisher( None, { # nb: the form is still on-screen
+        "name": "New publisher",
+        "url": "http://new-publisher.com",
+        "description": "New publisher description."
+    } )
 
     # check that the new publisher appears in the UI
-    def check_new_publisher( result ):
-        _check_result( result, [ "New publisher", "New publisher description.", "http://new-publisher.com/" ] )
-    results = find_children( "#search-results .search-result" )
-    check_new_publisher( results[0] )
+    expected = [ "New publisher", "New publisher description.", "http://new-publisher.com/" ]
+    check_search_result( expected[0], _check_sr, expected )
 
     # check that the new publisher has been saved in the database
-    results = do_search( "new" )
-    assert len( results ) == 1
-    check_new_publisher( results[0] )
+    do_search( SEARCH_ALL_PUBLISHERS )
+    check_search_result( expected[0], _check_sr, expected )
 
 # ---------------------------------------------------------------------
 
@@ -100,37 +90,36 @@ def test_delete_publisher( webdriver, flask_app, dbconn ):
     # initialize
     init_tests( webdriver, flask_app, dbconn, fixtures="publishers.json" )
 
-    # start to delete publisher "Le Franc Tireur", but cancel the operation
+    # start to delete a publisher, but cancel the operation
+    article_name = "Le Franc Tireur"
     results = do_search( SEARCH_ALL_PUBLISHERS )
-    sr = find_search_result( "Le Franc Tireur", results )
-    assert find_child( ".name", sr ).text == "Le Franc Tireur"
+    sr = find_search_result( article_name, results )
     find_child( ".delete", sr ).click()
-    check_ask_dialog( ( "Delete this publisher?", "Le Franc Tireur" ), "cancel" )
+    check_ask_dialog( ( "Delete this publisher?", article_name ), "cancel" )
 
     # check that search results are unchanged on-screen
-    results2 = find_children( "#search-results .search-result" )
+    results2 = get_search_results()
     assert results2 == results
 
     # check that the search results are unchanged in the database
     results3 = do_search( SEARCH_ALL_PUBLISHERS )
     assert results3 == results
 
-    # delete the publisher "Le Franc Tireur"
-    sr = find_search_result( "Le Franc Tireur", results3 )
+    # delete the publisher
+    sr = find_search_result( article_name, results3 )
     find_child( ".delete", sr ).click()
     set_toast_marker( "info" )
-    check_ask_dialog( ( "Delete this publisher?", "Le Franc Tireur" ), "ok" )
+    check_ask_dialog( ( "Delete this publisher?", article_name ), "ok" )
     wait_for( 2,
         lambda: check_toast( "info", "The publisher was deleted." )
     )
 
     # check that search result was removed on-screen
-    results = find_children( "#search-results .search-result" )
-    assert set( get_result_names( results ) ) == set([ "Avalon Hill", "Multiman Publishing" ])
+    wait_for( 2, lambda: article_name not in get_search_result_names() )
 
     # check that the search result was deleted from the database
     results = do_search( SEARCH_ALL_PUBLISHERS )
-    assert set( get_result_names( results ) ) == set([ "Avalon Hill", "Multiman Publishing" ])
+    assert article_name not in get_search_result_names( results )
 
 # ---------------------------------------------------------------------
 
@@ -143,13 +132,15 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
     def check_image( expected ):
 
         # check the image in the publisher's search result
-        img = find_child( "img.image", publ_sr )
-        if expected:
-            expected_image_url = flask_app.url_for( "get_image", image_type="publisher", image_id=publ_id )
-            image_url = img.get_attribute( "src" ).split( "?" )[0]
-            assert image_url == expected_image_url
-        else:
-            assert not img
+        def check_sr_image():
+            img = find_child( "img.image", publ_sr )
+            if expected:
+                expected_image_url = flask_app.url_for( "get_image", image_type="publisher", image_id=publ_id )
+                image_url = img.get_attribute( "src" ).split( "?" )[0]
+                return image_url == expected_image_url
+            else:
+                return not img
+        wait_for( 2, check_sr_image )
 
         # check the image in the publisher's config
         find_child( ".edit", publ_sr ).click()
@@ -183,7 +174,7 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
 
     # create an publisher with no image
     create_publisher( { "name": "Test Publisher" } )
-    results = find_children( "#search-results .search-result" )
+    results = get_search_results()
     assert len(results) == 1
     publ_sr = results[0]
     publ_id = publ_sr.get_attribute( "testing--publ_id" )
@@ -229,9 +220,8 @@ def test_cascading_deletes( webdriver, flask_app, dbconn ):
     def get_results( sr_type, expected_len ):
         # NOTE: The UI will remove anything that has been deleted, so we need to
         # give it a bit of time to finish doing this.
-        results = find_children( "#search-results .search-result" )
         try:
-            results = [ find_child( ".name span", r ).text for r in results ]
+            results = get_search_result_names()
         except StaleElementReferenceException:
             return None
         results = [ r for r in results if r.startswith( sr_type ) ]
@@ -318,9 +308,9 @@ def test_unicode( webdriver, flask_app, dbconn ):
     } )
 
     # check that the new publisher is showing the Unicode content correctly
-    results = do_search( "japan" )
-    assert len( results ) == 1
-    _check_result( results[0], [
+    results = do_search( SEARCH_ALL_PUBLISHERS )
+    assert len(results) == 1
+    check_search_result( results[0], _check_sr, [
         "japan = \u65e5\u672c",
         "greece = \u0395\u03bb\u03bb\u03ac\u03b4\u03b1",
         "http://xn--3e0b707e.com/"
@@ -341,85 +331,105 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     }, toast_type="warning" )
 
     # check that the HTML was cleaned
-    results = wait_for( 2,
-        lambda: find_children( "#search-results .search-result" )
-    )
-    assert len( results ) == 1
-    result = results[0]
-    _check_result( result, [ "name: bold xxx italic", "bad stuff here:", None ] )
-    assert find_child( ".name span" ).get_attribute( "innerHTML" ) \
+    sr = check_search_result( None, _check_sr, [
+        "name: bold xxx italic", "bad stuff here:", None
+    ] )
+    assert find_child( ".name span", sr ).get_attribute( "innerHTML" ) \
         == "name: <span> <b>bold</b> xxx <i>italic</i></span>"
     assert check_toast( "warning", "Some values had HTML removed.", contains=True )
 
     # update the publisher with new HTML content
-    edit_publisher( result, {
+    edit_publisher( sr, {
         "name": "<div style='...'>updated</div>"
     }, toast_type="warning" )
-    def check_result():
-        results = find_children( "#search-results .search-result" )
-        assert len( results ) == 1
-        result = results[0]
-        return find_child( ".name", result ).text == "updated"
-    wait_for( 2, check_result )
+    results = get_search_results()
+    assert len(results) == 1
+    wait_for( 2, lambda: find_child( ".name", sr ).text == "updated" )
     assert check_toast( "warning", "Some values had HTML removed.", contains=True )
 
 # ---------------------------------------------------------------------
 
 def create_publisher( vals, toast_type="info" ):
     """Create a new publisher."""
+
     # initialize
     if toast_type:
         set_toast_marker( toast_type )
+
     # create the new publisher
     find_child( "#menu .new-publisher" ).click()
     dlg = wait_for_elem( 2, "#modal-form" )
     for key,val in vals.items():
-        sel = ".{} {}".format( key , "textarea" if key == "description" else "input" )
+        sel = ".row.{} {}".format( key , "textarea" if key == "description" else "input" )
         set_elem_text( find_child( sel, dlg ), val )
     find_child( "button.ok", dlg ).click()
+
     if toast_type:
         # check that the new publisher was created successfully
         wait_for( 2,
             lambda: check_toast( toast_type, "created OK", contains=True )
         )
+        wait_for_not_elem( 2, "#modal-form" )
 
-def edit_publisher( result, vals, toast_type="info", expected_error=None ):
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+def edit_publisher( sr, vals, toast_type="info", expected_error=None ):
     """Edit a publisher's details."""
-    # update the specified publisher's details
-    find_child( ".edit", result ).click()
+
+    # initialize
+    if sr:
+        find_child( ".edit", sr ).click()
+    else:
+        pass # nb: we assume that the dialog is already on-screen
     dlg = wait_for_elem( 2, "#modal-form" )
+
+    # update the specified publisher's details
     for key,val in vals.items():
         if key == "image":
             if val:
                 data = base64.b64encode( open( val, "rb" ).read() )
                 data = "{}|{}".format( os.path.split(val)[1], data.decode("ascii") )
                 send_upload_data( data,
-                    lambda: find_child( ".image img", dlg ).click()
+                    lambda: find_child( ".row.image img", dlg ).click()
                 )
             else:
-                find_child( ".remove-image", dlg ).click()
+                find_child( ".row.image .remove-image", dlg ).click()
         else:
-            sel = ".{} {}".format( key , "textarea" if key == "description" else "input" )
+            sel = ".row.{} {}".format( key , "textarea" if key == "description" else "input" )
             set_elem_text( find_child( sel, dlg ), val )
     set_toast_marker( toast_type )
     find_child( "button.ok", dlg ).click()
+
+    # check what happened
     if expected_error:
         # we were expecting an error, confirm the error message
         check_error_msg( expected_error )
     else:
         # we were expecting the update to work, confirm this
+        expected = "updated OK" if sr else "created OK"
         wait_for( 2,
-            lambda: check_toast( toast_type, "updated OK", contains=True )
+            lambda: check_toast( toast_type, expected, contains=True )
         )
+        wait_for_not_elem( 2, "#modal-form" )
 
 # ---------------------------------------------------------------------
 
-def _check_result( result, expected ):
-    """Check a result."""
-    assert find_child( ".name", result ).text == expected[0]
-    assert find_child( ".description", result ).text == expected[1]
-    elem = find_child( ".name a", result )
+def _check_sr( sr, expected ):
+    """Check a search result."""
+
+    # check the name and description
+    if find_child( ".name", sr ).text != expected[0]:
+        return False
+    if find_child( ".description", sr ).text != expected[1]:
+        return False
+
+    # check the publisher's link
+    elem = find_child( ".name a", sr )
     if elem:
-        assert elem.get_attribute( "href" ) == expected[2]
+        if elem.get_attribute( "href" ) != expected[2]:
+            return False
     else:
-        assert expected[2] is None
+        if expected[2] is not None:
+            return False
+
+    return True

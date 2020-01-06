@@ -6,7 +6,7 @@ from asl_articles.tests.test_publishers import create_publisher, edit_publisher
 from asl_articles.tests.test_publications import create_publication, edit_publication
 from asl_articles.tests.test_articles import create_article, edit_article
 from asl_articles.tests.utils import init_tests, wait_for_elem, find_child, find_children, check_ask_dialog, \
-    do_search, get_result_names, find_search_result
+    do_search, get_search_result_names, find_search_result
 
 # ---------------------------------------------------------------------
 
@@ -149,7 +149,7 @@ def test_empty_search( webdriver, flask_app, dbconn ):
     """Test handling of an empty search string."""
 
     # initialize
-    init_tests( webdriver, flask_app, dbconn, fixtures="search.json" )
+    init_tests( webdriver, flask_app, dbconn )
 
     # search for an empty string
     form = find_child( "#search-form" )
@@ -367,7 +367,7 @@ def test_make_fts_query_string():
 def _do_test_search( query, expected ):
     """Run a search and check the results."""
     results = do_search( query )
-    assert set( get_result_names( results ) ) == set( expected )
+    assert set( get_search_result_names( results ) ) == set( expected )
     return results
 
 def _do_test_searches( queries, expected ):

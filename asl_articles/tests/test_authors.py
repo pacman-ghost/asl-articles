@@ -3,7 +3,7 @@
 import urllib.request
 import json
 
-from asl_articles.tests.utils import init_tests, find_child, find_children, wait_for_elem, find_search_result
+from asl_articles.tests.utils import init_tests, wait_for, wait_for_elem, find_child, find_children, find_search_result
 from asl_articles.tests.react_select import ReactSelect
 
 from asl_articles.tests.test_articles import create_article, edit_article
@@ -61,22 +61,30 @@ def _check_authors( flask_app, all_authors, expected ):
     for authors in expected:
         all_authors.update( authors )
 
+    def check_authors( sr_name, expected ):
+        sr = find_search_result( sr_name )
+        sr_authors = [ a.text for a in find_children( ".author", sr ) ]
+        if sr_authors == expected:
+            return sr
+        return None
+
     # check the authors in the UI
-    for article_no,authors in enumerate( expected ):
+    for article_no,expected_authors in enumerate( expected ):
 
         # check the authors in the article's search result
-        sr = find_search_result( "article {}".format( 1+article_no ) )
-        sr_authors = [ a.text for a in find_children( ".author", sr ) ]
-        assert sr_authors == authors
+        sr_name = "article {}".format( 1+article_no )
+        sr = wait_for( 2,
+            lambda n=sr_name, e=expected_authors: check_authors( n, e )
+        )
 
         # check the authors in the article's config
         find_child( ".edit", sr ).click()
         dlg = wait_for_elem( 2, "#modal-form" )
-        select = ReactSelect( find_child( ".authors .react-select", dlg ) )
-        assert select.get_multiselect_values() == authors
+        select = ReactSelect( find_child( ".row.authors .react-select", dlg ) )
+        assert select.get_multiselect_values() == expected_authors
 
         # check that the list of available authors is correct
-        assert select.get_multiselect_choices() == sorted( all_authors.difference( authors ) )
+        assert select.get_multiselect_choices() == sorted( all_authors.difference( expected_authors ) )
 
         # close the dialog
         find_child( "button.cancel", dlg ).click()
