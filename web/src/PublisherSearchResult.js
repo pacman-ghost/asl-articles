@@ -1,7 +1,9 @@
 import React from "react" ;
+import { Menu, MenuList, MenuButton, MenuItem } from "@reach/menu-button" ;
 import { PublisherSearchResult2 } from "./PublisherSearchResult2.js"
+import "./PublisherSearchResult.css" ;
 import { gAppRef } from "./index.js" ;
-import { makeOptionalLink, pluralString, applyUpdatedVals, removeSpecialFields } from "./utils.js" ;
+import { pluralString, applyUpdatedVals, removeSpecialFields } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -14,16 +16,29 @@ export class PublisherSearchResult extends React.Component
         const display_name = this.props.data[ "publ_name!" ] || this.props.data.publ_name ;
         const display_description = this.props.data[ "publ_description!" ] || this.props.data.publ_description ;
         const image_url = gAppRef.makeFlaskImageUrl( "publisher", this.props.data.publ_image_id, true ) ;
+        const menu = ( <Menu>
+            <MenuButton className="sr-menu" />
+            <MenuList>
+                <MenuItem className="edit"
+                    onSelect = { this.onEditPublisher.bind( this ) }
+                >Edit</MenuItem>
+                <MenuItem className="delete"
+                    onSelect = { this.onDeletePublisher.bind( this ) }
+                >Delete</MenuItem>
+            </MenuList>
+        </Menu> ) ;
         return ( <div className="search-result publisher"
                     ref = { r => gAppRef.setTestAttribute( r, "publ_id", this.props.data.publ_id ) }
             >
-            <div className="name">
-                { image_url && <img src={image_url} className="image" alt="Publisher." /> }
-                { makeOptionalLink( display_name, this.props.data.publ_url ) }
-                <img src="/images/edit.png" className="edit" onClick={this.onEditPublisher.bind(this)} alt="Edit this publisher." />
-                <img src="/images/delete.png" className="delete" onClick={this.onDeletePublisher.bind(this)} alt="Delete this publisher." />
+            <div className="header">
+                {menu}
+                <span className="name" dangerouslySetInnerHTML={{ __html: display_name }} />
+                { this.props.data.publ_url && <a href={this.props.data.publ_url} className="open-link" target="_blank" rel="noopener noreferrer"><img src="/images/open-link.png" alt="Go to this publisher." /></a> }
             </div>
-            <div className="description" dangerouslySetInnerHTML={{__html: display_description}} />
+            <div className="content">
+                { image_url && <img src={image_url} className="image" alt="Publisher." /> }
+                <div className="description" dangerouslySetInnerHTML={{__html: display_description}} />
+            </div>
         </div> ) ;
     }
 

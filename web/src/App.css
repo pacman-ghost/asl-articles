@@ -1,14 +1,36 @@
-img#loading { position: fixed ; top: 50% ; left: 50% ; margin-top: -16px ; margin-left: -16px ; }
+#header { position: absolute ; top: 5px ; left: 5px ; right: 5px ; height: 65px ; }
+#search-results { position: absolute ; top: 95px ; bottom: 0 ; left: 5px ; right: 5px ; overflow: auto ; }
 
-#ask img.icon { width: 2em ; float: left ; margin: 0 1em 1em 0 ; }
+#header { border: 1px solid #ccc ; background: #eee ; border-top-right-radius: 10px ; padding: 5px 5px 10px 5px ; }
+#header .logo { float: left ; height: 70px ; }
+#header .app-name { font-size: 25px ; }
+
+#menu-button--app { position: absolute ; top: 10px ; right: 10px ;
+    width: 30px ; height: 30px ;
+    background: url("/images/main-menu.png") transparent no-repeat ; background-size: 100% ; border: none ;
+    cursor: pointer ;
+}
+[data-reach-menu-list] { padding: 5px ; }
+[data-reach-menu-item] { padding: 5px ; }
+[data-reach-menu-item][data-selected] { background: #90caf9 ; color: black ; }
+
+.MuiDialogTitle-root { padding: 10px 16px 6px 16px !important ; }
+.MuiDialogActions-root { background: #f0ffff ; }
+.MuiDialogActions-root .MuiButton-text { padding: 6px 8px 2px 8px ; }
+.MuiDialogActions-root button:hover { background: #40a0c0 ; color: white ; }
 .MuiButton-label { text-transform: none ; }
+
+#ask .MuiDialog-paper { width: 50% ; max-width: 40em !important ; }
+#ask img.icon { width: 2em ; float: left ; margin: 0 1em 1em 0 ; }
 
 .Toastify p { margin-top: 0.25em ; }
 .Toastify__toast--info { background: #20b040 ; }
 .Toastify__toast--warn { background: #f0c010 ; }
 .Toastify__toast--error { background: #e04060 ; }
 
-#menu { margin-bottom: 5px ; padding: 2px 5px ; background: #ddd ; border: 1px dotted #80d0f0 ; font-size: 75% ; }
-#menu a { text-decoration: none ; color: #000 ; }
+.react-select__control { border-radius: 0 !important ; }
+.react-select__value-container { padding: 0 5px ; margin: -10px 0 ; }
+
+img#loading { position: fixed ; top: 50% ; left: 50% ; margin-top: -16px ; margin-left: -16px ; }
 
 .monospace { margin-top: 0.5em ; font-family: monospace ; font-style: italic ; font-size: 80% ; }

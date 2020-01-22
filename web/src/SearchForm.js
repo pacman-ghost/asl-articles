@@ -7,23 +7,27 @@ export default class SearchForm extends React.Component
 {
 
     constructor( props ) {
+        // initialize
         super( props ) ;
         this.state = {
             queryString: "",
         } ;
+
+        // initialize
+        this._queryStringRef = React.createRef() ;
     }
 
     render() {
         return (
             <form id="search-form" onSubmit={this.onSearch.bind(this)}>
-            <label className="caption"> Search for: </label>
+            <label className="caption"> Search&nbsp;for: </label>
             <input type="text" className="query"
                 value = {this.state.queryString}
                 onChange = { e => this.setState( { queryString: e.target.value } ) }
-                ref = "queryString"
+                ref = {this._queryStringRef}
                 autoFocus
             />
-            <button type="submit"> Go </button>
+            <button type="submit" alt="Search the database." />
             </form>
         ) ;
     }
@@ -33,6 +37,6 @@ export default class SearchForm extends React.Component
         this.props.onSearch( this.state.queryString ) ;
     }
 
-    focusQueryString() { this.refs.queryString.focus() ; }
+    focusQueryString() { this._queryStringRef.current.focus() ; }
 
 }

@@ -1,4 +1,3 @@
-import React from "react" ;
 import ReactDOMServer from "react-dom/server" ;
 
 // --------------------------------------------------------------------
@@ -96,13 +95,6 @@ export function parseScenarioDisplayName( displayName ) {
 }
 
 // --------------------------------------------------------------------
-
-export function makeOptionalLink( caption, url ) {
-    let link = <span dangerouslySetInnerHTML={{ __html: caption }} /> ;
-    if ( url )
-        link = <a href={url} target="_blank" rel="noopener noreferrer"> {link} </a> ;
-    return link ;
-}
 
 export function makeCommaList( vals, extract ) {
     let result = [] ;

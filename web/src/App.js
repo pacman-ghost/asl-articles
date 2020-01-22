@@ -1,5 +1,8 @@
 import React from "react" ;
+import ReactDOM from "react-dom" ;
 import ReactDOMServer from "react-dom/server" ;
+import { Menu, MenuList, MenuButton, MenuItem } from "@reach/menu-button" ;
+import "@reach/menu-button/styles.css" ;
 import { ToastContainer, toast } from "react-toastify" ;
 import "react-toastify/dist/ReactToastify.min.css" ;
 import SearchForm from "./SearchForm" ;
@@ -36,6 +39,10 @@ export default class App extends React.Component
         this._disableSearchResultHighlighting = this.isTestMode() && this.args.no_sr_hilite ;
         this._fakeUploads = this.isTestMode() && this.args.fake_uploads ;
 
+        // initialize
+        this._searchFormRef = React.createRef() ;
+        this._modalFormRef = React.createRef() ;
+
         // figure out the base URL of the Flask backend server
         // NOTE: We allow the caller to do this since the test suite will usually spin up
         // it's own Flask server, but talks to an existing React server, so we need some way
@@ -51,26 +58,40 @@ export default class App extends React.Component
             // we are still starting up
             content = <div id="loading"> <img id="loading" src="/images/loading.gif" alt="Loading..." /></div> ;
         } else {
-            // generate the main page
+            // generate the menu
+            const menu = ( <Menu id="app">
+                <MenuButton />
+                <MenuList>
+                    <MenuItem id="menu-new-publisher"
+                        onSelect = { () => PublisherSearchResult.onNewPublisher( this._onNewPublisher.bind(this) ) }
+                    >New publisher</MenuItem>
+                    <MenuItem id="menu-new-publication"
+                        onSelect = { () => PublicationSearchResult.onNewPublication( this._onNewPublication.bind(this) ) }
+                    >New publication</MenuItem>
+                    <MenuItem id="menu-new-article"
+                        onSelect = { () => ArticleSearchResult.onNewArticle( this._onNewArticle.bind(this) ) }
+                    >New article</MenuItem>
+                </MenuList>
+            </Menu> ) ;
+            // generate the main content
             content = ( <div>
-                <div id="menu">
-                    [<a href="/" className="new-publisher"
-                        onClick={ (e) => { e.preventDefault() ; PublisherSearchResult.onNewPublisher( this._onNewPublisher.bind(this) ) ; } }
-                    >New publisher</a>]
-                    [<a href="/" className="new-publication"
-                        onClick={ (e) => { e.preventDefault() ; PublicationSearchResult.onNewPublication( this._onNewPublication.bind(this) ) ; } }
-                    >New publication</a>]
-                    [<a href="/" className="new-article"
-                        onClick={ (e) => { e.preventDefault() ; ArticleSearchResult.onNewArticle( this._onNewArticle.bind(this) ) ; } }
-                    >New article</a>]
+                <div id="header">
+                    <img className="logo" src="/images/app.png" alt="Logo" />
+                    <div className="app-name"> ASL Articles </div>
+                    <SearchForm onSearch={this.onSearch.bind(this)} ref={this._searchFormRef} />
                 </div>
-                <SearchForm onSearch={this.onSearch.bind(this)} ref="searchForm" />
+                {menu}
                 <SearchResults seqNo={this.state.searchSeqNo} searchResults={this.state.searchResults} />
             </div> ) ;
         }
         return ( <div> {content}
             { this.state.modalForm !== null &&
-                <ModalForm show={true} title={this.state.modalForm.title} content={this.state.modalForm.content} buttons={this.state.modalForm.buttons} />
+                <ModalForm show={true} formId={this.state.modalForm.formId}
+                    title = {this.state.modalForm.title} titleColor = {this.state.modalForm.titleColor}
+                    content = {this.state.modalForm.content}
+                    buttons = {this.state.modalForm.buttons}
+                    ref = {this._modalFormRef}
+                />
             }
             { this.state.askDialog !== null &&
                 <AskDialog show={true} content={this.state.askDialog.content} buttons={this.state.askDialog.buttons} />
@@ -104,6 +125,13 @@ export default class App extends React.Component
                 this.showErrorToast( <div> Couldn't load the {type}: <div className="monospace"> {err.toString()} </div> </div> ) ;
             } ) ;
         } ) ;
+        // install our key handler
+        window.addEventListener( "keydown", this.onKeyDown.bind( this ) ) ;
+    }
+
+    componentWillUnmount() {
+        // clean up
+        window.removeEventListener( "keydown", this.onKeyDown ) ;
     }
 
     onSearch( query ) {
@@ -142,7 +170,7 @@ export default class App extends React.Component
         this.setState( { searchResults: newSearchResults } ) ;
     }
 
-    showModalForm( title, content, buttons ) {
+    showModalForm( formId, title, titleColor, content, buttons ) {
         // prepare the buttons
         let buttons2 = [] ;
         for ( let b in buttons ) {
@@ -157,7 +185,7 @@ export default class App extends React.Component
         }
         // show the dialog
         this.setState( {
-            modalForm: { title: title, content: content, buttons: buttons2 },
+            modalForm: { formId: formId, title: title, titleColor: titleColor, content: content, buttons: buttons2 },
         } ) ;
     }
 
@@ -223,6 +251,21 @@ export default class App extends React.Component
         } } ) ;
     }
 
+    onKeyDown( evt ) {
+        // check if a modal dialog is open and Ctrl-Enter was pressed
+        if ( this._modalFormRef && evt.keyCode === 13 && evt.ctrlKey ) {
+            let dlg = ReactDOM.findDOMNode( this._modalFormRef.current ) ;
+            if ( dlg ) {
+                // yup - accept the dialog
+                let btn = dlg.querySelector( ".MuiButton-root.ok" ) ;
+                if ( btn )
+                    btn.click() ;
+                else
+                    console.log( "ERROR: Can't find default button." ) ;
+            }
+        }
+    }
+
     logInternalError( msg, detail ) {
         // log an internal error
         this.showErrorToast( <div>
@@ -278,7 +321,7 @@ export default class App extends React.Component
         this.setState( { startupTasks: this.state.startupTasks } ) ;
     }
 
-    focusQueryString() { this.refs.searchForm.focusQueryString() ; }
+    focusQueryString() { this._searchFormRef.current.focusQueryString() ; }
 
     isTestMode() { return process.env.REACT_APP_TEST_MODE ; }
     isFakeUploads() { return this._fakeUploads ; }

@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@material-ui/core": "^4.7.0",
+    "@reach/menu-button": "^0.7.2",
     "axios": "^0.19.0",
     "lodash.clone": "^4.5.0",
     "lodash.clonedeep": "^4.5.0",

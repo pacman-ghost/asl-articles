@@ -10,10 +10,11 @@ from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import StaleElementReferenceException
 
 from asl_articles.search import SEARCH_ALL, SEARCH_ALL_PUBLICATIONS, SEARCH_ALL_ARTICLES
-from asl_articles.tests.utils import init_tests, load_fixtures, \
+from asl_articles.tests.utils import init_tests, load_fixtures, select_main_menu_option, select_sr_menu_option, \
     do_search, get_search_results, get_search_result_names, check_search_result, \
     wait_for, wait_for_elem, wait_for_not_elem, find_child, find_children, find_search_result, set_elem_text, \
-    set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg
+    set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg, \
+    change_image
 from asl_articles.tests.react_select import ReactSelect
 
 # ---------------------------------------------------------------------
@@ -94,7 +95,7 @@ def test_delete_publication( webdriver, flask_app, dbconn ):
     article_name = "ASL Journal (2)"
     results = do_search( SEARCH_ALL_PUBLICATIONS )
     sr = find_search_result( article_name, results )
-    find_child( ".delete", sr ).click()
+    select_sr_menu_option( sr, "delete" )
     check_ask_dialog( ( "Delete this publication?", article_name ), "cancel" )
 
     # check that search results are unchanged on-screen
@@ -107,7 +108,7 @@ def test_delete_publication( webdriver, flask_app, dbconn ):
 
     # delete the publication
     sr = find_search_result( article_name, results3 )
-    find_child( ".delete", sr ).click()
+    select_sr_menu_option( sr, "delete" )
     set_toast_marker( "info" )
     check_ask_dialog( ( "Delete this publication?", article_name ), "ok" )
     wait_for( 2, lambda: check_toast( "info", "The publication was deleted." ) )
@@ -141,8 +142,8 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
         wait_for( 2, lambda: check_sr_image( expected ) )
 
         # check the image in the publisher's config
-        find_child( ".edit", pub_sr ).click()
-        dlg = wait_for_elem( 2, "#modal-form" )
+        select_sr_menu_option( pub_sr, "edit" )
+        dlg = wait_for_elem( 2, "#publication-form" )
         if expected:
             # make sure there is an image
             img = find_child( ".row.image img.image", dlg )
@@ -193,8 +194,8 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
     check_image( None )
 
     # try to upload an image that's too large
-    find_child( ".edit", pub_sr ).click()
-    dlg = wait_for_elem( 2, "#modal-form" )
+    select_sr_menu_option( pub_sr, "edit" )
+    dlg = wait_for_elem( 2, "#publication-form" )
     data = base64.b64encode( 5000 * b" " )
     data = "{}|{}".format( "too-big.png", data.decode("ascii") )
     send_upload_data( data,
@@ -213,9 +214,9 @@ def test_parent_publisher( webdriver, flask_app, dbconn ):
     def check_result( sr, expected_parent ): #pylint: disable=too-many-return-statements
 
         # check that the parent publisher was updated in the UI
-        elem = find_child( ".name .publisher", sr )
+        elem = find_child( ".header .publisher", sr )
         if expected_parent:
-            if elem.text != "({})".format( expected_parent[1] ):
+            if elem.text != "{}".format( expected_parent[1] ):
                 return None
         else:
             if elem is not None:
@@ -236,9 +237,9 @@ def test_parent_publisher( webdriver, flask_app, dbconn ):
         results = do_search( '"MMP News"' )
         assert len(results) == 1
         sr = results[0]
-        elem = find_child( ".name .publisher", sr )
+        elem = find_child( ".header .publisher", sr )
         if expected_parent:
-            if elem.text != "({})".format( expected_parent[1] ):
+            if elem.text != "{}".format( expected_parent[1] ):
                 return None
         else:
             if elem is not None:
@@ -276,7 +277,7 @@ def test_cascading_deletes( webdriver, flask_app, dbconn ):
 
         # delete the specified publication
         sr = find_search_result( pub_name, results )
-        find_child( ".delete", sr ).click()
+        select_sr_menu_option( sr, "delete" )
         check_ask_dialog( ( "Delete this publication?", pub_name, expected_warning ), "ok" )
 
         def check_results():
@@ -358,7 +359,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     sr = check_search_result( None, _check_sr, [
         "name: bold xxx italic", "2", "bad stuff here:", [], None
     ] )
-    assert find_child( ".name span", sr ).get_attribute( "innerHTML" ) \
+    assert find_child( ".name", sr ).get_attribute( "innerHTML" ) \
         == "name: <span> <b>bold</b> xxx <i>italic</i></span> (<i>2</i>)"
     assert check_toast( "warning", "Some values had HTML removed.", contains=True )
 
@@ -381,8 +382,8 @@ def create_publication( vals, toast_type="info" ):
         set_toast_marker( toast_type )
 
     # create the new publication
-    find_child( "#menu .new-publication" ).click()
-    dlg = wait_for_elem( 2, "#modal-form" )
+    select_main_menu_option( "new-publication" )
+    dlg = wait_for_elem( 2, "#publication-form" )
     for key,val in vals.items():
         if key == "name":
             elem = find_child( ".row.name .react-select input", dlg )
@@ -401,17 +402,17 @@ def create_publication( vals, toast_type="info" ):
         wait_for( 2,
             lambda: check_toast( toast_type, "created OK", contains=True )
         )
-        wait_for_not_elem( 2, "#modal-form" )
+        wait_for_not_elem( 2, "#publication-form" )
 
 def edit_publication( sr, vals, toast_type="info", expected_error=None ):
     """Edit a publication's details."""
 
     # initialize
     if sr:
-        find_child( ".edit", sr ).click()
+        select_sr_menu_option( sr, "edit" )
     else:
         pass # nb: we assume that the dialog is already on-screen
-    dlg = wait_for_elem( 2, "#modal-form" )
+    dlg = wait_for_elem( 2, "#publication-form" )
 
     # update the specified publication's details
     for key,val in vals.items():
@@ -419,9 +420,7 @@ def edit_publication( sr, vals, toast_type="info", expected_error=None ):
             if val:
                 data = base64.b64encode( open( val, "rb" ).read() )
                 data = "{}|{}".format( os.path.split(val)[1], data.decode("ascii") )
-                send_upload_data( data,
-                    lambda: find_child( ".row.image img", dlg ).click()
-                )
+                change_image( find_child( ".row.image img.image", dlg ), data )
             else:
                 find_child( ".row.image .remove-image", dlg ).click()
         elif key == "name":
@@ -450,7 +449,7 @@ def edit_publication( sr, vals, toast_type="info", expected_error=None ):
         wait_for( 2,
             lambda: check_toast( toast_type, expected, contains=True )
         )
-        wait_for_not_elem( 2, "#modal-form" )
+        wait_for_not_elem( 2, "#publication-form" )
 
 # ---------------------------------------------------------------------
 
@@ -474,12 +473,12 @@ def _check_sr( sr, expected ):
         return False
 
     # check the publication's link
-    elem = find_child( ".name a", sr )
-    if elem:
+    elem = find_child( "a.open-link", sr )
+    if expected[4]:
+        assert elem
         if elem.get_attribute( "href" ) != expected[4]:
             return False
     else:
-        if expected[4] is not None:
-            return False
+        assert elem is None
 
     return True

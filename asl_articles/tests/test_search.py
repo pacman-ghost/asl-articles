@@ -5,7 +5,8 @@ from asl_articles.search import SearchDbConn, _make_fts_query_string
 from asl_articles.tests.test_publishers import create_publisher, edit_publisher
 from asl_articles.tests.test_publications import create_publication, edit_publication
 from asl_articles.tests.test_articles import create_article, edit_article
-from asl_articles.tests.utils import init_tests, wait_for_elem, find_child, find_children, check_ask_dialog, \
+from asl_articles.tests.utils import init_tests, select_sr_menu_option, \
+    wait_for_elem, find_child, find_children, check_ask_dialog, \
     do_search, get_search_result_names, find_search_result
 
 # ---------------------------------------------------------------------
@@ -33,7 +34,7 @@ def test_search_publishers( webdriver, flask_app, dbconn ):
 
     # delete the publisher
     sr = find_search_result( "Avalon Mountain" )
-    find_child( ".delete", sr ).click()
+    select_sr_menu_option( sr, "delete" )
     check_ask_dialog( "Delete this publisher?", "ok" )
     _do_test_searches( ["hill","original","mountain","first"], [] )
 
@@ -62,7 +63,7 @@ def test_search_publications( webdriver, flask_app, dbconn ):
 
     # delete the publication
     sr = find_search_result( "ASL Magazine" )
-    find_child( ".delete", sr ).click()
+    select_sr_menu_option( sr, "delete" )
     check_ask_dialog( "Delete this publication?", "ok" )
     _do_test_searches( ["journal","good","magazine","bad"], [] )
 
@@ -95,7 +96,7 @@ def test_search_articles( webdriver, flask_app, dbconn ):
 
     # delete the article
     sr = find_search_result( "Hit 'Em Hard" )
-    find_child( ".delete", sr ).click()
+    select_sr_menu_option( sr, "delete" )
     check_ask_dialog( "Delete this article?", "ok" )
     _do_test_searches( ["hard","hurt","best"], [] )
 
@@ -200,14 +201,14 @@ def test_highlighting( webdriver, flask_app, dbconn ):
     # test highlighting in publisher search results
     results = _do_test_search( "view britain", ["View From The Trenches"] )
     sr = results[0]
-    assert find_highlighted( find_child( ".name span", sr ) ) == [ "View" ]
+    assert find_highlighted( find_child( ".name", sr ) ) == [ "View" ]
     assert find_highlighted( find_child( ".description", sr ) ) == [ "Britain" ]
 
     def check_publication_highlights( query, expected, name, description, tags ):
         results = _do_test_search( query, [expected] )
         assert len(results) == 1
         sr = results[0]
-        assert find_highlighted( find_child( ".name span", sr ) ) == name
+        assert find_highlighted( find_child( ".name", sr ) ) == name
         assert find_highlighted( find_child( ".description", sr ) ) == description
         assert find_highlighted( find_children( ".tag", sr ) ) == tags
 
@@ -225,7 +226,7 @@ def test_highlighting( webdriver, flask_app, dbconn ):
         results = _do_test_search( query, [expected] )
         assert len(results) == 1
         sr = results[0]
-        assert find_highlighted( find_child( ".title span", sr ) ) == title
+        assert find_highlighted( find_child( ".title", sr ) ) == title
         assert find_highlighted( find_child( ".subtitle", sr ) ) == subtitle
         assert find_highlighted( find_child( ".snippet", sr ) ) == snippet
         assert find_highlighted( find_children( ".author", sr ) ) == authors

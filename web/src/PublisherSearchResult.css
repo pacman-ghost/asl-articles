@@ -1,0 +1,5 @@
+#publisher-form .row label.top { width: 4em ; }
+#publisher-form .row label { width: 3em ; }
+
+#publisher-form .row.description { flex-direction: column ; margin-top: -0.25em ; }
+#publisher-form .row.description textarea { min-height: 6em ; }

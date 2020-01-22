@@ -3,7 +3,8 @@
 import urllib.request
 import json
 
-from asl_articles.tests.utils import init_tests, find_search_result, get_search_results, get_search_result_names, \
+from asl_articles.tests.utils import init_tests, select_sr_menu_option, \
+    find_search_result, get_search_results, get_search_result_names, \
     wait_for, wait_for_elem, find_child, find_children
 from asl_articles.tests.react_select import ReactSelect
 
@@ -45,7 +46,7 @@ def test_tags( webdriver, flask_app, dbconn ):
     } )
 
     # remove some tags from the publication
-    edit_article( find_search_result( "publication 1" ), {
+    edit_publication( find_search_result( "publication 1" ), {
         "tags": [ "-bbb" ]
     } )
     _check_tags( flask_app, {
@@ -63,7 +64,7 @@ def test_tags( webdriver, flask_app, dbconn ):
     } )
 
     # add duplicate tags to the publication
-    edit_article( find_search_result( "publication 1" ), {
+    edit_publication( find_search_result( "publication 1" ), {
         "tags": [ "+bbb", "+aaa", "+eee" ]
     } )
     _check_tags( flask_app, {
@@ -124,8 +125,8 @@ def _check_tags( flask_app, expected ): #pylint: disable=too-many-locals
         name = wait_for( 2, lambda sr=sr: check_tags( sr ) )
 
         # check the tags in the publication/article
-        find_child( ".edit", sr ).click()
-        dlg = wait_for_elem( 2, "#modal-form" )
+        select_sr_menu_option( sr, "edit" )
+        dlg = wait_for_elem( 2, ".modal-form" )
         select = ReactSelect( find_child( ".row.tags .react-select", dlg ) )
         assert select.get_multiselect_values() == expected[ name ]
 

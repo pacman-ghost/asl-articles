@@ -1,4 +1,6 @@
-#search-form { padding: 0.25em ; }
-#search-form { border: 1px dotted #666 ; }
-
-#search-form button[type="submit"] { margin-left: 5px ; }
+#search-form { display: flex ; flex-direction: row ; align-items: center ; }
+#search-form .caption { line-height: 22px ; }
+#search-form .query { flex: 1 ; min-width: 5em ; max-width: 30em ; margin: 0 0.25em 0 0.5em ; }
+#search-form button[type="submit"] { width: 28px ; height: 28px ;
+    background: url("/images/search.png") transparent no-repeat 2px 2px ; background-size: 20px ;
+}

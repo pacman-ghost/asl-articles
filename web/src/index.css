@@ -1,4 +1,4 @@
-* { margin: 0 ; padding: 0 }
+* { margin: 0 ; padding: 0 ; }
 
 body {
     padding: 5px ;
@@ -8,5 +8,8 @@ body {
 }
 
 ul, ol { margin: 0.5em 0 0 1.25em ; }
-input[type="text"] { height: 25px ; border: 1px solid #c5c5c5 ; padding: 0 2px ; }
+input[type="text"] { height: 22px ; border: 1px solid #c5c5c5 ; padding: 2px 5px ; }
 label { height: 1.25em ; margin-top: -3px ; }
+textarea { padding: 2px 5px ; resize: vertical ; }
+
+button::-moz-focus-inner { border: 0 ; }

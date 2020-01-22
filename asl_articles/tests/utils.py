@@ -14,7 +14,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
 
 from asl_articles import search
 import asl_articles.models
@@ -120,13 +120,13 @@ def get_search_result_names( results=None ):
     """Get the names from the search results."""
     if not results:
         results = get_search_results()
-    return [ find_child( ".name span", r ).text for r in results ]
+    return [ find_child( ".name", r ).text for r in results ]
 
 def find_search_result( name, results=None ):
     """Find a search result."""
     if not results:
         results = get_search_results()
-    results = [ r for r in results if find_child( ".name span", r ).text == name ]
+    results = [ r for r in results if find_child( ".name", r ).text == name ]
     assert len(results) == 1
     return results[0]
 
@@ -274,6 +274,44 @@ def send_upload_data( data, func ):
     wait_for( 2, lambda: get_stored_msg("upload") == "" )
 
 # ---------------------------------------------------------------------
+
+def select_sr_menu_option( sr, menu_id ):
+    """Select an option from a search result's menu."""
+    _do_select_menu_option( find_child("button.sr-menu",sr), "."+menu_id )
+
+def select_main_menu_option( menu_id ):
+    """Select an option from the main application menu."""
+    _do_select_menu_option( find_child("#menu-button--app"), "#menu-"+menu_id )
+
+def _do_select_menu_option( menu, sel ):
+    """Select an option from a dropdown menu."""
+    for _ in range(0,5):
+        # FUDGE! This is very weird, clicking on the menu button doesn't always register?!?
+        menu.click()
+        portal = None
+        try:
+            portal = wait_for_elem( 1, "reach-portal" )
+        except TimeoutException:
+            continue
+        assert portal
+        # FUDGE! Also very weird, the menu seems to occasionally close up by itself (especially when running headless).
+        try:
+            find_child( sel, portal ).click()
+            return
+        except StaleElementReferenceException:
+            continue
+    assert False, "Couldn't select menu option: {}".format( sel )
+
+# ---------------------------------------------------------------------
+
+def change_image( elem, image_data ):
+    """Click on an image to change it."""
+    # NOTE: This is a bit tricky since we started overlaying the image with the "remove image" icon :-/
+    send_upload_data( image_data,
+        lambda: ActionChains( _webdriver ) \
+                .move_to_element_with_offset( elem, 1, 1 ) \
+                .click().perform()
+    )
 
 def set_elem_text( elem, val ):
     """Set the text for an element."""

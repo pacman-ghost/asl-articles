@@ -1,29 +1,32 @@
-#search-results { margin-top: 0.5em ; }
+#search-results { padding: 0 0.25em ; font-size: 90% ; }
 #search-results .no-results { font-style: italic ; }
 
-.search-result {
-    margin: 0.25em 0 ; padding: 0.1em 0.2em ;
-    font-size: 90% ;
+.search-result { margin-bottom: 0.5em ; clear: both ; }
+
+.search-result button.sr-menu {
+    width: 1em ; height: 1em ; float: right ; margin-right: -3px ;
+    background: url("/images/menu.png") transparent no-repeat ; background-size: 100% ; border: none ;
+    cursor: pointer ;
 }
 
-.search-result .name { padding: 2px 5px ; }
-.search-result .name a { font-weight: bold ; text-decoration: none ; }
-.search-result .name .publisher { font-size: 80% ; font-style: italic ; }
-.search-result .name .publication { font-size: 80% ; font-style: italic ; }
-.search-result .name img.edit { margin-left: 0.5em ; height: 0.8em ; cursor: pointer ; }
-.search-result .name img.delete { float: right ; margin: 0.2em 0 0 0.5em ; height: 0.8em ; cursor: pointer ; }
-.search-result .image { float: left ; margin-right: 0.25em ; height: 1em ; }
-.search-result .authors { font-size: 80% ; font-style: italic ; color: #666 ; }
-.search-result .description { font-size: 80% ; padding: 2px 5px ; }
+.search-result .header { padding: 2px 5px ; border-top-right-radius: 5px ; }
+.search-result .header a { text-decoration: none ; }
+.search-result .header a.open-link { margin-left: 0.5em ; }
+.search-result .header a.open-link img { height: 1.2em ; margin-bottom: -0.2em ; }
 
-.search-result.publisher .name { border: 1px solid #c0c0c0 ; background: #a0e0f0 ; }
-.search-result.publication .name { border: 1px solid #c0c0c0 ; background: #d0a080 ; }
-.search-result.article .title { border: 1px solid #c0c0c0 ; background: #60f000 ; }
-.search-result.article .subtitle { font-size: 80% ; font-style: italic ; }
+.search-result.publisher .header { border: 1px solid #c0c0c0 ; background: #eabe51 ; }
+.search-result.publication .header { border: 1px solid #c0c0c0 ; background: #e5f700 ; }
+.search-result.article .header { border: 1px solid #c0c0c0 ; background: #d3edfc ; }
+.search-result.article .header .subtitle { font-size: 80% ; font-style: italic ; color: #333 ; }
 
-.search-result .scenarios { font-size: 80% ; font-style: italic ; color: #666 ; }
+.search-result.publication .header .publisher , .search-result.article .header .publication {
+    float: right ; margin-right: 0.5em ; font-size: 80% ; font-style: italic ; color: #444 ;
+}
 
-.search-result .tags { margin-top: 0.25em ; font-size: 80% ; font-style: italic ; color: #666 ; }
-.search-result .tags .tag { display: inline ; margin-right: 0.25em ; padding: 0 2px ; border: 1px solid #ccc ; background: #f0f0f0 ; }
+.search-result .content { padding: 2px 5px ; font-size: 90% ; }
+.search-result .content .image { float: left ; margin: 0.25em 0.5em 0.5em 0 ; max-height: 5em ; }
+
+.search-result .footer { padding: 0 5px ; font-size: 80% ; font-style: italic ; color: #666 ; }
+.search-result .footer .tag { display: inline ; margin-right: 0.25em ; padding: 0 2px ; border: 1px solid #ccc ; background: #f0f0f0 ; }
 
 .search-result .hilite { padding: 0 2px ; background: #f0e0b0 ; }

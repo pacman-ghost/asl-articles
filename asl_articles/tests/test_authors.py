@@ -3,7 +3,8 @@
 import urllib.request
 import json
 
-from asl_articles.tests.utils import init_tests, wait_for, wait_for_elem, find_child, find_children, find_search_result
+from asl_articles.tests.utils import init_tests, select_sr_menu_option, \
+    wait_for, wait_for_elem, find_child, find_children, find_search_result
 from asl_articles.tests.react_select import ReactSelect
 
 from asl_articles.tests.test_articles import create_article, edit_article
@@ -78,8 +79,8 @@ def _check_authors( flask_app, all_authors, expected ):
         )
 
         # check the authors in the article's config
-        find_child( ".edit", sr ).click()
-        dlg = wait_for_elem( 2, "#modal-form" )
+        select_sr_menu_option( sr, "edit" )
+        dlg = wait_for_elem( 2, "#article-form" )
         select = ReactSelect( find_child( ".row.authors .react-select", dlg ) )
         assert select.get_multiselect_values() == expected_authors
 

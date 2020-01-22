@@ -1,8 +1,10 @@
 import React from "react" ;
+import { Menu, MenuList, MenuButton, MenuItem } from "@reach/menu-button" ;
 import { ArticleSearchResult2 } from "./ArticleSearchResult2.js" ;
+import "./ArticleSearchResult.css" ;
 import { PublicationSearchResult } from "./PublicationSearchResult.js" ;
 import { gAppRef } from "./index.js" ;
-import { makeScenarioDisplayName, applyUpdatedVals, removeSpecialFields, makeOptionalLink, makeCommaList } from "./utils.js" ;
+import { makeScenarioDisplayName, applyUpdatedVals, removeSpecialFields, makeCommaList } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -62,21 +64,36 @@ export class ArticleSearchResult extends React.Component
         // NOTE: The "title" field is also given the CSS class "name" so that the normal CSS will apply to it.
         // Some tests also look for a generic ".name" class name when checking search results.
         const pub_display_name = pub ? PublicationSearchResult.makeDisplayName( pub ) : null ;
+        const menu = ( <Menu>
+            <MenuButton className="sr-menu" />
+            <MenuList>
+                <MenuItem className="edit"
+                    onSelect = { this.onEditArticle.bind( this ) }
+                >Edit</MenuItem>
+                <MenuItem className="delete"
+                    onSelect = { this.onDeleteArticle.bind( this ) }
+                >Delete</MenuItem>
+            </MenuList>
+        </Menu> ) ;
         return ( <div className="search-result article"
                     ref = { r => gAppRef.setTestAttribute( r, "article_id", this.props.data.article_id ) }
             >
-            <div className="title name">
-                { image_url && <img src={image_url} className="image" alt="Article." /> }
-                { makeOptionalLink( display_title, this.props.data.article_url ) }
-                { pub_display_name && <span className="publication"> [{pub_display_name}] </span> }
-                <img src="/images/edit.png" className="edit" onClick={this.onEditArticle.bind(this)} alt="Edit this article." />
-                <img src="/images/delete.png" className="delete" onClick={this.onDeleteArticle.bind(this)} alt="Delete this article." />
+            <div className="header">
+                {menu}
+                { pub_display_name && <span className="publication"> {pub_display_name} </span> }
+                <span className="title name" dangerouslySetInnerHTML={{ __html: display_title }} />
+                { this.props.data.article_url && <a href={this.props.data.article_url} className="open-link" target="_blank" rel="noopener noreferrer"><img src="/images/open-link.png" alt="Open this article." /></a> }
                 { display_subtitle && <div className="subtitle" dangerouslySetInnerHTML={{ __html: display_subtitle }} /> }
-                { authors.length > 0 && <div className="authors"> By {authors} </div> }
             </div>
-            <div className="snippet" dangerouslySetInnerHTML={{__html: display_snippet}} />
-            { scenarios.length > 0 && <div className="scenarios"> Scenarios: {scenarios} </div> }
-            { tags.length > 0 && <div className="tags"> Tags: {tags} </div> }
+            <div className="content">
+                { image_url && <img src={image_url} className="image" alt="Article." /> }
+                <div className="snippet" dangerouslySetInnerHTML={{__html: display_snippet}} />
+            </div>
+            <div className="footer">
+                { authors.length > 0 && <div className="authors"> By {authors} </div> }
+                { scenarios.length > 0 && <div className="scenarios"> Scenarios: {scenarios} </div> }
+                { tags.length > 0 && <div className="tags"> Tags: {tags} </div> }
+            </div>
         </div> ) ;
     }
 

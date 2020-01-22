@@ -8,10 +8,11 @@ import base64
 from selenium.common.exceptions import StaleElementReferenceException
 
 from asl_articles.search import SEARCH_ALL, SEARCH_ALL_PUBLISHERS
-from asl_articles.tests.utils import init_tests, load_fixtures, \
+from asl_articles.tests.utils import init_tests, load_fixtures, select_main_menu_option, select_sr_menu_option, \
     do_search, get_search_results, get_search_result_names, check_search_result, \
     wait_for, wait_for_elem, wait_for_not_elem, find_child, find_search_result, set_elem_text, \
-    set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg
+    set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg, \
+    change_image
 
 # ---------------------------------------------------------------------
 
@@ -42,7 +43,7 @@ def test_edit_publisher( webdriver, flask_app, dbconn ):
     )
 
     # enter something for the name
-    dlg = find_child( "#modal-form" )
+    dlg = find_child( "#publisher-form" )
     set_elem_text( find_child( ".row.name input", dlg ), "Updated Avalon Hill" )
     find_child( "button.ok", dlg ).click()
 
@@ -94,7 +95,7 @@ def test_delete_publisher( webdriver, flask_app, dbconn ):
     article_name = "Le Franc Tireur"
     results = do_search( SEARCH_ALL_PUBLISHERS )
     sr = find_search_result( article_name, results )
-    find_child( ".delete", sr ).click()
+    select_sr_menu_option( sr, "delete" )
     check_ask_dialog( ( "Delete this publisher?", article_name ), "cancel" )
 
     # check that search results are unchanged on-screen
@@ -107,7 +108,7 @@ def test_delete_publisher( webdriver, flask_app, dbconn ):
 
     # delete the publisher
     sr = find_search_result( article_name, results3 )
-    find_child( ".delete", sr ).click()
+    select_sr_menu_option( sr, "delete" )
     set_toast_marker( "info" )
     check_ask_dialog( ( "Delete this publisher?", article_name ), "ok" )
     wait_for( 2,
@@ -143,8 +144,8 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
         wait_for( 2, check_sr_image )
 
         # check the image in the publisher's config
-        find_child( ".edit", publ_sr ).click()
-        dlg = wait_for_elem( 2, "#modal-form" )
+        select_sr_menu_option( publ_sr, "edit" )
+        dlg = wait_for_elem( 2, "#publisher-form" )
         if expected:
             # make sure there is an image
             img = find_child( ".row.image img.image", dlg )
@@ -195,8 +196,8 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
     check_image( None )
 
     # try to upload an image that's too large
-    find_child( ".edit", publ_sr ).click()
-    dlg = wait_for_elem( 2, "#modal-form" )
+    select_sr_menu_option( publ_sr, "edit" )
+    dlg = wait_for_elem( 2, "#publisher-form" )
     data = base64.b64encode( 5000 * b" " )
     data = "{}|{}".format( "too-big.png", data.decode("ascii") )
     send_upload_data( data,
@@ -237,7 +238,7 @@ def test_cascading_deletes( webdriver, flask_app, dbconn ):
 
         # delete the specified publisher
         sr = find_search_result( publ_name, results )
-        find_child( ".delete", sr ).click()
+        select_sr_menu_option( sr, "delete" )
         check_ask_dialog( ( "Delete this publisher?", publ_name, expected_warning ), "ok" )
 
         # check that deleted associated publications/articles were removed from the UI
@@ -334,7 +335,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     sr = check_search_result( None, _check_sr, [
         "name: bold xxx italic", "bad stuff here:", None
     ] )
-    assert find_child( ".name span", sr ).get_attribute( "innerHTML" ) \
+    assert find_child( ".name", sr ).get_attribute( "innerHTML" ) \
         == "name: <span> <b>bold</b> xxx <i>italic</i></span>"
     assert check_toast( "warning", "Some values had HTML removed.", contains=True )
 
@@ -357,8 +358,8 @@ def create_publisher( vals, toast_type="info" ):
         set_toast_marker( toast_type )
 
     # create the new publisher
-    find_child( "#menu .new-publisher" ).click()
-    dlg = wait_for_elem( 2, "#modal-form" )
+    select_main_menu_option( "new-publisher" )
+    dlg = wait_for_elem( 2, "#publisher-form" )
     for key,val in vals.items():
         sel = ".row.{} {}".format( key , "textarea" if key == "description" else "input" )
         set_elem_text( find_child( sel, dlg ), val )
@@ -369,7 +370,7 @@ def create_publisher( vals, toast_type="info" ):
         wait_for( 2,
             lambda: check_toast( toast_type, "created OK", contains=True )
         )
-        wait_for_not_elem( 2, "#modal-form" )
+        wait_for_not_elem( 2, "#publisher-form" )
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -378,10 +379,10 @@ def edit_publisher( sr, vals, toast_type="info", expected_error=None ):
 
     # initialize
     if sr:
-        find_child( ".edit", sr ).click()
+        select_sr_menu_option( sr, "edit" )
     else:
         pass # nb: we assume that the dialog is already on-screen
-    dlg = wait_for_elem( 2, "#modal-form" )
+    dlg = wait_for_elem( 2, "#publisher-form" )
 
     # update the specified publisher's details
     for key,val in vals.items():
@@ -389,9 +390,7 @@ def edit_publisher( sr, vals, toast_type="info", expected_error=None ):
             if val:
                 data = base64.b64encode( open( val, "rb" ).read() )
                 data = "{}|{}".format( os.path.split(val)[1], data.decode("ascii") )
-                send_upload_data( data,
-                    lambda: find_child( ".row.image img", dlg ).click()
-                )
+                change_image( find_child( ".row.image img.image", dlg ), data )
             else:
                 find_child( ".row.image .remove-image", dlg ).click()
         else:
@@ -410,7 +409,7 @@ def edit_publisher( sr, vals, toast_type="info", expected_error=None ):
         wait_for( 2,
             lambda: check_toast( toast_type, expected, contains=True )
         )
-        wait_for_not_elem( 2, "#modal-form" )
+        wait_for_not_elem( 2, "#publisher-form" )
 
 # ---------------------------------------------------------------------
 
@@ -424,12 +423,12 @@ def _check_sr( sr, expected ):
         return False
 
     # check the publisher's link
-    elem = find_child( ".name a", sr )
-    if elem:
+    elem = find_child( "a.open-link", sr )
+    if expected[2]:
+        assert elem
         if elem.get_attribute( "href" ) != expected[2]:
             return False
     else:
-        if expected[2] is not None:
-            return False
+        assert elem is None
 
     return True

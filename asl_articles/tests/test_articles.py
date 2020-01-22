@@ -7,10 +7,11 @@ import json
 import base64
 
 from asl_articles.search import SEARCH_ALL_ARTICLES
-from asl_articles.tests.utils import init_tests, \
+from asl_articles.tests.utils import init_tests, select_main_menu_option, select_sr_menu_option, \
     do_search, get_search_results, find_search_result, get_search_result_names, check_search_result, \
     wait_for, wait_for_elem, wait_for_not_elem, find_child, find_children, \
-    set_elem_text, set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg
+    set_elem_text, set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg, \
+    change_image
 from asl_articles.tests.react_select import ReactSelect
 
 # ---------------------------------------------------------------------
@@ -44,7 +45,7 @@ def test_edit_article( webdriver, flask_app, dbconn ):
     )
 
     # enter something for the name
-    dlg = find_child( "#modal-form" ) # nb: the form is still on-screen
+    dlg = find_child( "#article-form" ) # nb: the form is still on-screen
     set_elem_text( find_child( ".row.title input", dlg ), "Tin Cans Rock!" )
     find_child( "button.ok", dlg ).click()
 
@@ -98,7 +99,7 @@ def test_delete_article( webdriver, flask_app, dbconn ):
     article_name = "Smoke Gets In Your Eyes"
     results = do_search( SEARCH_ALL_ARTICLES )
     sr = find_search_result( article_name, results )
-    find_child( ".delete", sr ).click()
+    select_sr_menu_option( sr, "delete" )
     check_ask_dialog( ( "Delete this article?", article_name ), "cancel" )
 
     # check that search results are unchanged on-screen
@@ -111,7 +112,7 @@ def test_delete_article( webdriver, flask_app, dbconn ):
 
     # delete the article
     sr = find_search_result( article_name, results3 )
-    find_child( ".delete", sr ).click()
+    select_sr_menu_option( sr, "delete" )
     set_toast_marker( "info" )
     check_ask_dialog( ( "Delete this article?", article_name ), "ok" )
     wait_for( 2, lambda: check_toast( "info", "The article was deleted." ) )
@@ -146,8 +147,8 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
         wait_for( 2, check_sr_image )
 
         # check the image in the article's config
-        find_child( ".edit", article_sr ).click()
-        dlg = wait_for_elem( 2, "#modal-form" )
+        select_sr_menu_option( article_sr, "edit" )
+        dlg = wait_for_elem( 2, "#article-form" )
         if expected:
             # make sure there is an image
             img = find_child( ".row.image img.image", dlg )
@@ -198,8 +199,8 @@ def test_images( webdriver, flask_app, dbconn ): #pylint: disable=too-many-state
     check_image( None )
 
     # try to upload an image that's too large
-    find_child( ".edit", article_sr ).click()
-    dlg = wait_for_elem( 2, "#modal-form" )
+    select_sr_menu_option( article_sr, "edit" )
+    dlg = wait_for_elem( 2, "#article-form" )
     data = base64.b64encode( 5000 * b" " )
     data = "{}|{}".format( "too-big.png", data.decode("ascii") )
     send_upload_data( data,
@@ -218,9 +219,9 @@ def test_parent_publisher( webdriver, flask_app, dbconn ):
     def check_result( sr, expected_parent ): #pylint: disable=too-many-return-statements
 
         # check that the parent publication was updated in the UI
-        elem = find_child( ".title .publication", sr )
+        elem = find_child( ".header .publication", sr )
         if expected_parent:
-            if elem.text != "[{}]".format( expected_parent[1] ):
+            if elem.text != "{}".format( expected_parent[1] ):
                 return None
         else:
             if elem is not None:
@@ -241,9 +242,9 @@ def test_parent_publisher( webdriver, flask_app, dbconn ):
         results = do_search( '"My Article"' )
         assert len(results) == 1
         sr = results[0]
-        elem = find_child( ".title .publication", sr )
+        elem = find_child( ".header .publication", sr )
         if expected_parent:
-            if elem.text != "[{}]".format( expected_parent[1] ):
+            if elem.text != "{}".format( expected_parent[1] ):
                 return None
         else:
             if elem is not None:
@@ -312,7 +313,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     sr = check_search_result( None, _check_sr, [
         "title: bold xxx italic", "italicized subtitle", "bad stuff here:", [], None
     ] )
-    assert find_child( ".title span", sr ).get_attribute( "innerHTML" ) \
+    assert find_child( ".title", sr ).get_attribute( "innerHTML" ) \
         == "title: <span> <b>bold</b> xxx <i>italic</i></span>"
     assert find_child( ".subtitle", sr ).get_attribute( "innerHTML" ) \
         == "<i>italicized subtitle</i>"
@@ -335,8 +336,8 @@ def create_article( vals, toast_type="info" ):
         set_toast_marker( toast_type )
 
     # create the new article
-    find_child( "#menu .new-article" ).click()
-    dlg = wait_for_elem( 2, "#modal-form" )
+    select_main_menu_option( "new-article" )
+    dlg = wait_for_elem( 2, "#article-form" )
     for key,val in vals.items():
         if key in ["authors","scenarios","tags"]:
             select = ReactSelect( find_child( ".row.{} .react-select".format(key), dlg ) )
@@ -351,7 +352,7 @@ def create_article( vals, toast_type="info" ):
         wait_for( 2,
             lambda: check_toast( toast_type, "created OK", contains=True )
         )
-        wait_for_not_elem( 2, "#modal-form" )
+        wait_for_not_elem( 2, "#article-form" )
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -360,10 +361,10 @@ def edit_article( sr, vals, toast_type="info", expected_error=None ):
 
     # initialize
     if sr:
-        find_child( ".edit", sr ).click()
+        select_sr_menu_option( sr, "edit" )
     else:
         pass # nb: we assume that the dialog is already on-screen
-    dlg = wait_for_elem( 2, "#modal-form" )
+    dlg = wait_for_elem( 2, "#article-form" )
 
     # update the specified article's details
     for key,val in vals.items():
@@ -371,9 +372,7 @@ def edit_article( sr, vals, toast_type="info", expected_error=None ):
             if val:
                 data = base64.b64encode( open( val, "rb" ).read() )
                 data = "{}|{}".format( os.path.split(val)[1], data.decode("ascii") )
-                send_upload_data( data,
-                    lambda: find_child( ".row.image img.image", dlg ).click()
-                )
+                change_image( find_child( ".row.image img.image", dlg ), data )
             else:
                 find_child( ".row.image .remove-image", dlg ).click()
         elif key == "publication":
@@ -398,7 +397,7 @@ def edit_article( sr, vals, toast_type="info", expected_error=None ):
         wait_for( 2,
             lambda: check_toast( toast_type, expected, contains=True )
         )
-        wait_for_not_elem( 2, "#modal-form" )
+        wait_for_not_elem( 2, "#article-form" )
 
 # ---------------------------------------------------------------------
 
@@ -427,12 +426,12 @@ def _check_sr( sr, expected ): #pylint: disable=too-many-return-statements
         return False
 
     # check the article's link
-    elem = find_child( ".title a", sr )
+    elem = find_child( "a.open-link", sr )
     if expected[4]:
-        if not elem or elem.get_attribute( "href" ) != expected[4]:
+        assert elem
+        if elem.get_attribute( "href" ) != expected[4]:
             return False
     else:
-        if elem is not None:
-            return False
+        assert elem is None
 
     return True

@@ -80,37 +80,39 @@ export class PublicationSearchResult2
         // prepare the form content
         /* eslint-disable jsx-a11y/img-redundant-alt */
         const content = <div>
-            <div className="row image">
-                <img src={imageUrl} className="image" onError={onMissingImage} onClick={() => onUploadImage(null)} ref={r => imageRef=r} alt="Click to upload an image for this publication." />
-                <img src="/images/delete.png" className="remove-image" onClick={onRemoveImage} ref={r => removeImageRef=r} alt="Remove the publication's image." />
-                <input type="file" accept="image/*" onChange={onUploadImage} style={{display:"none"}} ref={r => uploadImageRef=r} />
+            <div className="image-container">
+                <div className="row image">
+                    <img src={imageUrl} className="image" onError={onMissingImage} onClick={() => onUploadImage(null)} ref={r => imageRef=r} alt="Click to upload an image for this publication." />
+                    <img src="/images/delete.png" className="remove-image" onClick={onRemoveImage} ref={r => removeImageRef=r} alt="Remove the publication's image." />
+                    <input type="file" accept="image/*" onChange={onUploadImage} style={{display:"none"}} ref={r => uploadImageRef=r} />
+                </div>
             </div>
-            <div className="row name"> <label> Name: </label>
-                <CreatableSelect className="react-select" classNamePrefix="react-select" options={publications2}
+            <div className="row name"> <label className="select top"> Name: </label>
+                <CreatableSelect className="react-select" classNamePrefix="react-select" options={publications2} autoFocus
                     defaultValue = {currPub}
-                    ref = { (r) => refs.pub_name=r }
+                    ref = { r => refs.pub_name=r }
                 />
             </div>
-            <div className="row edition"> <label> Edition: </label>
-                <input type="text" defaultValue={vals.pub_edition} ref={(r) => refs.pub_edition=r} />
+            <div className="row edition"> <label className="top"> Edition: </label>
+                <input type="text" defaultValue={vals.pub_edition} ref={r => refs.pub_edition=r} />
             </div>
-            <div className="row publisher"> <label> Publisher: </label>
+            <div className="row publisher"> <label className="select top"> Publisher: </label>
                 <Select className="react-select" classNamePrefix="react-select" options={publishers} isSearchable={true}
                     defaultValue = { publishers[ currPubl ] }
-                    ref = { (r) => refs.publ_id=r }
-                />
-            </div>
-            <div className="row tags"> <label> Tags: </label>
-                <CreatableSelect className="react-select" classNamePrefix="react-select" options={tags[1]} isMulti
-                    defaultValue = {tags[0]}
-                    ref = { (r) => refs.pub_tags=r }
+                    ref = { r => refs.publ_id=r }
                 />
             </div>
             <div className="row description"> <label> Description: </label>
-                <textarea defaultValue={vals.pub_description} ref={(r) => refs.pub_description=r} />
+                <textarea defaultValue={vals.pub_description} ref={r => refs.pub_description=r} />
+            </div>
+            <div className="row tags"> <label className="select"> Tags: </label>
+                <CreatableSelect className="react-select" classNamePrefix="react-select" options={tags[1]} isMulti
+                    defaultValue = {tags[0]}
+                    ref = { r => refs.pub_tags=r }
+                />
             </div>
             <div className="row url"> <label> Web: </label>
-                <input type="text" defaultValue={vals.pub_url} ref={(r) => refs.pub_url=r} />
+                <input type="text" defaultValue={vals.pub_url} ref={r => refs.pub_url=r} />
             </div>
         </div> ;
 
@@ -147,7 +149,7 @@ export class PublicationSearchResult2
 
         // show the form
         const isNew = Object.keys( vals ).length === 0 ;
-        gAppRef.showModalForm( isNew?"New publication":"Edit publication", content, buttons ) ;
+        gAppRef.showModalForm( "publication-form", isNew?"New publication":"Edit publication", "#e5f700", content, buttons ) ;
     }
 
 }

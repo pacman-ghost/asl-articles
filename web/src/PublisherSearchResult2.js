@@ -41,19 +41,21 @@ export class PublisherSearchResult2
         // prepare the form content
         /* eslint-disable jsx-a11y/img-redundant-alt */
         const content = <div>
-            <div className="row image">
-                <img src={imageUrl} className="image" onError={onMissingImage} onClick={() => onUploadImage(null)} ref={r => imageRef=r} alt="Click to upload an image for this publisher." />
-                <img src="/images/delete.png" className="remove-image" onClick={onRemoveImage} ref={r => removeImageRef=r} alt="Remove the publisher's image." />
-                <input type="file" accept="image/*" onChange={onUploadImage} style={{display:"none"}} ref={r => uploadImageRef=r} />
+            <div className="image-container">
+                <div className="row image">
+                    <img src={imageUrl} className="image" onError={onMissingImage} onClick={() => onUploadImage(null)} ref={r => imageRef=r} alt="Click to upload an image for this publisher." />
+                    <img src="/images/delete.png" className="remove-image" onClick={onRemoveImage} ref={r => removeImageRef=r} alt="Remove the publisher's image." />
+                    <input type="file" accept="image/*" onChange={onUploadImage} style={{display:"none"}} ref={r => uploadImageRef=r} />
+                </div>
             </div>
-            <div className="row name"> <label> Name: </label>
-                <input type="text" defaultValue={vals.publ_name} ref={(r) => refs.publ_name=r} />
+            <div className="row name"> <label className="top"> Name: </label>
+                <input type="text" defaultValue={vals.publ_name} autoFocus ref={r => refs.publ_name=r} />
             </div>
-            <div className="row description"> <label> Description: </label>
-                <textarea defaultValue={vals.publ_description} ref={(r) => refs.publ_description=r} />
+            <div className="row description"> <label className="top"> Description: </label>
+                <textarea defaultValue={vals.publ_description} ref={r => refs.publ_description=r} />
             </div>
             <div className="row url"> <label> Web: </label>
-                <input type="text" defaultValue={vals.publ_url} ref={(r) => refs.publ_url=r} />
+                <input type="text" defaultValue={vals.publ_url} ref={r => refs.publ_url=r} />
             </div>
         </div> ;
 
@@ -80,7 +82,7 @@ export class PublisherSearchResult2
 
         // show the form
         const isNew = Object.keys( vals ).length === 0 ;
-        gAppRef.showModalForm( isNew?"New publisher":"Edit publisher", content, buttons ) ;
+        gAppRef.showModalForm( "publisher-form", isNew?"New publisher":"Edit publisher", "#eabe51", content, buttons ) ;
     }
 
 }

@@ -90,46 +90,48 @@ export class ArticleSearchResult2
         // prepare the form content
         /* eslint-disable jsx-a11y/img-redundant-alt */
         const content = <div>
-            <div className="row image">
-                <img src={imageUrl} className="image" onError={onMissingImage} onClick={() => onUploadImage(null)} ref={r => imageRef=r} alt="Click to upload an image for this article." />
-                <img src="/images/delete.png" className="remove-image" onClick={onRemoveImage} ref={r => removeImageRef=r} alt="Remove the article's image." />
-                <input type="file" accept="image/*" onChange={onUploadImage} style={{display:"none"}} ref={r => uploadImageRef=r} />
+            <div className="image-container">
+                <div className="row image">
+                    <img src={imageUrl} className="image" onError={onMissingImage} onClick={() => onUploadImage(null)} ref={r => imageRef=r} alt="Click to upload an image for this article." />
+                    <img src="/images/delete.png" className="remove-image" onClick={onRemoveImage} ref={r => removeImageRef=r} alt="Remove the article's image." />
+                    <input type="file" accept="image/*" onChange={onUploadImage} style={{display:"none"}} ref={r => uploadImageRef=r} />
+                </div>
             </div>
-            <div className="row title"> <label> Title: </label>
-                <input type="text" defaultValue={vals.article_title} ref={(r) => refs.article_title=r} />
+            <div className="row title"> <label className="top"> Title: </label>
+                <input type="text" defaultValue={vals.article_title} autoFocus ref={r => refs.article_title=r} />
             </div>
-            <div className="row subtitle"> <label> Subtitle: </label>
-                <input type="text" defaultValue={vals.article_subtitle} ref={(r) => refs.article_subtitle=r} />
+            <div className="row subtitle"> <label className="top"> Subtitle: </label>
+                <input type="text" defaultValue={vals.article_subtitle} ref={r => refs.article_subtitle=r} />
             </div>
-            <div className="row authors"> <label> Authors: </label>
-                <CreatableSelect className="react-select" classNamePrefix="react-select" options={allAuthors} isMulti
-                    defaultValue = {currAuthors}
-                    ref = { (r) => refs.article_authors=r }
-                />
-            </div>
-            <div className="row publication"> <label> Publication: </label>
+            <div className="row publication"> <label className="select top"> Publication: </label>
                 <Select className="react-select" classNamePrefix="react-select" options={publications} isSearchable={true}
                     defaultValue = {currPub}
-                    ref = { (r) => refs.pub_id=r }
-                />
-            </div>
-            <div className="row tags"> <label> Tags: </label>
-                <CreatableSelect className="react-select" classNamePrefix="react-select" options={tags[1]} isMulti
-                    defaultValue = {tags[0]}
-                    ref = { (r) => refs.article_tags=r }
-                />
-            </div>
-            <div className="row scenarios"> <label> Scenarios: </label>
-                <CreatableSelect className="react-select" classNamePrefix="react-select" options={allScenarios} isMulti
-                    defaultValue = {currScenarios}
-                    ref = { (r) => refs.article_scenarios=r }
+                    ref = { r => refs.pub_id=r }
                 />
             </div>
             <div className="row snippet"> <label> Snippet: </label>
-                <textarea defaultValue={vals.article_snippet} ref={(r) => refs.article_snippet=r} />
+                <textarea defaultValue={vals.article_snippet} ref={r => refs.article_snippet=r} />
+            </div>
+            <div className="row authors"> <label className="select"> Authors: </label>
+                <CreatableSelect className="react-select" classNamePrefix="react-select" options={allAuthors} isMulti
+                    defaultValue = {currAuthors}
+                    ref = { r => refs.article_authors=r }
+                />
+            </div>
+            <div className="row scenarios"> <label className="select"> Scenarios: </label>
+                <CreatableSelect className="react-select" classNamePrefix="react-select" options={allScenarios} isMulti
+                    defaultValue = {currScenarios}
+                    ref = { r => refs.article_scenarios=r }
+                />
+            </div>
+            <div className="row tags"> <label className="select"> Tags: </label>
+                <CreatableSelect className="react-select" classNamePrefix="react-select" options={tags[1]} isMulti
+                    defaultValue = {tags[0]}
+                    ref = { r => refs.article_tags=r }
+                />
             </div>
             <div className="row url"> <label> Web: </label>
-                <input type="text" defaultValue={vals.article_url} ref={(r) => refs.article_url=r} />
+                <input type="text" defaultValue={vals.article_url} ref={r => refs.article_url=r} />
             </div>
         </div> ;
 
@@ -181,7 +183,7 @@ export class ArticleSearchResult2
 
         // show the form
         const isNew = Object.keys( vals ).length === 0 ;
-        gAppRef.showModalForm( isNew?"New article":"Edit article", content, buttons ) ;
+        gAppRef.showModalForm( "article-form", isNew?"New article":"Edit article", "#d3edfc", content, buttons ) ;
     }
 
 }
