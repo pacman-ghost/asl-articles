@@ -11,7 +11,7 @@ from asl_articles.tests.utils import init_tests, select_main_menu_option, select
     do_search, get_search_results, find_search_result, get_search_result_names, check_search_result, \
     wait_for, wait_for_elem, wait_for_not_elem, find_child, find_children, \
     set_elem_text, set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg, \
-    change_image
+    change_image, get_article_row
 from asl_articles.tests.react_select import ReactSelect
 
 # ---------------------------------------------------------------------
@@ -325,6 +325,34 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     }, toast_type="warning" )
     wait_for( 2, lambda: get_search_result_names() == ["updated"] )
     assert check_toast( "warning", "Some values had HTML removed.", contains=True )
+
+# ---------------------------------------------------------------------
+
+def test_timestamps( webdriver, flask_app, dbconn ):
+    """Test setting of timestamps."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn )
+
+    # create an article
+    create_article( { "title": "My Article" } )
+    results = get_search_results()
+    assert len(results) == 1
+    article_sr = results[0]
+    article_id = article_sr.get_attribute( "testing--article_id" )
+
+    # check its timestamps
+    row = get_article_row( dbconn, article_id, ["time_created","time_updated"] )
+    assert row[0]
+    assert row[1] is None
+
+    # update the article
+    edit_article( article_sr, { "title": "My Article (updated)" } )
+
+    # check its timestamps
+    row2 = get_article_row( dbconn, article_id, ["time_created","time_updated"] )
+    assert row2[0] == row[0]
+    assert row2[1] > row2[0]
 
 # ---------------------------------------------------------------------
 

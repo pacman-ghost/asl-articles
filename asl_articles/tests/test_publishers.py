@@ -12,7 +12,7 @@ from asl_articles.tests.utils import init_tests, load_fixtures, select_main_menu
     do_search, get_search_results, get_search_result_names, check_search_result, \
     wait_for, wait_for_elem, wait_for_not_elem, find_child, find_search_result, set_elem_text, \
     set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg, \
-    change_image
+    change_image, get_publisher_row
 
 # ---------------------------------------------------------------------
 
@@ -347,6 +347,34 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     assert len(results) == 1
     wait_for( 2, lambda: find_child( ".name", sr ).text == "updated" )
     assert check_toast( "warning", "Some values had HTML removed.", contains=True )
+
+# ---------------------------------------------------------------------
+
+def test_timestamps( webdriver, flask_app, dbconn ):
+    """Test setting of timestamps."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn )
+
+    # create a publisher
+    create_publisher( { "name": "Joe Publisher" } )
+    results = get_search_results()
+    assert len(results) == 1
+    publ_sr = results[0]
+    publ_id = publ_sr.get_attribute( "testing--publ_id" )
+
+    # check its timestamps
+    row = get_publisher_row( dbconn, publ_id, ["time_created","time_updated"] )
+    assert row[0]
+    assert row[1] is None
+
+    # update the publisher
+    edit_publisher( publ_sr, { "name": "Joe Publisher (updated)" } )
+
+    # check its timestamps
+    row2 = get_publisher_row( dbconn, publ_id, ["time_created","time_updated"] )
+    assert row2[0] == row[0]
+    assert row2[1] > row2[0]
 
 # ---------------------------------------------------------------------
 

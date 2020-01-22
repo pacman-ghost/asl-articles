@@ -304,6 +304,37 @@ def _do_select_menu_option( menu, sel ):
 
 # ---------------------------------------------------------------------
 
+# FUDGE! We can't use prepared statements here, since the syntax is different for SQLite and Postgres :-/
+
+def get_publisher_row( dbconn, publ_id, fields ):
+    """Get a row from the publisher table."""
+    assert publ_id
+    return dbconn.execute(
+        "SELECT {} FROM publisher WHERE publ_id={}".format(
+            ",".join(fields), publ_id
+        )
+    ).fetchone()
+
+def get_publication_row( dbconn, pub_id, fields ):
+    """Get a row from the publication table."""
+    assert pub_id
+    return dbconn.execute(
+        "SELECT {} FROM publication WHERE pub_id={}".format(
+            ",".join(fields), pub_id
+        )
+    ).fetchone()
+
+def get_article_row( dbconn, article_id, fields ):
+    """Get a row from the article table."""
+    assert article_id
+    return dbconn.execute(
+        "SELECT {} FROM article WHERE article_id={}".format(
+            ",".join(fields), article_id
+        )
+    ).fetchone()
+
+# ---------------------------------------------------------------------
+
 def change_image( elem, image_data ):
     """Click on an image to change it."""
     # NOTE: This is a bit tricky since we started overlaying the image with the "remove image" icon :-/

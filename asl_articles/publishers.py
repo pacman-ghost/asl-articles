@@ -136,8 +136,8 @@ def update_publisher():
     if not publ:
         abort( 404 )
     _save_image( publ, updated )
-    apply_attrs( publ, vals )
     vals[ "time_updated" ] = datetime.datetime.now()
+    apply_attrs( publ, vals )
     db.session.commit()
     search.add_or_update_publisher( None, publ )
 

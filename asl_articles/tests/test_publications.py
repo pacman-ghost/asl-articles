@@ -14,7 +14,7 @@ from asl_articles.tests.utils import init_tests, load_fixtures, select_main_menu
     do_search, get_search_results, get_search_result_names, check_search_result, \
     wait_for, wait_for_elem, wait_for_not_elem, find_child, find_children, find_search_result, set_elem_text, \
     set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg, \
-    change_image
+    change_image, get_publication_row
 from asl_articles.tests.react_select import ReactSelect
 
 # ---------------------------------------------------------------------
@@ -371,6 +371,34 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     assert len(results) == 1
     wait_for( 2, lambda: find_child( ".name", results[0] ).text == "updated (2)" )
     assert check_toast( "warning", "Some values had HTML removed.", contains=True )
+
+# ---------------------------------------------------------------------
+
+def test_timestamps( webdriver, flask_app, dbconn ):
+    """Test setting of timestamps."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn )
+
+    # create a publication
+    create_publication( { "name": "My Publication" } )
+    results = get_search_results()
+    assert len(results) == 1
+    pub_sr = results[0]
+    pub_id = pub_sr.get_attribute( "testing--pub_id" )
+
+    # check its timestamps
+    row = get_publication_row( dbconn, pub_id, ["time_created","time_updated"] )
+    assert row[0]
+    assert row[1] is None
+
+    # update the publication
+    edit_publication( pub_sr, { "name": "My Publication (updated)" } )
+
+    # check its timestamps
+    row2 = get_publication_row( dbconn, pub_id, ["time_created","time_updated"] )
+    assert row2[0] == row[0]
+    assert row2[1] > row2[0]
 
 # ---------------------------------------------------------------------
 

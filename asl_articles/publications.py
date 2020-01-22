@@ -146,9 +146,9 @@ def update_publication():
     pub = Publication.query.get( pub_id )
     if not pub:
         abort( 404 )
+    vals[ "time_updated" ] = datetime.datetime.now()
     apply_attrs( pub, vals )
     _save_image( pub, updated )
-    vals[ "time_updated" ] = datetime.datetime.now()
     db.session.commit()
     search.add_or_update_publication( None, pub )
 

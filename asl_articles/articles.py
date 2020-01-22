@@ -215,11 +215,11 @@ def update_article():
     article = Article.query.get( article_id )
     if not article:
         abort( 404 )
+    vals[ "time_updated" ] = datetime.datetime.now()
     apply_attrs( article, vals )
     _save_authors( article, updated )
     _save_scenarios( article, updated )
     _save_image( article, updated )
-    vals[ "time_updated" ] = datetime.datetime.now()
     db.session.commit()
     search.add_or_update_article( None, article )
 
