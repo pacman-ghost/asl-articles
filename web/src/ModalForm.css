@@ -1,7 +1,7 @@
 .modal-form .MuiDialog-paper { width: 80% ; max-width: 50em !important ; height: 80% ; }
 .modal-form .MuiPaper-rounded { border-top-right-radius: 15px ; }
 
-.modal-form .row { display: flex ; margin-bottom: 0.25em ; }
+.modal-form .row { display: flex ; align-items: center ; margin-bottom: 0.25em ; }
 .modal-form .row label { margin-top: 3px ; }
 .modal-form .row label.select { margin-top: 10px ; }
 .modal-form .row input , .row textarea , .row .react-select { flex-grow: 1 ; }

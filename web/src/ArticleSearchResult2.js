@@ -108,6 +108,7 @@ export class ArticleSearchResult2
                     defaultValue = {currPub}
                     ref = { r => refs.pub_id=r }
                 />
+                <input className="pageno" type="text" defaultValue={vals.article_pageno} ref={r => refs.article_pageno=r} alt="Page number." />
             </div>
             <div className="row snippet"> <label> Snippet: </label>
                 <textarea defaultValue={vals.article_snippet} ref={r => refs.article_snippet=r} />

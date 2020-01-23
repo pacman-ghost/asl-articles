@@ -17,7 +17,9 @@ from asl_articles.utils import get_request_args, clean_request_args, clean_tags,
 
 _logger = logging.getLogger( "db" )
 
-_FIELD_NAMES = [ "*article_title", "article_subtitle", "article_snippet", "article_url", "article_tags", "pub_id" ]
+_FIELD_NAMES = [ "*article_title", "article_subtitle", "article_snippet", "article_pageno",
+    "article_url", "article_tags", "pub_id"
+]
 
 # ---------------------------------------------------------------------
 
@@ -46,6 +48,7 @@ def get_article_vals( article, add_type=False ):
         "article_image_id": article.article_id if article.article_image else None,
         "article_authors": [ a.author_id for a in authors ],
         "article_snippet": article.article_snippet,
+        "article_pageno": article.article_pageno,
         "article_url": article.article_url,
         "article_scenarios": [ s.scenario_id for s in scenarios ],
         "article_tags": decode_tags( article.article_tags ),

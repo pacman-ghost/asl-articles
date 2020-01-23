@@ -29,13 +29,14 @@ def test_edit_article( webdriver, flask_app, dbconn ):
         "title": "  Updated title  ",
         "subtitle": "  Updated subtitle  ",
         "snippet": "  Updated snippet.  ",
+        "pageno": "  p123  ",
         "tags": [ "+abc", "+xyz" ],
         "url": "  http://updated-article.com  ",
     } )
 
     # check that the search result was updated in the UI
     sr = check_search_result( "Updated title", _check_sr, [
-        "Updated title", "Updated subtitle", "Updated snippet.", ["abc","xyz"], "http://updated-article.com/"
+        "Updated title", "Updated subtitle", "Updated snippet.", "p123", ["abc","xyz"], "http://updated-article.com/"
     ] )
 
     # try to remove all fields from the article (should fail)
@@ -50,7 +51,7 @@ def test_edit_article( webdriver, flask_app, dbconn ):
     find_child( "button.ok", dlg ).click()
 
     # check that the search result was updated in the UI
-    expected = [ "Tin Cans Rock!", None, "", [], None ]
+    expected = [ "Tin Cans Rock!", None, "", "", [], None ]
     check_search_result( expected[0], _check_sr, expected )
 
     # check that the article was updated in the database
@@ -75,12 +76,13 @@ def test_create_article( webdriver, flask_app, dbconn ):
         "title": "New article",
         "subtitle": "New subtitle",
         "snippet": "New snippet.",
+        "pageno": "99",
         "tags": [ "+111", "+222", "+333" ],
         "url": "http://new-snippet.com"
     } )
 
     # check that the new article appears in the UI
-    expected = [ "New article", "New subtitle", "New snippet.", ["111","222","333"], "http://new-snippet.com/" ]
+    expected = [ "New article", "New subtitle", "New snippet.", "99", ["111","222","333"], "http://new-snippet.com/" ]
     check_search_result( expected[0], _check_sr, expected )
 
     # check that the new article has been saved in the database
@@ -290,6 +292,7 @@ def test_unicode( webdriver, flask_app, dbconn ):
         "japan = \u65e5\u672c",
         "s.korea = \ud55c\uad6d",
         "greece = \u0395\u03bb\u03bb\u03ac\u03b4\u03b1",
+        "",
         [ "\u0e51", "\u0e52", "\u0e53" ],
         "http://xn--3e0b707e.com/"
     ] )
@@ -311,7 +314,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
 
     # check that the HTML was cleaned
     sr = check_search_result( None, _check_sr, [
-        "title: bold xxx italic", "italicized subtitle", "bad stuff here:", [], None
+        "title: bold xxx italic", "italicized subtitle", "bad stuff here:", "", [], None
     ] )
     assert find_child( ".title", sr ).get_attribute( "innerHTML" ) \
         == "title: <span> <b>bold</b> xxx <i>italic</i></span>"
@@ -384,7 +387,7 @@ def create_article( vals, toast_type="info" ):
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-def edit_article( sr, vals, toast_type="info", expected_error=None ):
+def edit_article( sr, vals, toast_type="info", expected_error=None ): #pylint: disable=too-many-branches
     """Edit a article's details."""
 
     # initialize
@@ -410,7 +413,13 @@ def edit_article( sr, vals, toast_type="info", expected_error=None ):
             select = ReactSelect( find_child( ".row.{} .react-select".format(key), dlg ) )
             select.update_multiselect_values( *val )
         else:
-            sel = ".row.{} {}".format( key , "textarea" if key == "snippet" else "input" )
+            if key == "snippet":
+                sel = ".row.{} textarea".format( key )
+            elif key == "pageno":
+                sel = "input.pageno"
+            else:
+                sel = ".row.{} input".format( key )
+            print( "@@@",sel)
             set_elem_text( find_child( sel, dlg ), val )
     set_toast_marker( toast_type )
     find_child( "button.ok", dlg ).click()
@@ -450,14 +459,14 @@ def _check_sr( sr, expected ): #pylint: disable=too-many-return-statements
 
     # check the tags
     tags = [ t.text for t in find_children( ".tag", sr ) ]
-    if tags != expected[3]:
+    if tags != expected[4]:
         return False
 
     # check the article's link
     elem = find_child( "a.open-link", sr )
-    if expected[4]:
+    if expected[5]:
         assert elem
-        if elem.get_attribute( "href" ) != expected[4]:
+        if elem.get_attribute( "href" ) != expected[5]:
             return False
     else:
         assert elem is None

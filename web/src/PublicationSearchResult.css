@@ -2,5 +2,5 @@
 #publication-form .row label { width: 3.25em ; }
 
 #publication-form .row.edition input { flex-grow: 0 ; width: 3em ; }
-#publication-form .row.description { flex-direction: column ; margin-top: -0.5em ; }
+#publication-form .row.description { flex-direction: column ; align-items: initial ; margin-top: -0.5em ; }
 #publication-form .row.description textarea { min-height: 6em ; }
