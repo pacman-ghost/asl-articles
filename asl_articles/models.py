@@ -61,6 +61,7 @@ class Article( db.Model ):
     article_title = db.Column( db.String(200), nullable=False )
     article_subtitle = db.Column( db.String(200) )
     article_snippet = db.Column( db.String(5000) )
+    article_seqno = db.Column( db.Integer )
     article_pageno = db.Column( db.String(20) )
     article_url = db.Column( db.String(500) )
     article_tags = db.Column( db.String(1000) )

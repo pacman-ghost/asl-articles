@@ -373,6 +373,9 @@ def create_article( vals, toast_type="info" ):
         if key in ["authors","scenarios","tags"]:
             select = ReactSelect( find_child( ".row.{} .react-select".format(key), dlg ) )
             select.update_multiselect_values( *val )
+        elif key == "publication":
+            select = ReactSelect( find_child( ".row.publication .react-select", dlg ) )
+            select.select_by_name( val )
         else:
             sel = ".row.{} {}".format( key , "textarea" if key == "snippet" else "input" )
             set_elem_text( find_child( sel, dlg ), val )
@@ -419,7 +422,6 @@ def edit_article( sr, vals, toast_type="info", expected_error=None ): #pylint: d
                 sel = "input.pageno"
             else:
                 sel = ".row.{} input".format( key )
-            print( "@@@",sel)
             set_elem_text( find_child( sel, dlg ), val )
     set_toast_marker( toast_type )
     find_child( "button.ok", dlg ).click()

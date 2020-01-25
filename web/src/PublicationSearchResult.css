@@ -4,3 +4,11 @@
 #publication-form .row.edition input { flex-grow: 0 ; width: 3em ; }
 #publication-form .row.description { flex-direction: column ; align-items: initial ; margin-top: -0.5em ; }
 #publication-form .row.description textarea { min-height: 6em ; }
+
+#publication-form .articles { flex-direction: column ; align-items: initial ; }
+#publication-form .articles { font-size: 90% ; padding: 0 0.5em 0.5em 0.5em ; border: 1px solid #c5c5c5 ; }
+#publication-form .articles legend { margin-left: 1em ; padding: 0 5px ; font-size: 100% ; }
+#publication-form .articles li.draggable { list-style-type: none ; margin: 0 0 2px -16px ; border: 1px solid #91cdf5 ; padding: 2px 5px ; background: #d3edfc ; cursor: pointer ; }
+#publication-form .articles .pageno { font-size: 80% ; font-style: italic ; color: #666 ; }
+
+.dragLine { border-bottom: 2px solid #1080d0 !important ; }

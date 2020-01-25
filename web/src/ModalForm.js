@@ -23,7 +23,9 @@ export default class ModalForm extends React.Component
         }
         return ( <Dialog id={this.props.formId} className="modal-form" open={true} onClose={this.onClose.bind(this)} disableBackdropClick>
             <DialogTitle style={{background:this.props.titleColor}}> {this.props.title} </DialogTitle>
-            <DialogContent dividers> {this.props.content} </DialogContent>
+            <DialogContent dividers>
+                { typeof this.props.content === "function" ? this.props.content() : this.props.content }
+            </DialogContent>
             <DialogActions> {buttons} </DialogActions>
         </Dialog> ) ;
     }

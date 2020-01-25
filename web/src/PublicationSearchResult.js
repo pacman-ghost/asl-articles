@@ -63,7 +63,7 @@ export class PublicationSearchResult extends React.Component
     }
 
     static onNewPublication( notify ) {
-        PublicationSearchResult2._doEditPublication( {}, (newVals,refs) => {
+        PublicationSearchResult2._doEditPublication( {}, null, (newVals,refs) => {
             axios.post( gAppRef.makeFlaskUrl( "/publication/create", {list:1} ), newVals )
             .then( resp => {
                 // update the caches
@@ -86,28 +86,37 @@ export class PublicationSearchResult extends React.Component
     }
 
     onEditPublication() {
-        PublicationSearchResult2._doEditPublication( this.props.data, (newVals,refs) => {
-            // send the updated details to the server
-            newVals.pub_id = this.props.data.pub_id ;
-            axios.post( gAppRef.makeFlaskUrl( "/publication/update", {list:1} ), newVals )
-            .then( resp => {
-                // update the caches
-                gAppRef.caches.publications = resp.data.publications ;
-                gAppRef.caches.tags = resp.data.tags ;
-                // update the UI with the new details
-                applyUpdatedVals( this.props.data, newVals, resp.data.updated, refs ) ;
-                removeSpecialFields( this.props.data ) ;
-                this.forceUpdate() ;
-                if ( resp.data.warnings )
-                    gAppRef.showWarnings( "The publication was updated OK.", resp.data.warnings ) ;
-                else
-                    gAppRef.showInfoToast( <div> The publication was updated OK. </div> ) ;
-                gAppRef.closeModalForm() ;
-            } )
-            .catch( err => {
-                gAppRef.showErrorMsg( <div> Couldn't update the publication: <div className="monospace"> {err.toString()} </div> </div> ) ;
+        // get the articles for this publication
+        axios.get( gAppRef.makeFlaskUrl( "/publication/" + this.props.data.pub_id + "/articles" ) )
+        .then( resp => {
+            let articles = resp.data ; // nb: _doEditPublication() might modify this list
+            PublicationSearchResult2._doEditPublication( this.props.data, articles, (newVals,refs) => {
+                // send the updated details to the server
+                newVals.pub_id = this.props.data.pub_id ;
+                newVals.article_order = articles.map( a => a.article_id ) ;
+                axios.post( gAppRef.makeFlaskUrl( "/publication/update", {list:1} ), newVals )
+                .then( resp => {
+                    // update the caches
+                    gAppRef.caches.publications = resp.data.publications ;
+                    gAppRef.caches.tags = resp.data.tags ;
+                    // update the UI with the new details
+                    applyUpdatedVals( this.props.data, newVals, resp.data.updated, refs ) ;
+                    removeSpecialFields( this.props.data ) ;
+                    this.forceUpdate() ;
+                    if ( resp.data.warnings )
+                        gAppRef.showWarnings( "The publication was updated OK.", resp.data.warnings ) ;
+                    else
+                        gAppRef.showInfoToast( <div> The publication was updated OK. </div> ) ;
+                    gAppRef.closeModalForm() ;
+                } )
+                .catch( err => {
+                    gAppRef.showErrorMsg( <div> Couldn't update the publication: <div className="monospace"> {err.toString()} </div> </div> ) ;
+                } ) ;
             } ) ;
-        } );
+        } )
+        .catch( err => {
+            gAppRef.showErrorMsg( <div> Couldn't load the articles: <div className="monospace"> {err.toString()} </div> </div> ) ;
+        } ) ;
     }
 
     onDeletePublication() {

@@ -1,0 +1,8 @@
+{
+
+"publication": [
+    { "pub_id": 10, "pub_name": "Publication A" },
+    { "pub_id": 20, "pub_name": "Publication B" }
+]
+
+}

@@ -5,11 +5,13 @@ import urllib.request
 import urllib.error
 import json
 import base64
+from collections import defaultdict
 
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import StaleElementReferenceException
 
 from asl_articles.search import SEARCH_ALL, SEARCH_ALL_PUBLICATIONS, SEARCH_ALL_ARTICLES
+from asl_articles.tests.test_articles import create_article, edit_article
 from asl_articles.tests.utils import init_tests, load_fixtures, select_main_menu_option, select_sr_menu_option, \
     do_search, get_search_results, get_search_result_names, check_search_result, \
     wait_for, wait_for_elem, wait_for_not_elem, find_child, find_children, find_search_result, set_elem_text, \
@@ -399,6 +401,94 @@ def test_timestamps( webdriver, flask_app, dbconn ):
     row2 = get_publication_row( dbconn, pub_id, ["time_created","time_updated"] )
     assert row2[0] == row[0]
     assert row2[1] > row2[0]
+
+# ---------------------------------------------------------------------
+
+def test_article_order( webdriver, flask_app, dbconn ):
+    """Test ordering of articles."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, fixtures="article-order.json" )
+
+    def check_article_order( expected ):
+
+        # check the article order in the database
+        articles = defaultdict( list )
+        query = dbconn.execute(
+            "SELECT pub_name, article_title, article_seqno"
+            " FROM article LEFT JOIN publication"
+            " ON article.pub_id = publication.pub_id"
+            " ORDER BY article.pub_id, article_seqno"
+        )
+        for row in query:
+            articles[ row[0] ].append( ( row[1], row[2] ) )
+        assert articles == expected
+
+        # check the article order in the UI
+        results = do_search( SEARCH_ALL )
+        for pub_name in expected:
+            if not pub_name:
+                continue
+            sr = find_search_result( pub_name, results )
+            select_sr_menu_option( sr, "edit" )
+            dlg = wait_for_elem( 2, "#publication-form" )
+            articles = [ a.text for a in find_children( ".articles li.draggable", dlg ) ]
+            find_child( ".cancel", dlg ).click()
+            assert articles == [ a[0] for a in expected[pub_name] ]
+
+    # create some articles (to check the seq# is being assigned correctly)
+    create_article( { "title": "Article 1", "publication": "Publication A" } )
+    check_article_order( {
+        "Publication A": [ ("Article 1",1) ]
+    } )
+    create_article( { "title": "Article 2", "publication": "Publication A" } )
+    check_article_order( {
+        "Publication A": [ ("Article 1",1), ("Article 2",2) ]
+    } )
+    create_article( { "title": "Article 3", "publication": "Publication A" } )
+    check_article_order( {
+        "Publication A": [ ("Article 1",1), ("Article 2",2), ("Article 3",3) ]
+    } )
+
+    # create some articles (to check the seq# is being assigned correctly)
+    create_article( { "title": "Article 5", "publication": "Publication B" } )
+    check_article_order( {
+        "Publication A": [ ("Article 1",1), ("Article 2",2), ("Article 3",3) ],
+        "Publication B": [ ("Article 5",1) ]
+    } )
+    create_article( { "title": "Article 6", "publication": "Publication B" } )
+    check_article_order( {
+        "Publication A": [ ("Article 1",1), ("Article 2",2), ("Article 3",3) ],
+        "Publication B": [ ("Article 5",1), ("Article 6",2) ]
+    } )
+
+    # NOTE: It would be nice to test re-ordering articles via drag-and-drop,
+    # but Selenium just ain't co-operating... :-/
+
+    # move an article to another publication
+    sr = find_search_result( "Article 1" )
+    edit_article( sr, { "publication": "Publication B" } )
+    check_article_order( {
+        "Publication A": [ ("Article 2",2), ("Article 3",3) ],
+        "Publication B": [ ("Article 5",1), ("Article 6",2), ("Article 1",3) ]
+    } )
+
+    # remove the article from the publication
+    sr = find_search_result( "Article 1" )
+    edit_article( sr, { "publication": "(none)" } )
+    check_article_order( {
+        "Publication A": [ ("Article 2",2), ("Article 3",3) ],
+        "Publication B": [ ("Article 5",1), ("Article 6",2) ],
+        None: [ ("Article 1", None) ]
+    } )
+
+    # add the article to another publication
+    sr = find_search_result( "Article 1" )
+    edit_article( sr, { "publication": "Publication A" } )
+    check_article_order( {
+        "Publication A": [ ("Article 2",2), ("Article 3",3), ("Article 1",4) ],
+        "Publication B": [ ("Article 5",1), ("Article 6",2) ],
+    } )
 
 # ---------------------------------------------------------------------
 

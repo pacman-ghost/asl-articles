@@ -15,6 +15,7 @@
 [data-reach-menu-item][data-selected] { background: #90caf9 ; color: black ; }
 
 .MuiDialogTitle-root { padding: 10px 16px 6px 16px !important ; }
+.MuiDialogContent-root>div { margin-bottom: 1em ; }
 .MuiDialogActions-root { background: #f0ffff ; }
 .MuiDialogActions-root .MuiButton-text { padding: 6px 8px 2px 8px ; }
 .MuiDialogActions-root button:hover { background: #40a0c0 ; color: white ; }

@@ -8,6 +8,7 @@ from flask import request, jsonify, abort
 
 from asl_articles import app, db
 from asl_articles.models import Publication, PublicationImage, Article
+from asl_articles.articles import get_article_vals
 from asl_articles.tags import do_get_tags
 from asl_articles import search
 from asl_articles.utils import get_request_args, clean_request_args, clean_tags, encode_tags, decode_tags, \
@@ -135,6 +136,7 @@ def update_publication():
     )
     warnings = []
     updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
+    article_order = request.json.get( "article_order" )
 
     # NOTE: Tags are stored in the database using \n as a separator, so we need to encode *after* cleaning them.
     cleaned_tags = clean_tags( vals.get("pub_tags"), warnings )
@@ -149,6 +151,21 @@ def update_publication():
     vals[ "time_updated" ] = datetime.datetime.now()
     apply_attrs( pub, vals )
     _save_image( pub, updated )
+    if article_order:
+        query = Article.query.filter( Article.pub_id == pub_id )
+        articles = { int(a.article_id): a for a in query }
+        for n,article_id in enumerate(article_order):
+            if article_id not in articles:
+                _logger.warning( "Can't set seq# for article %d, not in publication %d: %s",
+                    article_id, pub_id, article_order
+                )
+                continue
+            articles[ article_id ].article_seqno = n
+            del articles[ article_id ]
+        if articles:
+            _logger.warning( "seq# was not set for some articles in publication %d: %s",
+                pub_id, ", ".join(str(k) for k in articles)
+            )
     db.session.commit()
     search.add_or_update_publication( None, pub )
 
@@ -189,3 +206,14 @@ def delete_publication( pub_id ):
         extras[ "publications" ] = do_get_publications()
         extras[ "tags" ] = do_get_tags()
     return make_ok_response( extras=extras )
+
+# ---------------------------------------------------------------------
+
+@app.route( "/publication/<pub_id>/articles" )
+def get_publication_articles( pub_id ):
+    """Get the articles for a publication."""
+    pub = Publication.query.get( pub_id )
+    if not pub:
+        abort( 404 )
+    articles = sorted( pub.articles, key=lambda a: 999 if a.article_seqno is None else a.article_seqno )
+    return jsonify( [ get_article_vals(a) for a in articles ] )

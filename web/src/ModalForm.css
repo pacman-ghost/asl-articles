@@ -3,7 +3,6 @@
 
 .modal-form .row { display: flex ; align-items: center ; margin-bottom: 0.25em ; }
 .modal-form .row label { margin-top: 3px ; }
-.modal-form .row label.select { margin-top: 10px ; }
 .modal-form .row input , .row textarea , .row .react-select { flex-grow: 1 ; }
 
 .modal-form .row.image { display: block ; }

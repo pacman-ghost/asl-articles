@@ -5,6 +5,7 @@ import base64
 import logging
 
 from flask import request, jsonify, abort
+from sqlalchemy.sql.expression import func
 
 from asl_articles import app, db
 from asl_articles.models import Article, Author, ArticleAuthor, Scenario, ArticleScenario, ArticleImage
@@ -83,6 +84,7 @@ def create_article():
     db.session.add( article )
     db.session.flush()
     new_article_id = article.article_id
+    _set_seqno( article, article.pub_id )
     _save_authors( article, updated )
     _save_scenarios( article, updated )
     _save_image( article, updated )
@@ -97,6 +99,16 @@ def create_article():
         extras[ "scenarios" ] = do_get_scenarios()
         extras[ "tags" ] = do_get_tags()
     return make_ok_response( updated=updated, extras=extras, warnings=warnings )
+
+def _set_seqno( article, pub_id ):
+    """Set an article's seq#."""
+    if pub_id:
+        max_seqno = db.session.query( func.max( Article.article_seqno ) ) \
+            .filter( Article.pub_id == pub_id ) \
+            .scalar()
+        article.article_seqno = 1 if max_seqno is None else max_seqno+1
+    else:
+        article.article_seqno = None
 
 def _save_authors( article, updated_fields ):
     """Save the article's authors."""
@@ -218,6 +230,8 @@ def update_article():
     article = Article.query.get( article_id )
     if not article:
         abort( 404 )
+    if vals["pub_id"] != article.pub_id:
+        _set_seqno( article, vals["pub_id"] )
     vals[ "time_updated" ] = datetime.datetime.now()
     apply_attrs( article, vals )
     _save_authors( article, updated )
