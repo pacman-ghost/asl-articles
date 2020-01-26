@@ -48,8 +48,14 @@ export default class App extends React.Component
         // it's own Flask server, but talks to an existing React server, so we need some way
         // for pytest to change which Flask server the React frontend code should tak to.
         this._flaskBaseUrl = this.isTestMode() ? this.args._flask : null ;
-        if ( ! this._flaskBaseUrl )
-            this._flaskBaseUrl = process.env.REACT_APP_FLASK_URL ;
+        if ( ! this._flaskBaseUrl ) {
+            // NOTE: We used to use process.env.REACT_APP_FLASK_URL here, but this means that the client
+            // needs to have access to the Flask backend server. We now proxy all backend requests via
+            // "/api/..." endpoints, which we handle ourself (by setupProxy.js for the dev environment,
+            // and nginx proxying for production), so the client only needs access to the React front-end.
+            // This also has the nice side-effect of removing CORS issues :-/
+            this._flaskBaseUrl = "/api" ;
+        }
     }
 
     render() {

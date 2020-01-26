@@ -11,6 +11,9 @@ from asl_articles.config.constants import APP_NAME, APP_VERSION
 
 # ---------------------------------------------------------------------
 
+# NOTE: You'd think we don't need to handle CORS issues, now that we're proxy'ing backend requests
+# via /api in the frontend, but the test suite still seems to need it :shrug:
+
 def _add_cors_headers( resp ):
     """Add the necessary headers to a response to allow CORS."""
     resp.headers[ "Access-Control-Allow-Origin" ] = "*"
