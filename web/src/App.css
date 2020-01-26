@@ -24,6 +24,8 @@
 #ask .MuiDialog-paper { width: 50% ; max-width: 40em !important ; }
 #ask img.icon { width: 2em ; float: left ; margin: 0 1em 1em 0 ; }
 
+#error-response iframe { width: 100% ; border: none ; }
+
 .Toastify p { margin-top: 0.25em ; }
 .Toastify__toast--info { background: #20b040 ; }
 .Toastify__toast--warn { background: #f0c010 ; }

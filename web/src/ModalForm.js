@@ -34,6 +34,8 @@ export default class ModalForm extends React.Component
         // close the dialog
         if ( this.props.buttons.Cancel )
             this.props.buttons.Cancel() ;
+        else if ( this.props.buttons.Close )
+            this.props.buttons.Close() ;
     }
 
 }

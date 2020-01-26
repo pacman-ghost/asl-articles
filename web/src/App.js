@@ -157,7 +157,7 @@ export default class App extends React.Component
             this.focusQueryString() ;
         } )
         .catch( err => {
-            this.showErrorToast( <div> The search query failed: <div className="monospace"> {err.toString()} </div> </div> ) ;
+            this.showErrorResponse( "The search query failed", err ) ;
             this.setState( { searchResults: null, searchSeqNo: this.state.searchSeqNo+1 } ) ;
         } ) ;
     }
@@ -216,6 +216,23 @@ export default class App extends React.Component
 
     setStoredMsg( msgType, msgData ) { this.refs[ "_stored_msg-" + msgType + "_" ].value = msgData ; }
     getStoredMsg( msgType ) { return this.refs[ "_stored_msg-" + msgType + "_" ].value }
+
+    showErrorResponse( caption, err ) {
+        let content ;
+        if ( ! err.response )
+            content = <div className="monospace"> {err.toString()} </div> ;
+        else {
+            if ( err.response.data.indexOf( "<!DOCTYPE" ) !== -1 || err.response.data.indexOf( "<html" ) !== -1 )
+                content = <iframe title="error-response" srcDoc={err.response.data} /> ;
+            else
+                content = <div className="monospace"> {err.response.data} </div> ;
+        }
+        const buttons = { Close: () => this.closeModalForm() } ;
+        this.showModalForm( "error-response", err.response.statusText, "red",
+            <div> {caption}: {content} </div>,
+            buttons
+        ) ;
+    }
 
     showErrorMsg( content ) {
         // show the error message in a modal dialog
@@ -327,7 +344,10 @@ export default class App extends React.Component
         this.setState( { startupTasks: this.state.startupTasks } ) ;
     }
 
-    focusQueryString() { this._searchFormRef.current.focusQueryString() ; }
+    focusQueryString() {
+        if ( this._searchFormRef.current )
+            this._searchFormRef.current.focusQueryString() ;
+    }
 
     isTestMode() { return process.env.REACT_APP_TEST_MODE ; }
     isFakeUploads() { return this._fakeUploads ; }
