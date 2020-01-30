@@ -64,7 +64,7 @@ def make_ok_response( extras=None, updated=None, warnings=None ):
 
 # ---------------------------------------------------------------------
 
-def clean_html( val, allow_tags=None, safe_attrs=None ):
+def clean_html( val, allow_tags=None, safe_attrs=None ): #pylint: disable=too-many-branches
     """Sanitize HTML using a whitelist."""
 
     # check if we need to do anything
@@ -108,15 +108,20 @@ def clean_html( val, allow_tags=None, safe_attrs=None ):
 
     # clean up the results
     while True:
+        buf = buf.strip()
         prev_buf = buf
-        buf = re.sub( r"\s+", " ", buf )
+        buf = re.sub( " +", " ", buf ) # nb: we don't use "\s+" to preserve newlines
         buf = re.sub( r"^\s+", "", buf, re.MULTILINE )
         buf = re.sub( r"\s+$", "", buf, re.MULTILINE )
-        for tag in ["body","p","div","span"]:
+        for tag in ["body","div","span"]:
             if buf.startswith( "<{}>".format(tag) ) and buf.endswith( "</{}>".format(tag) ):
                 buf = buf[ len(tag)+2 : -len(tag)-3 ]
         if buf == prev_buf:
             break
+    if buf.startswith( "<p>" ) and buf.endswith( "</p>" ):
+        buf2 = buf[ 3: -4 ]
+        if "<p>" not in buf2 and "</p>" not in buf2:
+            buf = buf2
     return buf.strip()
 
 def load_html_whitelists( app ):
