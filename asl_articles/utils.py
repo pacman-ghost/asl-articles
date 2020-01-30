@@ -1,6 +1,7 @@
 """ Helper utilities. """
 
 import re
+import typing
 import logging
 
 from flask import jsonify, abort
@@ -41,7 +42,7 @@ def clean_request_args( vals, fields, warnings, logger ):
                 vals[f] = val2
                 cleaned[f] = val2
                 logger.debug( "Cleaned HTML: %s => %s", f, val2 )
-                warnings.append( "Some values had HTML removed." )
+                warnings.append( "Some values had HTML cleaned up." )
     return cleaned
 
 def _parse_arg_name( arg_name ):
@@ -72,6 +73,20 @@ def clean_html( val, allow_tags=None, safe_attrs=None ):
     val = val.strip()
     if not val:
         return val
+
+    # fixup smart quotes and dashes
+    def replace_chars( val, ch, targets ):
+        for t in targets:
+            if isinstance( t, typing.Pattern ):
+                val = t.sub( ch, val )
+            else:
+                assert isinstance( t, str )
+                val = val.replace( t, ch )
+        return val
+    val = replace_chars( val, '"', [ "\u00ab", "\u00bb", "\u201c", "\u201d", "\u201e", "\u201f" ] )
+    val = replace_chars( val, "'", [ "\u2018", "\u2019", "\u201a", "\u201b", "\u2039", "\u203a" ] )
+    val = replace_chars( val, r"\1 - \2", [ re.compile( r"(\S+)\u2014(\S+)" ) ] )
+    val = replace_chars( val, "-", [ "\u2014" ] )
 
     # strip the HTML
     args = {}

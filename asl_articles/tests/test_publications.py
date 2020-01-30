@@ -349,21 +349,28 @@ def test_clean_html( webdriver, flask_app, dbconn ):
 
     # initialize
     init_tests( webdriver, flask_app, dbconn )
+    replace = [
+        "[\u00ab\u00bb\u201c\u201d\u201e\u201f foo\u2014bar \u2018\u2019\u201a\u201b\u2039\u203a]",
+        "[\"\"\"\"\"\" foo - bar '''''']"
+    ]
 
     # create a publication with HTML content
     create_publication( {
-        "name": "name: <span style='boo!'> <b>bold</b> <xxx>xxx</xxx> <i>italic</i>",
+        "name": "name: <span style='boo!'> <b>bold</b> <xxx>xxx</xxx> <i>italic</i> {}".format( replace[0] ),
         "edition": "<i>2</i>",
-        "description": "bad stuff here: <script>HCF</script>"
+        "description": "bad stuff here: <script>HCF</script> {}".format( replace[0] )
     }, toast_type="warning" )
 
     # check that the HTML was cleaned
     sr = check_search_result( None, _check_sr, [
-        "name: bold xxx italic", "2", "bad stuff here:", [], None
+        "name: bold xxx italic {}".format( replace[1] ),
+        "2",
+        "bad stuff here: {}".format( replace[1] ),
+        [], None
     ] )
     assert find_child( ".name", sr ).get_attribute( "innerHTML" ) \
-        == "name: <span> <b>bold</b> xxx <i>italic</i></span> (<i>2</i>)"
-    assert check_toast( "warning", "Some values had HTML removed.", contains=True )
+        == "name: <span> <b>bold</b> xxx <i>italic</i> {}</span> (<i>2</i>)".format( replace[1] )
+    assert check_toast( "warning", "Some values had HTML cleaned up.", contains=True )
 
     # update the publication with new HTML content
     edit_publication( sr, {
@@ -372,7 +379,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     results = get_search_results()
     assert len(results) == 1
     wait_for( 2, lambda: find_child( ".name", results[0] ).text == "updated (2)" )
-    assert check_toast( "warning", "Some values had HTML removed.", contains=True )
+    assert check_toast( "warning", "Some values had HTML cleaned up.", contains=True )
 
 # ---------------------------------------------------------------------
 

@@ -304,30 +304,37 @@ def test_clean_html( webdriver, flask_app, dbconn ):
 
     # initialize
     init_tests( webdriver, flask_app, dbconn )
+    replace = [
+        "[\u00ab\u00bb\u201c\u201d\u201e\u201f foo\u2014bar \u2018\u2019\u201a\u201b\u2039\u203a]",
+        "[\"\"\"\"\"\" foo - bar '''''']"
+    ]
 
     # create a article with HTML content
     create_article( {
-        "title": "title: <span style='boo!'> <b>bold</b> <xxx>xxx</xxx> <i>italic</i>",
-        "subtitle": "<i>italicized subtitle</i>",
-        "snippet": "bad stuff here: <script>HCF</script>"
+        "title": "title: <span style='boo!'> <b>bold</b> <xxx>xxx</xxx> <i>italic</i> {}".format( replace[0] ),
+        "subtitle": "<i>italicized subtitle</i> {}".format( replace[0] ),
+        "snippet": "bad stuff here: <script>HCF</script> {}".format( replace[0] )
     }, toast_type="warning" )
 
     # check that the HTML was cleaned
     sr = check_search_result( None, _check_sr, [
-        "title: bold xxx italic", "italicized subtitle", "bad stuff here:", "", [], None
+        "title: bold xxx italic {}".format( replace[1] ),
+        "italicized subtitle {}".format( replace[1] ),
+        "bad stuff here: {}".format( replace[1] ),
+        "", [], None
     ] )
     assert find_child( ".title", sr ).get_attribute( "innerHTML" ) \
-        == "title: <span> <b>bold</b> xxx <i>italic</i></span>"
+        == "title: <span> <b>bold</b> xxx <i>italic</i> {}</span>".format( replace[1] )
     assert find_child( ".subtitle", sr ).get_attribute( "innerHTML" ) \
-        == "<i>italicized subtitle</i>"
-    assert check_toast( "warning", "Some values had HTML removed.", contains=True )
+        == "<i>italicized subtitle</i> {}".format( replace[1] )
+    assert check_toast( "warning", "Some values had HTML cleaned up.", contains=True )
 
     # update the article with new HTML content
     edit_article( sr, {
         "title": "<div style='...'>updated</div>"
     }, toast_type="warning" )
     wait_for( 2, lambda: get_search_result_names() == ["updated"] )
-    assert check_toast( "warning", "Some values had HTML removed.", contains=True )
+    assert check_toast( "warning", "Some values had HTML cleaned up.", contains=True )
 
 # ---------------------------------------------------------------------
 
