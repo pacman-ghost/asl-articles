@@ -33,7 +33,7 @@ export class PublisherSearchResult extends React.Component
             <div className="header">
                 {menu}
                 <span className="name" dangerouslySetInnerHTML={{ __html: display_name }} />
-                { this.props.data.publ_url && <a href={this.props.data.publ_url} className="open-link" target="_blank" rel="noopener noreferrer"><img src="/images/open-link.png" alt="Go to this publisher." /></a> }
+                { this.props.data.publ_url && <a href={this.props.data.publ_url} className="open-link" target="_blank" rel="noopener noreferrer"><img src="/images/open-link.png" alt="Open publisher." title="Go to this publisher." /></a> }
             </div>
             <div className="content">
                 { image_url && <img src={image_url} className="image" alt="Publisher." /> }

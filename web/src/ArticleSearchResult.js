@@ -82,7 +82,7 @@ export class ArticleSearchResult extends React.Component
                 {menu}
                 { pub_display_name && <span className="publication"> {pub_display_name} </span> }
                 <span className="title name" dangerouslySetInnerHTML={{ __html: display_title }} />
-                { this.props.data.article_url && <a href={this.props.data.article_url} className="open-link" target="_blank" rel="noopener noreferrer"><img src="/images/open-link.png" alt="Open this article." /></a> }
+                { this.props.data.article_url && <a href={this.props.data.article_url} className="open-link" target="_blank" rel="noopener noreferrer"><img src="/images/open-link.png" alt="Open article." title="Open this article." /></a> }
                 { display_subtitle && <div className="subtitle" dangerouslySetInnerHTML={{ __html: display_subtitle }} /> }
             </div>
             <div className="content">

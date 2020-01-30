@@ -50,7 +50,7 @@ export class PublicationSearchResult extends React.Component
                 {menu}
                 { publ && <span className="publisher"> {publ.publ_name} </span> }
                 <span className="name" dangerouslySetInnerHTML={{ __html: this._makeDisplayName(true) }} />
-                { this.props.data.pub_url && <a href={this.props.data.pub_url} className="open-link" target="_blank" rel="noopener noreferrer"><img src="/images/open-link.png" alt="Go to this publication." /></a> }
+                { this.props.data.pub_url && <a href={this.props.data.pub_url} className="open-link" target="_blank" rel="noopener noreferrer"><img src="/images/open-link.png" alt="Open publication." title="Open this publication." /></a> }
             </div>
             <div className="content">
                 { image_url && <img src={image_url} className="image" alt="Publication." /> }

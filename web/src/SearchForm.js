@@ -27,7 +27,7 @@ export default class SearchForm extends React.Component
                 ref = {this._queryStringRef}
                 autoFocus
             />
-            <button type="submit" alt="Search the database." />
+            <button type="submit" title="Search the database." />
             </form>
         ) ;
     }

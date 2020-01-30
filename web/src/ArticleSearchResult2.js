@@ -92,8 +92,8 @@ export class ArticleSearchResult2
         const content = <div>
             <div className="image-container">
                 <div className="row image">
-                    <img src={imageUrl} className="image" onError={onMissingImage} onClick={() => onUploadImage(null)} ref={r => imageRef=r} alt="Click to upload an image for this article." />
-                    <img src="/images/delete.png" className="remove-image" onClick={onRemoveImage} ref={r => removeImageRef=r} alt="Remove the article's image." />
+                    <img src={imageUrl} className="image" onError={onMissingImage} onClick={() => onUploadImage(null)} ref={r => imageRef=r} alt="Upload image." title="Click to upload an image for this article." />
+                    <img src="/images/delete.png" className="remove-image" onClick={onRemoveImage} ref={r => removeImageRef=r} alt="Remove image." title="Remove the article's image." />
                     <input type="file" accept="image/*" onChange={onUploadImage} style={{display:"none"}} ref={r => uploadImageRef=r} />
                 </div>
             </div>
@@ -108,7 +108,7 @@ export class ArticleSearchResult2
                     defaultValue = {currPub}
                     ref = { r => refs.pub_id=r }
                 />
-                <input className="pageno" type="text" defaultValue={vals.article_pageno} ref={r => refs.article_pageno=r} alt="Page number." />
+                <input className="pageno" type="text" defaultValue={vals.article_pageno} ref={r => refs.article_pageno=r} title="Page number." />
             </div>
             <div className="row snippet"> <label> Snippet: </label>
                 <textarea defaultValue={vals.article_snippet} ref={r => refs.article_snippet=r} />
