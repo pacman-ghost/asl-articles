@@ -59,7 +59,7 @@ def make_ok_response( extras=None, updated=None, warnings=None ):
     if updated:
         resp[ "updated" ] = updated
     if warnings:
-        resp[ "warnings" ] = warnings
+        resp[ "warnings" ] = list( set( warnings ) ) # nb: remove duplicate messages
     return jsonify( resp )
 
 # ---------------------------------------------------------------------
