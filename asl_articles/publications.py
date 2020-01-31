@@ -59,6 +59,7 @@ def get_publication_vals( pub, add_type=False ):
         "pub_image_id": pub.pub_id if pub.pub_image else None,
         "pub_tags": decode_tags( pub.pub_tags ),
         "publ_id": pub.publ_id,
+        "time_created": int( pub.time_created.timestamp() ) if pub.time_created else None,
     }
     if add_type:
         vals[ "type" ] = "publication"

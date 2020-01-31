@@ -1,6 +1,7 @@
 import React from "react" ;
 import Select from "react-select" ;
 import CreatableSelect from "react-select/creatable" ;
+import { NEW_ARTICLE_PUB_PRIORITY_CUTOFF } from "./constants.js" ;
 import { PublicationSearchResult } from "./PublicationSearchResult.js" ;
 import { gAppRef } from "./index.js" ;
 import { ImageFileUploader } from "./FileUploader.js" ;
@@ -13,7 +14,9 @@ export class ArticleSearchResult2
 
     static _doEditArticle( vals, notify ) {
 
+        // initialize
         let refs = {} ;
+        const isNew = Object.keys( vals ).length === 0 ;
 
         // initialize the image
         let imageFilename=null, imageData=null ;
@@ -44,14 +47,29 @@ export class ArticleSearchResult2
 
         // initialize the publications
         let publications = [ { value: null, label: <i>(none)</i> } ] ;
+        let mostRecentPub = null ;
         for ( let p of Object.entries(gAppRef.caches.publications) ) {
             const pub_display_name = PublicationSearchResult.makeDisplayName( p[1] ) ;
-            publications.push( {
+            const pub = {
                 value: p[1].pub_id,
-                label: <span dangerouslySetInnerHTML={{__html: pub_display_name}} />
-            } ) ;
+                label: <span dangerouslySetInnerHTML={{__html: pub_display_name}} />,
+            } ;
+            publications.push( pub ) ;
+            if ( mostRecentPub === null || p[1].time_created > mostRecentPub[1] )
+                mostRecentPub = [ pub, p[1].time_created ] ;
         }
         sortSelectableOptions( publications ) ;
+        if ( isNew && mostRecentPub ) {
+            // NOTE: If the user is creating a new article, we check for the most recently-created publication
+            // and put that at the the top of list. This makes things easier in the most common use-case:
+            // the user has received a new magazine and is entering all the articles from it.
+            const now = new Date() / 1000 | 0 ;
+            const delta = now - mostRecentPub[1] ; // nb: we ignore server/client time zones
+            if ( delta <= NEW_ARTICLE_PUB_PRIORITY_CUTOFF ) {
+                publications = publications.filter( p => p !== mostRecentPub[0] ) ;
+                publications.splice( 1, 0, mostRecentPub[0] ) ;
+            }
+        }
         let currPub = publications[0] ;
         for ( let i=1; i < publications.length ; ++i ) {
             if ( publications[i].value === vals.pub_id ) {
@@ -183,7 +201,6 @@ export class ArticleSearchResult2
         } ;
 
         // show the form
-        const isNew = Object.keys( vals ).length === 0 ;
         gAppRef.showModalForm( "article-form", isNew?"New article":"Edit article", "#d3edfc", content, buttons ) ;
     }
 
