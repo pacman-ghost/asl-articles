@@ -47,14 +47,14 @@ export class PublicationSearchResult2
 
             // initialize the publishers
             let publishers = [ { value: null, label: <i>(none)</i> } ] ;
-            let currPubl = 0 ;
+            let currPubl = publishers[0] ;
             for ( let p of Object.entries(gAppRef.caches.publishers) ) {
                 publishers.push( {
                     value: p[1].publ_id,
                     label: <span dangerouslySetInnerHTML={{__html: p[1].publ_name}} />
                 } ) ;
                 if ( p[1].publ_id === vals.publ_id )
-                    currPubl = publishers.length - 1 ;
+                    currPubl = publishers[ publishers.length-1 ] ;
             }
             sortSelectableOptions( publishers ) ;
 
@@ -123,7 +123,7 @@ export class PublicationSearchResult2
                 </div>
                 <div className="row publisher"> <label className="select top"> Publisher: </label>
                     <Select className="react-select" classNamePrefix="react-select" options={publishers} isSearchable={true}
-                        defaultValue = { publishers[ currPubl ] }
+                        defaultValue = {currPubl}
                         ref = { r => refs.publ_id=r }
                     />
                 </div>
