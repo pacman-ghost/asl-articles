@@ -1,6 +1,6 @@
 """ Test search operations. """
 
-from asl_articles.search import SearchDbConn, _make_fts_query_string
+from asl_articles.search import _make_fts_query_string
 
 from asl_articles.tests.test_publishers import create_publisher, edit_publisher
 from asl_articles.tests.test_publications import create_publication, edit_publication
@@ -268,42 +268,6 @@ def test_highlighting( webdriver, flask_app, dbconn ):
         "The Jungle Isn't Neutral",
         [], ["PTO"], [], [], [], ["PTO"]
     )
-
-# ---------------------------------------------------------------------
-
-def test_html_stripping( webdriver, flask_app, dbconn ):
-    """Test HTML stripping of searchable content."""
-
-    # initialize
-    init_tests( webdriver, flask_app, dbconn )
-
-    # create objects with HTML content
-    create_publisher( {
-        "name": "A <b>bold</b> publisher",
-        "description": "This is some <b>bold text</b>, this is <i>italic</i>."
-    } )
-    create_publication( {
-        "name": "A <b>bold</b> publication",
-        "edition": "75<u>L</u>",
-        "description": "This is some <b>bold text</b>, this is <i>italic</i>.",
-        "tags": [ "+<b>bold</b>", "+<i>italic</i>" ]
-    }, toast_type="warning" )
-    create_article( {
-         "title": "An <i>italic</i> article",
-         "subtitle": "A <b>bold</b> subtitle",
-         "authors": [ "+Joe <u>Underlined</u>" ],
-         "tags": [ "+<b>bold</b>", "+<i>italic</i>" ],
-         "scenarios": [ "+<b>bold</b> [B1]", "+<i>italic</i> [I1]" ],
-         "snippet": "This is some <b>bold text</b>, this is <i>italic</i>."
-    }, toast_type="warning" )
-
-    # check if the search index contains any HTML
-    def is_html_clean( val ):
-        return "<" not in val and ">" not in val if val else True
-    with SearchDbConn() as dbconn2:
-        curs = dbconn2.conn.execute( "SELECT * FROM searchable" )
-        for row in curs:
-            assert all( is_html_clean(v) for v in row )
 
 # ---------------------------------------------------------------------
 

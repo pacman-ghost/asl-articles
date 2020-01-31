@@ -13,7 +13,7 @@ from asl_articles.models import Publisher, Publication, Article, Author, Scenari
 from asl_articles.publishers import get_publisher_vals
 from asl_articles.publications import get_publication_vals
 from asl_articles.articles import get_article_vals
-from asl_articles.utils import clean_html, decode_tags, to_bool
+from asl_articles.utils import decode_tags, to_bool
 
 _search_index_path = None
 _logger = logging.getLogger( "search" )
@@ -309,10 +309,8 @@ def _do_add_or_update_searchable( dbconn, owner_type, owner, obj ):
         f: getattr( obj,fields[f] ) if isinstance( fields[f], str ) else fields[f]( obj )
         for f in fields
     }
-    vals = {
-        k: clean_html( v, allow_tags=[], safe_attrs=[] )
-        for k,v in vals.items()
-    }
+    # NOTE: We used to strip HTML here, but we prefer to see formatted content
+    # when search results are presented to the user.
 
     def do_add_or_update( dbconn ):
         dbconn.conn.execute( "INSERT INTO searchable"
