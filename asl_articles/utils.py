@@ -64,7 +64,7 @@ def make_ok_response( extras=None, updated=None, warnings=None ):
 
 # ---------------------------------------------------------------------
 
-def clean_html( val, allow_tags=None, safe_attrs=None ): #pylint: disable=too-many-branches
+def clean_html( val, allow_tags=None, safe_attrs=None ): #pylint: disable=too-many-locals,too-many-branches
     """Sanitize HTML using a whitelist."""
 
     # check if we need to do anything
@@ -88,6 +88,23 @@ def clean_html( val, allow_tags=None, safe_attrs=None ): #pylint: disable=too-ma
     val = replace_chars( val, r"\1 - \2", [ re.compile( r"(\S+)\u2014(\S+)" ) ] )
     val = replace_chars( val, "-", [ "\u2014" ] )
 
+    # FUDGE! lxml replaces HTML entities with their actual character :-/ It's possible to stop it from doing this,
+    # by passing in an ElementTree, which gives us an ElementTree back, and we can then control how it is serialized
+    # back into a string e.g.
+    #   html = lxml.html.fromstring( val )
+    #   html = cleaner.clean_html( html )
+    #   val = lxml.html.tostring( html, encoding="ascii" ).decode( encoding="ascii" )
+    # but the original HTML entities are converted into numeric e.g. "&egrave;" => "&#232;" :-/
+    # We hack around this by replacing all HTML entities with a special marker string, clean the HTML,
+    # then replace all the marker strings with their original HTML entities :-/
+    markers = {}
+    matches = list( re.finditer( "&[a-z]+;", val ) )
+    matches = reversed( matches )
+    for n,mo in enumerate(matches):
+        marker = "[!${}$!]".format( n )
+        markers[ marker ] = mo.group()
+        val = val[:mo.start()] + marker + val[mo.end():]
+
     # strip the HTML
     args = {}
     if allow_tags is None:
@@ -105,6 +122,10 @@ def clean_html( val, allow_tags=None, safe_attrs=None ): #pylint: disable=too-ma
         args[ "safe_attrs" ] = safe_attrs
     cleaner = lxml.html.clean.Cleaner( **args )
     buf = cleaner.clean_html( val )
+
+    # restore the HTML entities
+    for marker,entity in markers.items():
+        buf = buf.replace( marker, entity )
 
     # clean up the results
     while True:
