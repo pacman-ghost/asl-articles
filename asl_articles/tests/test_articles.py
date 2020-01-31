@@ -376,16 +376,7 @@ def create_article( vals, toast_type="info" ):
     # create the new article
     select_main_menu_option( "new-article" )
     dlg = wait_for_elem( 2, "#article-form" )
-    for key,val in vals.items():
-        if key in ["authors","scenarios","tags"]:
-            select = ReactSelect( find_child( ".row.{} .react-select".format(key), dlg ) )
-            select.update_multiselect_values( *val )
-        elif key == "publication":
-            select = ReactSelect( find_child( ".row.publication .react-select", dlg ) )
-            select.select_by_name( val )
-        else:
-            sel = ".row.{} {}".format( key , "textarea" if key == "snippet" else "input" )
-            set_elem_text( find_child( sel, dlg ), val )
+    _update_values( dlg, vals )
     find_child( "button.ok", dlg ).click()
 
     if toast_type:
@@ -408,6 +399,24 @@ def edit_article( sr, vals, toast_type="info", expected_error=None ): #pylint: d
     dlg = wait_for_elem( 2, "#article-form" )
 
     # update the specified article's details
+    _update_values( dlg, vals )
+    set_toast_marker( toast_type )
+    find_child( "button.ok", dlg ).click()
+
+    # check what happened
+    if expected_error:
+        # we were expecting an error, confirm the error message
+        check_error_msg( expected_error )
+    else:
+        # we were expecting the update to work, confirm this
+        expected = "updated OK" if sr else "created OK"
+        wait_for( 2,
+            lambda: check_toast( toast_type, expected, contains=True )
+        )
+        wait_for_not_elem( 2, "#article-form" )
+
+def _update_values( dlg, vals ):
+    """Update an article's values in the form."""
     for key,val in vals.items():
         if key == "image":
             if val:
@@ -424,26 +433,12 @@ def edit_article( sr, vals, toast_type="info", expected_error=None ): #pylint: d
             select.update_multiselect_values( *val )
         else:
             if key == "snippet":
-                sel = ".row.{} textarea".format( key )
+                sel = ".row.snippet textarea"
             elif key == "pageno":
                 sel = "input.pageno"
             else:
                 sel = ".row.{} input".format( key )
             set_elem_text( find_child( sel, dlg ), val )
-    set_toast_marker( toast_type )
-    find_child( "button.ok", dlg ).click()
-
-    # check what happened
-    if expected_error:
-        # we were expecting an error, confirm the error message
-        check_error_msg( expected_error )
-    else:
-        # we were expecting the update to work, confirm this
-        expected = "updated OK" if sr else "created OK"
-        wait_for( 2,
-            lambda: check_toast( toast_type, expected, contains=True )
-        )
-        wait_for_not_elem( 2, "#article-form" )
 
 # ---------------------------------------------------------------------
 

@@ -57,6 +57,7 @@ export class PublicationSearchResult extends React.Component
                 <div className="description" dangerouslySetInnerHTML={{__html: display_description}} />
             </div>
             <div className="footer">
+                { this.props.data.pub_date && <div> <label>Published:</label> <span className="pub_date"> {this.props.data.pub_date} </span> </div> }
                 { tags.length > 0 && <div className="tags"> <label>Tags:</label> {tags} </div> }
             </div>
         </div> ) ;

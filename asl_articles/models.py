@@ -35,6 +35,7 @@ class Publication( db.Model ):
     pub_id = db.Column( db.Integer, primary_key=True )
     pub_name = db.Column( db.String(100), nullable=False )
     pub_edition = db.Column( db.String(100) )
+    pub_date = db.Column( db.String(100) ) # nb: this is just a display string
     pub_description = db.Column( db.String(1000) )
     pub_url = db.Column( db.String(500) )
     pub_tags = db.Column( db.String(1000) )

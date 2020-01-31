@@ -33,13 +33,16 @@ def test_edit_publication( webdriver, flask_app, dbconn ):
     edit_publication( sr, {
         "name": "  ASL Journal (updated)  ",
         "edition": "  2a  ",
+        "pub_date": "Jan 2020",
         "description": "  Updated ASLJ description.  ",
         "tags": [ "+abc", "+xyz" ],
         "url": "  http://aslj-updated.com  ",
     } )
 
     # check that the search result was updated in the UI
-    expected = [ "ASL Journal (updated)", "2a", "Updated ASLJ description.", ["abc","xyz"], "http://aslj-updated.com/" ]
+    expected = [ "ASL Journal (updated)", "2a", "Jan 2020",
+        "Updated ASLJ description.", ["abc","xyz"], "http://aslj-updated.com/"
+    ]
     sr = find_search_result( "ASL Journal (updated) (2a)" )
     check_search_result( sr, _check_sr, expected )
 
@@ -69,14 +72,15 @@ def test_create_publication( webdriver, flask_app, dbconn ):
     edit_publication( None, { # nb: the form is still on-screen
         "name": "New publication",
         "edition": "#1",
+        "pub_date": "1st January, 1900",
         "description": "New publication description.",
         "tags": [ "+111", "+222", "+333" ],
         "url": "http://new-publication.com"
     } )
 
     # check that the new publication appears in the UI
-    expected = [ "New publication", "#1", "New publication description.",
-        ["111","222","333"], "http://new-publication.com/"
+    expected = [ "New publication", "#1", "1st January, 1900",
+        "New publication description.", ["111","222","333"], "http://new-publication.com/"
     ]
     check_search_result( "New publication (#1)", _check_sr, expected )
 
@@ -337,6 +341,7 @@ def test_unicode( webdriver, flask_app, dbconn ):
     assert len( results ) == 1
     check_search_result( results[0], _check_sr, [
         "japan = \u65e5\u672c",  "\u263a",
+        None,
         "greece = \u0395\u03bb\u03bb\u03ac\u03b4\u03b1",
         [ "\u0e51", "\u0e52", "\u0e53" ],
         "http://xn--3e0b707e.com/"
@@ -365,6 +370,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
     sr = check_search_result( None, _check_sr, [
         "name: bold xxx italic {}".format( replace[1] ),
         "2",
+        None,
         "bad stuff here: {}".format( replace[1] ),
         [], None
     ] )
@@ -509,17 +515,7 @@ def create_publication( vals, toast_type="info" ):
     # create the new publication
     select_main_menu_option( "new-publication" )
     dlg = wait_for_elem( 2, "#publication-form" )
-    for key,val in vals.items():
-        if key == "name":
-            elem = find_child( ".row.name .react-select input", dlg )
-            set_elem_text( elem, val )
-            elem.send_keys( Keys.RETURN )
-        elif key == "tags":
-            select = ReactSelect( find_child( ".row.tags .react-select", dlg ) )
-            select.update_multiselect_values( *val )
-        else:
-            sel = ".row.{} {}".format( key , "textarea" if key == "description" else "input" )
-            set_elem_text( find_child( sel, dlg ), val )
+    _update_values( dlg, vals )
     find_child( "button.ok", dlg ).click()
 
     if toast_type:
@@ -540,6 +536,24 @@ def edit_publication( sr, vals, toast_type="info", expected_error=None ):
     dlg = wait_for_elem( 2, "#publication-form" )
 
     # update the specified publication's details
+    _update_values( dlg, vals )
+    set_toast_marker( toast_type )
+    find_child( "button.ok", dlg ).click()
+
+    # check what happened
+    if expected_error:
+        # we were expecting an error, confirm the error message
+        check_error_msg( expected_error )
+    else:
+        # we were expecting the update to work, confirm this
+        expected = "updated OK" if sr else "created OK"
+        wait_for( 2,
+            lambda: check_toast( toast_type, expected, contains=True )
+        )
+        wait_for_not_elem( 2, "#publication-form" )
+
+def _update_values( dlg, vals ):
+    """Update a publication's values in the form."""
     for key,val in vals.items():
         if key == "image":
             if val:
@@ -559,22 +573,13 @@ def edit_publication( sr, vals, toast_type="info", expected_error=None ):
             select = ReactSelect( find_child( ".row.tags .react-select", dlg ) )
             select.update_multiselect_values( *val )
         else:
-            sel = ".row.{} {}".format( key , "textarea" if key == "description" else "input" )
+            if key == "edition":
+                sel = "input.edition"
+            elif key == "description":
+                sel = ".row.description textarea"
+            else:
+                sel = ".row.{} input".format( key )
             set_elem_text( find_child( sel, dlg ), val )
-    set_toast_marker( toast_type )
-    find_child( "button.ok", dlg ).click()
-
-    # check what happened
-    if expected_error:
-        # we were expecting an error, confirm the error message
-        check_error_msg( expected_error )
-    else:
-        # we were expecting the update to work, confirm this
-        expected = "updated OK" if sr else "created OK"
-        wait_for( 2,
-            lambda: check_toast( toast_type, expected, contains=True )
-        )
-        wait_for_not_elem( 2, "#publication-form" )
 
 # ---------------------------------------------------------------------
 
@@ -588,20 +593,29 @@ def _check_sr( sr, expected ):
     if find_child( ".name", sr ).text != expected_name:
         return False
 
+    # check the publication date
+    elem = find_child( ".pub_date", sr )
+    if expected[2]:
+        assert elem
+        if elem.text != expected[2]:
+            return False
+    else:
+        assert elem is None
+
     # check the description
-    if find_child( ".description", sr ).text != expected[2]:
+    if find_child( ".description", sr ).text != expected[3]:
         return False
 
     # check the tags
     tags = [ t.text for t in find_children( ".tag", sr ) ]
-    if tags != expected[3]:
+    if tags != expected[4]:
         return False
 
     # check the publication's link
     elem = find_child( "a.open-link", sr )
-    if expected[4]:
+    if expected[5]:
         assert elem
-        if elem.get_attribute( "href" ) != expected[4]:
+        if elem.get_attribute( "href" ) != expected[5]:
             return False
     else:
         assert elem is None

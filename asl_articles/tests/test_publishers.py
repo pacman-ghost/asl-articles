@@ -394,9 +394,7 @@ def create_publisher( vals, toast_type="info" ):
     # create the new publisher
     select_main_menu_option( "new-publisher" )
     dlg = wait_for_elem( 2, "#publisher-form" )
-    for key,val in vals.items():
-        sel = ".row.{} {}".format( key , "textarea" if key == "description" else "input" )
-        set_elem_text( find_child( sel, dlg ), val )
+    _update_values( dlg, vals )
     find_child( "button.ok", dlg ).click()
 
     if toast_type:
@@ -419,17 +417,7 @@ def edit_publisher( sr, vals, toast_type="info", expected_error=None ):
     dlg = wait_for_elem( 2, "#publisher-form" )
 
     # update the specified publisher's details
-    for key,val in vals.items():
-        if key == "image":
-            if val:
-                data = base64.b64encode( open( val, "rb" ).read() )
-                data = "{}|{}".format( os.path.split(val)[1], data.decode("ascii") )
-                change_image( find_child( ".row.image img.image", dlg ), data )
-            else:
-                find_child( ".row.image .remove-image", dlg ).click()
-        else:
-            sel = ".row.{} {}".format( key , "textarea" if key == "description" else "input" )
-            set_elem_text( find_child( sel, dlg ), val )
+    _update_values( dlg, vals )
     set_toast_marker( toast_type )
     find_child( "button.ok", dlg ).click()
 
@@ -444,6 +432,20 @@ def edit_publisher( sr, vals, toast_type="info", expected_error=None ):
             lambda: check_toast( toast_type, expected, contains=True )
         )
         wait_for_not_elem( 2, "#publisher-form" )
+
+def _update_values( dlg, vals ):
+    """Update a publishers's values in the form."""
+    for key,val in vals.items():
+        if key == "image":
+            if val:
+                data = base64.b64encode( open( val, "rb" ).read() )
+                data = "{}|{}".format( os.path.split(val)[1], data.decode("ascii") )
+                change_image( find_child( ".row.image img.image", dlg ), data )
+            else:
+                find_child( ".row.image .remove-image", dlg ).click()
+        else:
+            sel = ".row.{} {}".format( key , "textarea" if key == "description" else "input" )
+            set_elem_text( find_child( sel, dlg ), val )
 
 # ---------------------------------------------------------------------
 

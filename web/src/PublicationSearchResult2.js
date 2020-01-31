@@ -117,9 +117,10 @@ export class PublicationSearchResult2
                         defaultValue = {currPub}
                         ref = { r => refs.pub_name=r }
                     />
+                    <input className="edition" type="text" defaultValue={vals.pub_edition} ref={r => refs.pub_edition=r} title="Publication edition." />
                 </div>
-                <div className="row edition"> <label className="top"> Edition: </label>
-                    <input type="text" defaultValue={vals.pub_edition} ref={r => refs.pub_edition=r} />
+                <div className="row pub_date"> <label className="select top"> Date: </label>
+                    <input className="pub_date" type="text" defaultValue={vals.pub_date} ref={r => refs.pub_date=r} />
                 </div>
                 <div className="row publisher"> <label className="select top"> Publisher: </label>
                     <Select className="react-select" classNamePrefix="react-select" options={publishers} isSearchable={true}

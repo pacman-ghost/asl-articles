@@ -16,7 +16,7 @@ from asl_articles.utils import get_request_args, clean_request_args, clean_tags,
 
 _logger = logging.getLogger( "db" )
 
-_FIELD_NAMES = [ "*pub_name", "pub_edition", "pub_description", "pub_url", "pub_tags", "publ_id" ]
+_FIELD_NAMES = [ "*pub_name", "pub_edition", "pub_description", "pub_date", "pub_url", "pub_tags", "publ_id" ]
 
 # ---------------------------------------------------------------------
 
@@ -54,6 +54,7 @@ def get_publication_vals( pub, add_type=False ):
         "pub_id": pub.pub_id,
         "pub_name": pub.pub_name,
         "pub_edition": pub.pub_edition,
+        "pub_date": pub.pub_date,
         "pub_description": pub.pub_description,
         "pub_url": pub.pub_url,
         "pub_image_id": pub.pub_id if pub.pub_image else None,
