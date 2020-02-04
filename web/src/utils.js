@@ -13,24 +13,32 @@ export function checkConstraints( required, requiredCaption, optional, optionalC
     }
 
     // check the required constraints
-    let msgs = [] ;
+    let msgs=[], setFocusTo=null ;
     if ( required ) {
         for ( let constraint of required ) {
-            if ( constraint[0]() )
+            if ( constraint[0]() ) {
                 msgs.push( constraint[1] ) ;
+                if ( constraint[2] && !setFocusTo )
+                    setFocusTo = constraint[2] ;
+            }
         }
     }
     if ( msgs.length > 0 ) {
-        gAppRef.showErrorMsg( makeSmartBulletList( requiredCaption, msgs, "constraint" ) ) ;
+        gAppRef.showErrorMsg(
+            makeSmartBulletList( requiredCaption, msgs, "constraint" ),
+            setFocusTo
+        ) ;
         return ;
     }
 
     // check the optional constraints
-    msgs = [] ;
     if ( optional ) {
         for ( let constraint of optional ) {
-            if ( constraint[0]() )
+            if ( constraint[0]() ) {
                 msgs.push( constraint[1] ) ;
+                if ( constraint[2] && !setFocusTo )
+                    setFocusTo = constraint[2] ;
+            }
         }
     }
     if ( msgs.length > 0 ) {
@@ -39,7 +47,7 @@ export function checkConstraints( required, requiredCaption, optional, optionalC
         gAppRef.ask( content, "ask", {
             OK: () => { accept() },
             Cancel: null
-        } ) ;
+        }, setFocusTo ) ;
         return ;
     }
 

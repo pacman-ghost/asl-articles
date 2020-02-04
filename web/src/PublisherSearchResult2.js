@@ -82,8 +82,8 @@ export class PublisherSearchResult2
                 }
                 // check the new values
                 const required = [
-                    [ () => newVals.publ_name === "", "Please give them a name." ],
-                    [ () => isNew && checkForDupe(newVals.publ_name), "There is already a publisher with this name." ],
+                    [ () => newVals.publ_name === "", "Please give them a name.", refs.publ_name ],
+                    [ () => isNew && checkForDupe(newVals.publ_name), "There is already a publisher with this name.", refs.publ_name ],
                 ] ;
                 const verb = isNew ? "create" : "update" ;
                 checkConstraints(

@@ -44,6 +44,7 @@ export default class App extends React.Component
         // initialize
         this._searchFormRef = React.createRef() ;
         this._modalFormRef = React.createRef() ;
+        this._setFocusTo = null ;
 
         // figure out the base URL of the Flask backend server
         // NOTE: We allow the caller to do this since the test suite will usually spin up
@@ -137,6 +138,17 @@ export default class App extends React.Component
         window.addEventListener( "keydown", this.onKeyDown.bind( this ) ) ;
     }
 
+    componentDidUpdate() {
+        // we've finished rendering the page, check if we should set focus
+        if ( this._setFocusTo ) {
+            if ( this._setFocusTo.current )
+                this._setFocusTo.current.focus() ;
+            else
+                this._setFocusTo.focus() ;
+        }
+        this._setFocusTo = null ;
+    }
+
     componentWillUnmount() {
         // clean up
         window.removeEventListener( "keydown", this.onKeyDown ) ;
@@ -145,9 +157,9 @@ export default class App extends React.Component
     onSearch( query ) {
         // run the search
         query = query.trim() ;
+        const queryStringRef = this._searchFormRef.current.queryStringRef.current ;
         if ( query.length === 0 ) {
-            this.focusQueryString() ;
-            this.showErrorMsg( "Please enter something to search for." )
+            this.showErrorMsg( "Please enter something to search for.", queryStringRef )
             return ;
         }
         axios.post( this.makeFlaskUrl( "/search" ), {
@@ -155,8 +167,8 @@ export default class App extends React.Component
             no_hilite: this._disableSearchResultHighlighting,
         } )
         .then( resp => {
+            this._setFocusTo = queryStringRef ;
             this.setState( { searchResults: resp.data, searchSeqNo: this.state.searchSeqNo+1 } ) ;
-            this.focusQueryString() ;
         } )
         .catch( err => {
             this.showErrorResponse( "The search query failed", err ) ;
@@ -198,8 +210,8 @@ export default class App extends React.Component
     }
 
     closeModalForm() {
+        this._setFocusTo = this._searchFormRef.current.queryStringRef ;
         this.setState( { modalForm: null } ) ;
-        setTimeout( () => { this.focusQueryString() ; }, 100 ) ;
     }
 
     showInfoToast( msg ) { this._doShowToast( "info", msg, 5*1000 ) ; }
@@ -229,17 +241,19 @@ export default class App extends React.Component
             else
                 content = <div className="monospace"> {err.response.data} </div> ;
         }
+        const msg = err.response ? err.response.statusText : err ;
         const buttons = { Close: () => this.closeModalForm() } ;
-        this.showModalForm( "error-response", err.response.statusText, "red",
+        this.showModalForm( "error-response", msg, "red",
             <div> {caption}: {content} </div>,
             buttons
         ) ;
     }
 
-    showErrorMsg( content ) {
+    showErrorMsg( content, setFocusTo ) {
         // show the error message in a modal dialog
         this.ask( content, "error",
-            { "OK": null }
+            { "OK": null },
+            setFocusTo
         ) ;
     }
 
@@ -247,7 +261,7 @@ export default class App extends React.Component
         this.showWarningToast( makeSmartBulletList( caption, warnings ) ) ;
     }
 
-    ask( content, iconType, buttons ) {
+    ask( content, iconType, buttons, setFocusTo ) {
         // prepare the buttons
         let buttons2 = [] ;
         for ( let b in buttons ) {
@@ -257,6 +271,7 @@ export default class App extends React.Component
                 if ( notify )
                     notify() ;
                 // dismiss the dialog
+                this._setFocusTo = setFocusTo ? setFocusTo : this._searchFormRef.current.queryStringRef ;
                 this.setState( { askDialog: null } ) ;
             } ;
         }
@@ -335,11 +350,6 @@ export default class App extends React.Component
         }
         this.state.startupTasks.splice( pos, 1 ) ;
         this.setState( { startupTasks: this.state.startupTasks } ) ;
-    }
-
-    focusQueryString() {
-        if ( this._searchFormRef.current )
-            this._searchFormRef.current.focusQueryString() ;
     }
 
     isTestMode() { return process.env.REACT_APP_TEST_MODE ; }

@@ -192,15 +192,15 @@ export class ArticleSearchResult2
                 }
                 // check the new values
                 const required = [
-                    [ () => newVals.article_title === "", "Please give it a title." ],
+                    [ () => newVals.article_title === "", "Please give it a title.", refs.article_title ],
                 ] ;
                 const optional = [
-                    [ () => newVals.pub_id === null, "No publication was specified." ],
-                    [ () => newVals.article_pageno === "" && newVals.pub_id !== null, "No page number was specified." ],
-                    [ () => newVals.article_pageno !== "" && newVals.pub_id === null, "A page number was specified but no publication." ],
-                    [ () => newVals.article_pageno !== "" && !isNumeric(newVals.article_pageno), "The page number is not numeric." ],
-                    [ () => newVals.article_snippet === "", "No snippet was provided." ],
-                    [ () => newVals.article_authors.length === 0, "No authors were specified." ],
+                    [ () => newVals.pub_id === null, "No publication was specified.", refs.pub_id ],
+                    [ () => newVals.article_pageno === "" && newVals.pub_id !== null, "No page number was specified.", refs.article_pageno ],
+                    [ () => newVals.article_pageno !== "" && newVals.pub_id === null, "A page number was specified but no publication.", refs.pub_id ],
+                    [ () => newVals.article_pageno !== "" && !isNumeric(newVals.article_pageno), "The page number is not numeric.", refs.article_pageno ],
+                    [ () => newVals.article_snippet === "", "No snippet was provided.", refs.article_snippet ],
+                    [ () => newVals.article_authors.length === 0, "No authors were specified.", refs.article_authors ],
                 ] ;
                 const verb = isNew ? "create" : "update" ;
                 checkConstraints(

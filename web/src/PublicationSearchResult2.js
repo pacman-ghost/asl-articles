@@ -209,14 +209,14 @@ export class PublicationSearchResult2
                     newVals.imageFilename = imageFilename ;
                 }
                 const required = [
-                    [ () => newVals.pub_name === undefined, "Please give it a name." ],
-                    [ () => isNew && checkForDupe(newVals), "There is already a publication with this name/edition." ],
+                    [ () => newVals.pub_name === undefined, "Please give it a name.", refs.pub_name ],
+                    [ () => isNew && checkForDupe(newVals), "There is already a publication with this name/edition.", refs.pub_edition ],
                 ] ;
                 const optional = [
-                    [ () => newVals.pub_name !== undefined && newVals.pub_edition === "", "The publication's edition was not specified." ],
-                    [ () => newVals.pub_date === "", "The publication date was not specified." ],
-                    [ () => newVals.publ_id === null, "A publisher was not specified." ],
-                    [ () => checkArticlePageNumbers(articles), "Some article page numbers are out of order." ],
+                    [ () => newVals.pub_name !== undefined && newVals.pub_edition === "", "The publication's edition was not specified.", refs.pub_edition ],
+                    [ () => newVals.pub_date === "", "The publication date was not specified.", refs.pub_date ],
+                    [ () => newVals.publ_id === null, "A publisher was not specified.", refs.publ_id ],
+                    [ () => checkArticlePageNumbers(articles), "Some article page numbers are out of order.", null ],
                 ] ;
                 const verb = isNew ? "create" : "update" ;
                 checkConstraints(
