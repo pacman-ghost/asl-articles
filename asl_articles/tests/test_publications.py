@@ -15,7 +15,7 @@ from asl_articles.tests.test_articles import create_article, edit_article
 from asl_articles.tests.utils import init_tests, load_fixtures, select_main_menu_option, select_sr_menu_option, \
     do_search, get_search_results, get_search_result_names, check_search_result, \
     wait_for, wait_for_elem, wait_for_not_elem, find_child, find_children, find_search_result, set_elem_text, \
-    set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg, \
+    set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg, check_constraint_warnings, \
     change_image, get_publication_row
 from asl_articles.tests.react_select import ReactSelect
 
@@ -40,19 +40,29 @@ def test_edit_publication( webdriver, flask_app, dbconn ):
     } )
 
     # check that the search result was updated in the UI
-    expected = [ "ASL Journal (updated)", "2a", "Jan 2020",
-        "Updated ASLJ description.", ["abc","xyz"], "http://aslj-updated.com/"
-    ]
     sr = find_search_result( "ASL Journal (updated) (2a)" )
-    check_search_result( sr, _check_sr, expected )
+    check_search_result( sr, _check_sr, [
+        "ASL Journal (updated)", "2a", "Jan 2020",
+        "Updated ASLJ description.", ["abc","xyz"], "http://aslj-updated.com/"
+    ] )
 
-    # NOTE: We used to try to remove all fields from "ASL Journal #2" (which should fail, since we can't
-    # have an empty name), but we can no longer remove an existing publication name (which is OK, since we
-    # don't want to allow that, only change it).
+    # remove all fields from the publication
+    edit_publication( sr, {
+        "name": "ASLJ",
+        "edition": "",
+        "pub_date": "",
+        "description": "",
+        "tags": [ "-abc", "-xyz" ],
+        "url": "",
+    } )
+
+    # check that the search result was updated in the UI
+    expected = [ "ASLJ", "", "", "", [], "" ]
+    check_search_result( sr, _check_sr, expected )
 
     # check that the publication was updated in the database
     results = do_search( SEARCH_ALL_PUBLICATIONS )
-    sr = find_search_result( "ASL Journal (updated) (2a)", results )
+    sr = find_search_result( "ASLJ", results )
     check_search_result( sr, _check_sr, expected )
 
 # ---------------------------------------------------------------------
@@ -64,12 +74,8 @@ def test_create_publication( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn, fixtures="publications.json" )
     do_search( SEARCH_ALL_PUBLICATIONS )
 
-    # try creating a publication with no name (should fail)
-    create_publication( {}, toast_type=None )
-    check_error_msg( "Please specify the publication's name." )
-
-    # enter a name and other details
-    edit_publication( None, { # nb: the form is still on-screen
+    # create a new publication
+    create_publication( {
         "name": "New publication",
         "edition": "#1",
         "pub_date": "1st January, 1900",
@@ -88,6 +94,59 @@ def test_create_publication( webdriver, flask_app, dbconn ):
     results = do_search( SEARCH_ALL_PUBLICATIONS )
     sr = find_search_result( "New publication (#1)", results )
     check_search_result( sr, _check_sr, expected )
+
+# ---------------------------------------------------------------------
+
+def test_constraints( webdriver, flask_app, dbconn ):
+    """Test constraint validation."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, enable_constraints=1, fixtures="publications.json" )
+
+    # try to create a publication with no name
+    dlg = create_publication( {}, expected_error="Please give it a name." )
+
+    def do_create_test( vals, expected ):
+        return create_publication( vals, dlg=dlg, expected_constraints=expected )
+    def do_edit_test( sr, vals, expected ):
+        return edit_publication( sr, vals, expected_constraints=expected )
+
+    # set the publication's name
+    do_create_test( { "name": "ASL Journal" }, [
+        "The publication's edition was not specified.",
+        "The publication date was not specified.",
+        "A publisher was not specified.",
+    ] )
+
+    # try to create a duplicate publication
+    create_publication( { "edition": 1 }, dlg=dlg,
+        expected_error = "There is already a publication with this name/edition."
+    )
+
+    # set the publication's edition and date
+    do_create_test( { "edition": 3, "pub_date": "yesterday" }, [
+        "A publisher was not specified.",
+    ] )
+
+    # accept the constraint warnings
+    find_child( "button.ok", dlg ).click()
+    find_child( "#ask button.ok" ).click()
+    results = wait_for( 2, get_search_results )
+    pub_sr = results[0]
+
+    # check that the search result was updated in the UI
+    check_search_result( pub_sr, _check_sr, [
+        "ASL Journal", "3", "yesterday", "", [], ""
+    ] )
+
+    # try editing the publication
+    dlg = do_edit_test( pub_sr, {}, [
+        "A publisher was not specified.",
+    ] )
+    find_child( "button.cancel", dlg ).click()
+
+    # set the publisher
+    do_edit_test( pub_sr, { "publisher": "Avalon Hill" }, None )
 
 # ---------------------------------------------------------------------
 
@@ -505,27 +564,37 @@ def test_article_order( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
-def create_publication( vals, toast_type="info" ):
+def create_publication( vals, toast_type="info", expected_error=None, expected_constraints=None, dlg=None ):
     """Create a new publication."""
 
     # initialize
-    if toast_type:
-        set_toast_marker( toast_type )
+    set_toast_marker( toast_type )
 
     # create the new publication
-    select_main_menu_option( "new-publication" )
-    dlg = wait_for_elem( 2, "#publication-form" )
+    if not dlg:
+        select_main_menu_option( "new-publication" )
+        dlg = wait_for_elem( 2, "#publication-form" )
     _update_values( dlg, vals )
     find_child( "button.ok", dlg ).click()
 
-    if toast_type:
-        # check that the new publication was created successfully
+    # check what happened
+    if expected_error:
+        # we were expecting an error, confirm the error message
+        check_error_msg( expected_error )
+        return dlg # nb: the dialog is left on-screen
+    elif expected_constraints:
+        # we were expecting constraint warnings, confirm them
+        check_constraint_warnings( "Do you want to create this publication?", expected_constraints, "cancel" )
+        return dlg # nb: the dialog is left on-screen
+    else:
+        # we were expecting the create to work, confirm this
         wait_for( 2,
             lambda: check_toast( toast_type, "created OK", contains=True )
         )
         wait_for_not_elem( 2, "#publication-form" )
+        return None
 
-def edit_publication( sr, vals, toast_type="info", expected_error=None ):
+def edit_publication( sr, vals, toast_type="info", expected_error=None, expected_constraints=None ):
     """Edit a publication's details."""
 
     # initialize
@@ -544,6 +613,11 @@ def edit_publication( sr, vals, toast_type="info", expected_error=None ):
     if expected_error:
         # we were expecting an error, confirm the error message
         check_error_msg( expected_error )
+        return dlg # nb: the dialog is left on-screen
+    elif expected_constraints:
+        # we were expecting constraint warnings, confirm them
+        check_constraint_warnings( "Do you want to update this publication?", expected_constraints, "cancel" )
+        return dlg # nb: the dialog is left on-screen
     else:
         # we were expecting the update to work, confirm this
         expected = "updated OK" if sr else "created OK"
@@ -551,6 +625,7 @@ def edit_publication( sr, vals, toast_type="info", expected_error=None ):
             lambda: check_toast( toast_type, expected, contains=True )
         )
         wait_for_not_elem( 2, "#publication-form" )
+        return None
 
 def _update_values( dlg, vals ):
     """Update a publication's values in the form."""

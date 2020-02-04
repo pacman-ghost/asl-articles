@@ -10,8 +10,8 @@ from asl_articles.search import SEARCH_ALL_ARTICLES
 from asl_articles.tests.utils import init_tests, select_main_menu_option, select_sr_menu_option, \
     do_search, get_search_results, find_search_result, get_search_result_names, check_search_result, \
     wait_for, wait_for_elem, wait_for_not_elem, find_child, find_children, \
-    set_elem_text, set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg, \
-    change_image, get_article_row
+    set_elem_text, set_toast_marker, check_toast, send_upload_data, change_image, get_article_row, \
+    check_ask_dialog, check_error_msg, check_constraint_warnings
 from asl_articles.tests.react_select import ReactSelect
 
 # ---------------------------------------------------------------------
@@ -29,29 +29,33 @@ def test_edit_article( webdriver, flask_app, dbconn ):
         "title": "  Updated title  ",
         "subtitle": "  Updated subtitle  ",
         "snippet": "  Updated snippet.  ",
-        "pageno": "  p123  ",
+        "pageno": "  123  ",
+        "authors": [ "+Fred Nerk", "+Joe Blow" ],
         "tags": [ "+abc", "+xyz" ],
         "url": "  http://updated-article.com  ",
     } )
 
     # check that the search result was updated in the UI
     sr = check_search_result( "Updated title", _check_sr, [
-        "Updated title", "Updated subtitle", "Updated snippet.", "p123", ["abc","xyz"], "http://updated-article.com/"
+        "Updated title", "Updated subtitle", "Updated snippet.", "123",
+        [ "Fred Nerk", "Joe Blow" ],
+        [ "abc", "xyz" ],
+        "http://updated-article.com/"
     ] )
 
-    # try to remove all fields from the article (should fail)
-    edit_article( sr,
-        { "title": "", "subtitle": "", "snippet": "", "tags": ["-abc","-xyz"], "url": "" },
-        expected_error = "Please specify the article's title."
-    )
-
-    # enter something for the name
-    dlg = find_child( "#article-form" ) # nb: the form is still on-screen
-    set_elem_text( find_child( ".row.title input", dlg ), "Tin Cans Rock!" )
-    find_child( "button.ok", dlg ).click()
+    # remove all fields from the article
+    edit_article( sr, {
+        "title": "Tin Cans Rock!",
+        "subtitle": "",
+        "snippet": "",
+        "pageno": "",
+        "authors": [ "-Fred Nerk", "-Joe Blow" ],
+        "tags": [ "-abc", "-xyz" ],
+        "url": "",
+    } )
 
     # check that the search result was updated in the UI
-    expected = [ "Tin Cans Rock!", None, "", "", [], None ]
+    expected = [ "Tin Cans Rock!", None, "", "", [], [], None ]
     check_search_result( expected[0], _check_sr, expected )
 
     # check that the article was updated in the database
@@ -67,27 +71,104 @@ def test_create_article( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn, fixtures="articles.json" )
     do_search( SEARCH_ALL_ARTICLES )
 
-    # try creating a article with no name (should fail)
-    create_article( {}, toast_type=None )
-    check_error_msg( "Please specify the article's title." )
-
-    # enter a name and other details
-    edit_article( None, { # nb: the form is still on-screen
+    # create a new article
+    create_article( {
         "title": "New article",
         "subtitle": "New subtitle",
         "snippet": "New snippet.",
         "pageno": "99",
+        "authors": [ "+Me" ],
         "tags": [ "+111", "+222", "+333" ],
         "url": "http://new-snippet.com"
     } )
 
     # check that the new article appears in the UI
-    expected = [ "New article", "New subtitle", "New snippet.", "99", ["111","222","333"], "http://new-snippet.com/" ]
+    expected = [
+        "New article", "New subtitle", "New snippet.", "99",
+        [ "Me" ],
+        [ "111", "222", "333" ],
+        "http://new-snippet.com/"
+    ]
     check_search_result( expected[0], _check_sr, expected )
 
     # check that the new article has been saved in the database
     do_search( SEARCH_ALL_ARTICLES )
     check_search_result( expected[0], _check_sr, expected )
+
+# ---------------------------------------------------------------------
+
+def test_constraints( webdriver, flask_app, dbconn ):
+    """Test constraint validation."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, enable_constraints=1, fixtures="publications.json" )
+
+    # try to create an article with no title
+    dlg = create_article( {}, expected_error="Please give it a title." )
+
+    def do_create_test( vals, expected ):
+        return create_article( vals, dlg=dlg, expected_constraints=expected )
+    def do_edit_test( sr, vals, expected ):
+        return edit_article( sr, vals, expected_constraints=expected )
+
+    # set the article's title
+    do_create_test( { "title": "New article" }, [
+        "No publication was specified.",
+        "No snippet was provided.",
+        "No authors were specified."
+    ] )
+
+    # set the article's page number
+    do_create_test( { "pageno": 99 }, [
+        "No publication was specified.",
+        "A page number was specified but no publication.",
+        "No snippet was provided.",
+        "No authors were specified."
+    ] )
+
+    # assign the article to a publisher
+    do_create_test( { "publication": "MMP News", "pageno": "" }, [
+        "No page number was specified.",
+        "No snippet was provided.",
+        "No authors were specified."
+    ] )
+
+    # set a non-numeric page number
+    do_create_test( { "pageno": "foo!" }, [
+        "The page number is not numeric.",
+        "No snippet was provided.",
+        "No authors were specified."
+    ] )
+
+    # set the article's page number and provide a snippet
+    do_create_test( { "pageno": 123, "snippet": "Article snippet." }, [
+        "No authors were specified."
+    ] )
+
+    # accept the constraint warnings
+    find_child( "button.ok", dlg ).click()
+    find_child( "#ask button.ok" ).click()
+    results = wait_for( 2, get_search_results )
+    article_sr = results[0]
+
+    # check that the search result was updated in the UI
+    check_search_result( article_sr, _check_sr, [
+        "New article", "", "Article snippet.", "123", [], [], None
+    ] )
+
+    # try editing the article
+    dlg = do_edit_test( article_sr, {}, [
+        "No authors were specified."
+    ] )
+    find_child( "button.cancel", dlg ).click()
+
+    # set the article's author
+    do_edit_test( article_sr, { "authors": ["+Joe Blow"] }, None )
+
+    # check that the search result was updated in the UI
+    check_search_result( article_sr, _check_sr, [
+        "New article", "", "Article snippet.", "123", ["Joe Blow"], [], None
+    ] )
 
 # ---------------------------------------------------------------------
 
@@ -293,6 +374,7 @@ def test_unicode( webdriver, flask_app, dbconn ):
         "s.korea = \ud55c\uad6d",
         "greece = \u0395\u03bb\u03bb\u03ac\u03b4\u03b1",
         "",
+        [],
         [ "\u0e51", "\u0e52", "\u0e53" ],
         "http://xn--3e0b707e.com/"
     ] )
@@ -321,7 +403,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
         "title: bold xxx italic {}".format( replace[1] ),
         "italicized subtitle {}".format( replace[1] ),
         "bad stuff here: {}".format( replace[1] ),
-        "", [], None
+        "", [], [], None
     ] )
     assert find_child( ".title", sr ).get_attribute( "innerHTML" ) \
         == "title: <span> <b>bold</b> xxx <i>italic</i> {}</span>".format( replace[1] )
@@ -366,29 +448,39 @@ def test_timestamps( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
-def create_article( vals, toast_type="info" ):
+def create_article( vals, toast_type="info", expected_error=None, expected_constraints=None, dlg=None ):
     """Create a new article."""
 
     # initialize
-    if toast_type:
-        set_toast_marker( toast_type )
+    set_toast_marker( toast_type )
 
     # create the new article
-    select_main_menu_option( "new-article" )
-    dlg = wait_for_elem( 2, "#article-form" )
+    if not dlg:
+        select_main_menu_option( "new-article" )
+        dlg = wait_for_elem( 2, "#article-form" )
     _update_values( dlg, vals )
     find_child( "button.ok", dlg ).click()
 
-    if toast_type:
-        # check that the new article was created successfully
+    # check what happened
+    if expected_error:
+        # we were expecting an error, confirm the error message
+        check_error_msg( expected_error )
+        return dlg # nb: the dialog is left on-screen
+    elif expected_constraints:
+        # we were expecting constraint warnings, confirm them
+        check_constraint_warnings( "Do you want to create this article?", expected_constraints, "cancel" )
+        return dlg # nb: the dialog is left on-screen
+    else:
+        # we were expecting the create to work, confirm this
         wait_for( 2,
             lambda: check_toast( toast_type, "created OK", contains=True )
         )
         wait_for_not_elem( 2, "#article-form" )
+        return None
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-def edit_article( sr, vals, toast_type="info", expected_error=None ): #pylint: disable=too-many-branches
+def edit_article( sr, vals, toast_type="info", expected_error=None, expected_constraints=None ): #pylint: disable=too-many-branches
     """Edit a article's details."""
 
     # initialize
@@ -407,6 +499,11 @@ def edit_article( sr, vals, toast_type="info", expected_error=None ): #pylint: d
     if expected_error:
         # we were expecting an error, confirm the error message
         check_error_msg( expected_error )
+        return dlg # nb: the dialog is left on-screen
+    elif expected_constraints:
+        # we were expecting constraint warnings, confirm them
+        check_constraint_warnings( "Do you want to update this article?", expected_constraints, "cancel" )
+        return dlg # nb: the dialog is left on-screen
     else:
         # we were expecting the update to work, confirm this
         expected = "updated OK" if sr else "created OK"
@@ -414,6 +511,7 @@ def edit_article( sr, vals, toast_type="info", expected_error=None ): #pylint: d
             lambda: check_toast( toast_type, expected, contains=True )
         )
         wait_for_not_elem( 2, "#article-form" )
+        return None
 
 def _update_values( dlg, vals ):
     """Update an article's values in the form."""
@@ -461,16 +559,21 @@ def _check_sr( sr, expected ): #pylint: disable=too-many-return-statements
     if find_child( ".snippet", sr ).text != expected[2]:
         return False
 
+    # check the authors
+    authors = [ t.text for t in find_children( ".author", sr ) ]
+    if authors != expected[4]:
+        return False
+
     # check the tags
     tags = [ t.text for t in find_children( ".tag", sr ) ]
-    if tags != expected[4]:
+    if tags != expected[5]:
         return False
 
     # check the article's link
     elem = find_child( "a.open-link", sr )
-    if expected[5]:
+    if expected[6]:
         assert elem
-        if elem.get_attribute( "href" ) != expected[5]:
+        if elem.get_attribute( "href" ) != expected[6]:
             return False
     else:
         assert elem is None

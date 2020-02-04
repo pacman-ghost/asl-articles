@@ -5,7 +5,7 @@ import { NEW_ARTICLE_PUB_PRIORITY_CUTOFF } from "./constants.js" ;
 import { PublicationSearchResult } from "./PublicationSearchResult.js" ;
 import { gAppRef } from "./index.js" ;
 import { ImageFileUploader } from "./FileUploader.js" ;
-import { makeScenarioDisplayName, parseScenarioDisplayName, sortSelectableOptions, unloadCreatableSelect } from "./utils.js" ;
+import { makeScenarioDisplayName, parseScenarioDisplayName, checkConstraints, sortSelectableOptions, unloadCreatableSelect, isNumeric } from "./utils.js" ;
 
 // --------------------------------------------------------------------
 
@@ -190,12 +190,24 @@ export class ArticleSearchResult2
                     newVals.imageData = imageData ;
                     newVals.imageFilename = imageFilename ;
                 }
-                if ( newVals.article_title === "" ) {
-                    gAppRef.showErrorMsg( <div> Please specify the article's title. </div>) ;
-                    return ;
-                }
-                // notify the caller about the new details
-                notify( newVals, refs ) ;
+                // check the new values
+                const required = [
+                    [ () => newVals.article_title === "", "Please give it a title." ],
+                ] ;
+                const optional = [
+                    [ () => newVals.pub_id === null, "No publication was specified." ],
+                    [ () => newVals.article_pageno === "" && newVals.pub_id !== null, "No page number was specified." ],
+                    [ () => newVals.article_pageno !== "" && newVals.pub_id === null, "A page number was specified but no publication." ],
+                    [ () => newVals.article_pageno !== "" && !isNumeric(newVals.article_pageno), "The page number is not numeric." ],
+                    [ () => newVals.article_snippet === "", "No snippet was provided." ],
+                    [ () => newVals.article_authors.length === 0, "No authors were specified." ],
+                ] ;
+                const verb = isNew ? "create" : "update" ;
+                checkConstraints(
+                    required, "Can't " + verb + " this article.",
+                    optional, "Do you want to " + verb + " this article?",
+                    () => notify( newVals, refs )
+                ) ;
             },
             Cancel: () => { gAppRef.closeModalForm() ; },
         } ;

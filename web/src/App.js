@@ -12,6 +12,7 @@ import { PublicationSearchResult } from "./PublicationSearchResult" ;
 import { ArticleSearchResult } from "./ArticleSearchResult" ;
 import ModalForm from "./ModalForm";
 import AskDialog from "./AskDialog" ;
+import { makeSmartBulletList } from "./utils.js" ;
 import "./App.css" ;
 
 const axios = require( "axios" ) ;
@@ -37,6 +38,7 @@ export default class App extends React.Component
         this.args = queryString.parse( window.location.search ) ;
         this._storeMsgs = this.isTestMode() && this.args.store_msgs ;
         this._disableSearchResultHighlighting = this.isTestMode() && this.args.no_sr_hilite ;
+        this._disableConstraints = this.isTestMode() && this.args.disable_constraints ;
         this._fakeUploads = this.isTestMode() && this.args.fake_uploads ;
 
         // initialize
@@ -242,16 +244,7 @@ export default class App extends React.Component
     }
 
     showWarnings( caption, warnings ) {
-        let content ;
-        if ( !warnings || warnings.length === 0 )
-            content = caption ;
-        else if ( warnings.length === 1 )
-            content = <div> {caption} <p> {warnings[0]} </p> </div> ;
-        else {
-            let bullets = warnings.map( (warning,i) => <li key={i}> {warning} </li> ) ;
-            content = <div> {caption} <ul> {bullets} </ul> </div> ;
-        }
-        this.showWarningToast( content ) ;
+        this.showWarningToast( makeSmartBulletList( caption, warnings ) ) ;
     }
 
     ask( content, iconType, buttons ) {
@@ -350,6 +343,7 @@ export default class App extends React.Component
     }
 
     isTestMode() { return process.env.REACT_APP_TEST_MODE ; }
+    isDisableConstraints() { return this._disableConstraints ; }
     isFakeUploads() { return this._fakeUploads ; }
     setTestAttribute( obj, attrName, attrVal ) {
         // set an attribute on an element (for testing porpoises)

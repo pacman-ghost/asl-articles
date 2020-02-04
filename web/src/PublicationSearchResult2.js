@@ -4,7 +4,7 @@ import CreatableSelect from "react-select/creatable" ;
 import ReactDragListView from "react-drag-listview/lib/index.js" ;
 import { gAppRef } from "./index.js" ;
 import { ImageFileUploader } from "./FileUploader.js" ;
-import { sortSelectableOptions, unloadCreatableSelect } from "./utils.js" ;
+import { checkConstraints, sortSelectableOptions, unloadCreatableSelect, ciCompare, isNumeric } from "./utils.js" ;
 
 // --------------------------------------------------------------------
 
@@ -155,6 +155,38 @@ export class PublicationSearchResult2
             return content ;
         }
 
+        function checkForDupe( vals ) {
+            // check for an existing publication name/edition
+            for ( let pub of Object.entries(gAppRef.caches.publications) ) {
+                if ( ciCompare( pub[1].pub_name, vals.pub_name ) !== 0 )
+                    continue ;
+                if ( ! pub[1].pub_edition && ! vals.pub_edition )
+                    return true ;
+                if ( ! pub[1].pub_edition || ! vals.pub_edition )
+                    continue ;
+                if ( ciCompare( pub[1].pub_edition, vals.pub_edition ) === 0 )
+                    return true ;
+            }
+            return false ;
+        }
+        function checkArticlePageNumbers( articles ) {
+            // check the order of the article page numbers
+            let curr_pageno = null ;
+            if ( articles === null )
+                return false ;
+            for ( let i=0 ; i < articles.length ; ++i ) {
+                if ( ! isNumeric( articles[i].article_pageno ) )
+                    continue ;
+                const pageno = parseInt( articles[i].article_pageno, 10 ) ;
+                if ( curr_pageno !== null ) {
+                    if ( pageno < curr_pageno )
+                        return true ;
+                }
+                curr_pageno = pageno ;
+            }
+            return false ;
+        }
+
         // prepare the form buttons
         const buttons = {
             OK: () => {
@@ -176,12 +208,22 @@ export class PublicationSearchResult2
                     newVals.imageData = imageData ;
                     newVals.imageFilename = imageFilename ;
                 }
-                if ( newVals.pub_name === undefined || newVals.pub_name === "" ) {
-                    gAppRef.showErrorMsg( <div> Please specify the publication's name. </div>) ;
-                    return ;
-                }
-                // notify the caller about the new details
-                notify( newVals, refs ) ;
+                const required = [
+                    [ () => newVals.pub_name === undefined, "Please give it a name." ],
+                    [ () => isNew && checkForDupe(newVals), "There is already a publication with this name/edition." ],
+                ] ;
+                const optional = [
+                    [ () => newVals.pub_name !== undefined && newVals.pub_edition === "", "The publication's edition was not specified." ],
+                    [ () => newVals.pub_date === "", "The publication date was not specified." ],
+                    [ () => newVals.publ_id === null, "A publisher was not specified." ],
+                    [ () => checkArticlePageNumbers(articles), "Some article page numbers are out of order." ],
+                ] ;
+                const verb = isNew ? "create" : "update" ;
+                checkConstraints(
+                    required, "Can't " + verb + " this publication.",
+                    optional, "Do you want to " + verb + " this publication?",
+                    () => notify( newVals, refs )
+                ) ;
             },
             Cancel: () => { gAppRef.closeModalForm() ; },
         } ;

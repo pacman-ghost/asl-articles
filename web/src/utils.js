@@ -1,6 +1,51 @@
+import React from "react" ;
 import ReactDOMServer from "react-dom/server" ;
+import { gAppRef } from "./index.js" ;
 
 // --------------------------------------------------------------------
+
+export function checkConstraints( required, requiredCaption, optional, optionalCaption, accept ) {
+
+    // check if constraints have been disabled (for testing porpoises only)
+    if ( gAppRef.isDisableConstraints() ) {
+        accept() ;
+        return ;
+    }
+
+    // check the required constraints
+    let msgs = [] ;
+    if ( required ) {
+        for ( let constraint of required ) {
+            if ( constraint[0]() )
+                msgs.push( constraint[1] ) ;
+        }
+    }
+    if ( msgs.length > 0 ) {
+        gAppRef.showErrorMsg( makeSmartBulletList( requiredCaption, msgs, "constraint" ) ) ;
+        return ;
+    }
+
+    // check the optional constraints
+    msgs = [] ;
+    if ( optional ) {
+        for ( let constraint of optional ) {
+            if ( constraint[0]() )
+                msgs.push( constraint[1] ) ;
+        }
+    }
+    if ( msgs.length > 0 ) {
+        // some constraints failed - ask the user if they want to continue
+        let content = <div style={{float:"left"}}> { makeSmartBulletList( optionalCaption, msgs, "constraint" ) } </div> ;
+        gAppRef.ask( content, "ask", {
+            OK: () => { accept() },
+            Cancel: null
+        } ) ;
+        return ;
+    }
+
+    // everything passed - accept the values
+    accept() ;
+}
 
 export function sortSelectableOptions( options ) {
     options.sort( (lhs,rhs) => {
@@ -108,6 +153,18 @@ export function makeCommaList( vals, extract ) {
     return result ;
 }
 
+export function makeSmartBulletList( caption, vals, className ) {
+    caption = <div className="caption"> {caption} </div> ;
+    if ( !vals || vals.length === 0 )
+        return caption ;
+    else if ( vals.length === 1 )
+        return <div> {caption} <p className={className}> {vals[0]} </p> </div> ;
+    else {
+        let bullets = vals.map( (v,i) => <li key={i} className={className}> {v} </li> ) ;
+        return <div> {caption} <ul> {bullets} </ul> </div> ;
+    }
+}
+
 export function bytesDisplayString( nBytes )
 {
     if ( nBytes === 1 )
@@ -129,4 +186,17 @@ export function pluralString( n, str1, str2 ) {
         return n + " " + str1 ;
     else
         return n + " " + (str2 ? str2 : str1+"s") ;
+}
+
+export function ciCompare( lhs, rhs ) {
+    return lhs.localeCompare( rhs, undefined, { sensitivity: "base" } ) ;
+}
+
+export function isNumeric( val ) {
+    if ( val === null || val === undefined )
+        return false ;
+    val = val.trim() ;
+    if ( val === "" )
+        return false ;
+    return ! isNaN( val ) ;
 }

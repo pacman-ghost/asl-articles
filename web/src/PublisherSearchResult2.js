@@ -1,6 +1,7 @@
 import React from "react" ;
 import { gAppRef } from "./index.js" ;
 import { ImageFileUploader } from "./FileUploader.js" ;
+import { checkConstraints, ciCompare } from "./utils.js" ;
 
 // --------------------------------------------------------------------
 
@@ -59,6 +60,15 @@ export class PublisherSearchResult2
             </div>
         </div> ;
 
+        function checkForDupe( publName ) {
+            // check for an existing publisher
+            for ( let publ of Object.entries(gAppRef.caches.publishers) ) {
+                if ( ciCompare( publName, publ[1].publ_name ) === 0 )
+                    return true ;
+            }
+            return false ;
+        }
+
         // prepare the form buttons
         const buttons = {
             OK: () => {
@@ -70,12 +80,17 @@ export class PublisherSearchResult2
                     newVals.imageData = imageData ;
                     newVals.imageFilename = imageFilename ;
                 }
-                if ( newVals.publ_name === "" ) {
-                    gAppRef.showErrorMsg( <div> Please specify the publisher's name. </div>) ;
-                    return ;
-                }
-                // notify the caller about the new details
-                notify( newVals, refs ) ;
+                // check the new values
+                const required = [
+                    [ () => newVals.publ_name === "", "Please give them a name." ],
+                    [ () => isNew && checkForDupe(newVals.publ_name), "There is already a publisher with this name." ],
+                ] ;
+                const verb = isNew ? "create" : "update" ;
+                checkConstraints(
+                    required, "Can't " + verb + " this publisher.",
+                    null, null,
+                    () => notify( newVals, refs )
+                ) ;
             },
             Cancel: () => { gAppRef.closeModalForm() ; },
         } ;

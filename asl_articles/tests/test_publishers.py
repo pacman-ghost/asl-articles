@@ -11,8 +11,8 @@ from asl_articles.search import SEARCH_ALL, SEARCH_ALL_PUBLISHERS
 from asl_articles.tests.utils import init_tests, load_fixtures, select_main_menu_option, select_sr_menu_option, \
     do_search, get_search_results, get_search_result_names, check_search_result, \
     wait_for, wait_for_elem, wait_for_not_elem, find_child, find_search_result, set_elem_text, \
-    set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg, \
-    change_image, get_publisher_row
+    set_toast_marker, check_toast, send_upload_data, change_image, get_publisher_row, \
+    check_ask_dialog, check_error_msg
 
 # ---------------------------------------------------------------------
 
@@ -36,19 +36,15 @@ def test_edit_publisher( webdriver, flask_app, dbconn ):
         "Avalon Hill (updated)", "Updated AH description.", "http://ah-updated.com/"
     ] )
 
-    # try to remove all fields from the publisher (should fail)
-    edit_publisher( sr,
-        { "name": "", "description": "", "url": "" },
-        expected_error = "Please specify the publisher's name."
-    )
-
-    # enter something for the name
-    dlg = find_child( "#publisher-form" )
-    set_elem_text( find_child( ".row.name input", dlg ), "Updated Avalon Hill" )
-    find_child( "button.ok", dlg ).click()
+    # remove all fields from the publisher
+    edit_publisher( sr, {
+        "name": "AH",
+        "description": "",
+        "url": ""
+    } )
 
     # check that the search result was updated in the UI
-    expected = [ "Updated Avalon Hill", "", None ]
+    expected = [ "AH", "", None ]
     check_search_result( expected[0], _check_sr, expected )
 
     # check that the publisher was updated in the database
@@ -64,12 +60,8 @@ def test_create_publisher( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn, fixtures="publishers.json" )
     do_search( SEARCH_ALL_PUBLISHERS )
 
-    # try creating a publisher with no name (should fail)
-    create_publisher( {}, toast_type=None )
-    check_error_msg( "Please specify the publisher's name." )
-
-    # enter a name and other details
-    edit_publisher( None, { # nb: the form is still on-screen
+    # create a new publisher
+    create_publisher( {
         "name": "New publisher",
         "url": "http://new-publisher.com",
         "description": "New publisher description."
@@ -82,6 +74,32 @@ def test_create_publisher( webdriver, flask_app, dbconn ):
     # check that the new publisher has been saved in the database
     do_search( SEARCH_ALL_PUBLISHERS )
     check_search_result( expected[0], _check_sr, expected )
+
+# ---------------------------------------------------------------------
+
+def test_constraints( webdriver, flask_app, dbconn ):
+    """Test constraint validation."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, enable_constraints=1, fixtures="publishers.json" )
+
+    # try to create a publisher with no title
+    dlg = create_publisher( {}, expected_error="Please give them a name." )
+
+    # try to create a duplicate publisher
+    create_publisher( { "name": "Avalon Hill" }, dlg=dlg,
+        expected_error = "There is already a publisher with this name."
+    )
+
+    # set the publisher's name
+    create_publisher( { "name": "Joe Publisher" }, dlg=dlg )
+
+    # check that the search result was updated in the UI
+    expected = [ "Joe Publisher", "", "" ]
+    sr = check_search_result( expected[0], _check_sr, expected )
+
+    # try to remove the publisher's name
+    edit_publisher( sr, { "name": "   " }, expected_error="Please give them a name." )
 
 # ---------------------------------------------------------------------
 
@@ -384,25 +402,31 @@ def test_timestamps( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
-def create_publisher( vals, toast_type="info" ):
+def create_publisher( vals, toast_type="info", expected_error=None, dlg=None ):
     """Create a new publisher."""
 
     # initialize
-    if toast_type:
-        set_toast_marker( toast_type )
+    set_toast_marker( toast_type )
 
     # create the new publisher
-    select_main_menu_option( "new-publisher" )
-    dlg = wait_for_elem( 2, "#publisher-form" )
+    if not dlg:
+        select_main_menu_option( "new-publisher" )
+        dlg = wait_for_elem( 2, "#publisher-form" )
     _update_values( dlg, vals )
     find_child( "button.ok", dlg ).click()
 
-    if toast_type:
-        # check that the new publisher was created successfully
+    # check what happened
+    if expected_error:
+        # we were expecting an error, confirm the error message
+        check_error_msg( expected_error )
+        return dlg # nb: the dialog is left on-screen
+    else:
+        # we were expecting the create to work, confirm this
         wait_for( 2,
             lambda: check_toast( toast_type, "created OK", contains=True )
         )
         wait_for_not_elem( 2, "#publisher-form" )
+        return None
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

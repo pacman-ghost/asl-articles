@@ -17,6 +17,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
 
 from asl_articles import search
+from asl_articles.utils import to_bool
 import asl_articles.models
 
 _webdriver = None
@@ -48,6 +49,8 @@ def init_tests( webdriver, flask_app, dbconn, **kwargs ):
 
     # load the home page
     if webdriver:
+        if not to_bool( kwargs.pop( "enable_constraints", False ) ):
+            kwargs[ "disable_constraints" ] = 1
         webdriver.get( webdriver.make_url( "/", **kwargs ) )
         wait_for_elem( 2, "#search-form" )
 
@@ -369,6 +372,14 @@ def check_error_msg( expected ):
     assert elem.get_attribute( "src" ).endswith( "/error.png" )
     find_child( "#ask .MuiDialogActions-root button.ok" ).click()
     wait_for( 2, lambda: find_child( "#ask" ) is None )
+
+def check_constraint_warnings( expected_caption, expected_constraints, click_on ):
+    """Check that a constraints warning dialog is being shown, and its contents."""
+    dlg = find_child( "#ask" )
+    assert find_child( ".caption", dlg ).text == expected_caption
+    constraints = [ c.text for c in find_children( ".constraint", dlg ) ]
+    assert set( constraints ) == set( expected_constraints )
+    find_child( ".MuiDialogActions-root button.{}".format( click_on ), dlg ).click()
 
 def check_string( val, expected, contains=False ):
     """Compare a value with its expected value."""
