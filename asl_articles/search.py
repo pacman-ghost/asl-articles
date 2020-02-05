@@ -2,12 +2,15 @@
 
 import os
 import sqlite3
+import configparser
+import itertools
 import tempfile
 import re
 import logging
 
 from flask import request, jsonify
 
+import asl_articles
 from asl_articles import app, db
 from asl_articles.models import Publisher, Publication, Article, Author, Scenario, get_model_from_table_name
 from asl_articles.publishers import get_publisher_vals
@@ -16,6 +19,7 @@ from asl_articles.articles import get_article_vals
 from asl_articles.utils import decode_tags, to_bool
 
 _search_index_path = None
+_search_aliases = {}
 _logger = logging.getLogger( "search" )
 
 _SQLITE_FTS_SPECIAL_CHARS = "+-#':/."
@@ -143,7 +147,7 @@ def _do_search(): #pylint: disable=too-many-locals,too-many-statements,too-many-
         return jsonify( results )
 
     # prepare the query
-    fts_query_string = _make_fts_query_string( query_string )
+    fts_query_string = _make_fts_query_string( query_string, _search_aliases )
     _logger.debug( "FTS query string: %s", fts_query_string )
 
     # NOTE: We would like to cache the connection, but SQLite connections can only be used
@@ -201,7 +205,7 @@ def _do_search(): #pylint: disable=too-many-locals,too-many-statements,too-many-
 
     return jsonify( results )
 
-def _make_fts_query_string( query_string ):
+def _make_fts_query_string( query_string, search_aliases ):
     """Generate the SQLite query string."""
 
     # check if this looks like a raw FTS query
@@ -234,6 +238,19 @@ def _make_fts_query_string( query_string ):
     def quote_word( word ):
         return '"{}"'.format(word) if has_special_char(word) else word
     words = [ quote_word(w) for w in words ]
+
+    # handle search aliases
+    for i,word in enumerate(words):
+        word = word.lower()
+        if word.startswith( '"' ) and word.endswith( '"' ):
+            word = word[1:-1]
+        aliases = search_aliases.get( word )
+        if aliases:
+            aliases = [ quote_word( a ) for a in aliases ]
+            aliases.sort() # nb: so that tests will work reliably
+            words[i] = "({})".format(
+                " OR ".join( aliases )
+            )
 
     # escape any special characters
     words = [ w.replace("'","''") for w in words ]
@@ -279,6 +296,28 @@ def init_search( session, logger ):
         logger.debug( "- Loading articles." )
         for article in session.query( Article ):
             add_or_update_article( dbconn, article )
+
+    # load the search aliases
+    cfg = configparser.ConfigParser()
+    fname = os.path.join( asl_articles.config_dir, "app.cfg" )
+    _logger.debug( "Loading search aliases: %s", fname )
+    cfg.read( fname )
+    global _search_aliases
+    _search_aliases = _load_search_aliases( cfg.items( "Search aliases" ) )
+
+def _load_search_aliases( aliases ):
+    """Load the search aliases."""
+    search_aliases = {}
+    for row in aliases:
+        vals = itertools.chain( [row[0]], row[1].split(";") )
+        vals = [ v.strip().lower() for v in vals ]
+        _logger.debug( "- %s", vals )
+        for v in vals:
+            if v in search_aliases:
+                _logger.warning( "Found duplicate search alias: %s", v )
+                continue
+            search_aliases[ v ] = vals
+    return search_aliases
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

@@ -1,6 +1,6 @@
 """ Test search operations. """
 
-from asl_articles.search import _make_fts_query_string
+from asl_articles.search import _load_search_aliases, _make_fts_query_string
 
 from asl_articles.tests.test_publishers import create_publisher, edit_publisher
 from asl_articles.tests.test_publications import create_publication, edit_publication
@@ -135,11 +135,11 @@ def test_search_tags( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn, fixtures="search.json" )
 
     # search for some publication tags
-    _do_test_search( "vftt", ["View From The Trenches (100)"] )
+    _do_test_search( "#vftt", ["View From The Trenches (100)"] )
 
     # search for some article tags
     _do_test_search( "pto", ["The Jungle Isn't Neutral"] )
-    _do_test_search( "aslj", [
+    _do_test_search( "#aslj", [
         "ASL Journal (4)", "ASL Journal (5)",
         "'Bolts From Above", "The Jungle Isn't Neutral", "Hunting DUKWs and Buffalos", "Hit 'Em High, Or Hit 'Em Low"
     ] )
@@ -168,7 +168,7 @@ def test_multiple_search_results( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn, fixtures="search.json" )
 
     # do a search
-    _do_test_search( "asl", [
+    _do_test_search( "#asl", [
         "View From The Trenches",
         "ASL Journal (4)", "ASL Journal (5)",
         "Hunting DUKWs and Buffalos", "'Bolts From Above", "Hit 'Em High, Or Hit 'Em Low"
@@ -217,7 +217,7 @@ def test_highlighting( webdriver, flask_app, dbconn ):
         "View From The Trenches (100)",
         ["View"], ["Fantastic"], []
     )
-    check_publication_highlights( "vftt",
+    check_publication_highlights( "#vftt",
         "View From The Trenches (100)",
         [], [], ["vftt"]
     )
@@ -274,8 +274,13 @@ def test_highlighting( webdriver, flask_app, dbconn ):
 def test_make_fts_query_string():
     """Test generating FTS query strings."""
 
+    # initialize
+    search_aliases = _load_search_aliases( [
+        ( "mmp", "Multi-Man Publishing ; Multiman Publishing" )
+    ] )
+
     def do_test( query, expected ):
-        assert _make_fts_query_string(query) == expected
+        assert _make_fts_query_string( query, search_aliases ) == expected
 
     # test some query strings
     do_test( "", "" )
@@ -326,6 +331,15 @@ def test_make_fts_query_string():
     do_test( "NOT", "NOT" )
     do_test( "foo OR bar", "foo OR bar" )
     do_test( "(a OR b)", "(a OR b)" )
+
+    # test search aliases
+    do_test( "MMP", '("multi-man publishing" OR "multiman publishing" OR mmp)' )
+    do_test( "Xmmp", "Xmmp" )
+    do_test( "mmpX", "mmpX" )
+    do_test( "multi-man publishing", '"multi-man" AND publishing' )
+    do_test( 'abc "multi-man publishing" xyz',
+        'abc AND ("multi-man publishing" OR "multiman publishing" OR mmp) AND xyz'
+    )
 
 # ---------------------------------------------------------------------
 
