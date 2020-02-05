@@ -1,4 +1,4 @@
-#search-results { padding: 0 0.25em ; font-size: 90% ; }
+#search-results { padding: 0 0.25em ; }
 #search-results .no-results { font-style: italic ; }
 
 .search-result { margin-bottom: 0.5em ; clear: both ; }
@@ -31,4 +31,7 @@
 .search-result .footer { padding: 0 5px ; font-size: 80% ; font-style: italic ; color: #666 ; }
 .search-result .footer .tag { display: inline ; margin-right: 0.25em ; padding: 0 2px ; border: 1px solid #ccc ; background: #f0f0f0 ; }
 
-.search-result .hilite { padding: 0 2px ; background: #f0e0b0 ; }
+.search-result .hilite { padding: 0 2px ; background: #ffffa0 ; }
+.search-result.publisher .header .hilite { background: #e0a040 ; }
+.search-result.publication .header .hilite { background: #c0e000 ; }
+.search-result.article .header .hilite { background: #c0d0f0 ; }
