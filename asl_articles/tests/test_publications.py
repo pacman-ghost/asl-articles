@@ -14,9 +14,10 @@ from asl_articles.search import SEARCH_ALL, SEARCH_ALL_PUBLICATIONS, SEARCH_ALL_
 from asl_articles.tests.test_articles import create_article, edit_article
 from asl_articles.tests.utils import init_tests, load_fixtures, select_main_menu_option, select_sr_menu_option, \
     do_search, get_search_results, get_search_result_names, check_search_result, \
+    do_test_confirm_discard_changes, find_parent_by_class, \
     wait_for, wait_for_elem, wait_for_not_elem, find_child, find_children, find_search_result, set_elem_text, \
     set_toast_marker, check_toast, send_upload_data, check_ask_dialog, check_error_msg, check_constraint_warnings, \
-    change_image, get_publication_row
+    change_image, remove_image, get_publication_row
 from asl_articles.tests.react_select import ReactSelect
 
 # ---------------------------------------------------------------------
@@ -101,7 +102,7 @@ def test_constraints( webdriver, flask_app, dbconn ):
     """Test constraint validation."""
 
     # initialize
-    init_tests( webdriver, flask_app, dbconn, enable_constraints=1, fixtures="publications.json" )
+    init_tests( webdriver, flask_app, dbconn, disable_constraints=False, fixtures="publications.json" )
 
     # try to create a publication with no name
     dlg = create_publication( {}, expected_error="Please give it a name." )
@@ -147,6 +148,32 @@ def test_constraints( webdriver, flask_app, dbconn ):
 
     # set the publisher
     do_edit_test( pub_sr, { "publisher": "Avalon Hill" }, None )
+
+# ---------------------------------------------------------------------
+
+def test_confirm_discard_changes( webdriver, flask_app, dbconn ):
+    """Test confirmation of discarding changes made to a dialog."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, disable_confirm_discard_changes=False, fixtures="publications.json" )
+
+    # do the test
+    def update_react_select( elem, val ):
+        select = ReactSelect( find_parent_by_class( elem, "react-select" ) )
+        select.select_by_name( val )
+    def update_multiselect( elem, vals ):
+        select = ReactSelect( find_parent_by_class( elem, "react-select" ) )
+        select.update_multiselect_values( *vals )
+    do_test_confirm_discard_changes( "new-publication", {
+        "publisher": (
+            lambda elem: update_react_select( elem, "Avalon Hill" ),
+            lambda elem: update_react_select( elem, "(none)" )
+        ),
+        "tags": (
+            lambda elem: update_multiselect( elem, ["+foo"] ),
+            lambda elem: update_multiselect( elem, ["-foo"] ),
+        )
+    } )
 
 # ---------------------------------------------------------------------
 
@@ -632,11 +659,9 @@ def _update_values( dlg, vals ):
     for key,val in vals.items():
         if key == "image":
             if val:
-                data = base64.b64encode( open( val, "rb" ).read() )
-                data = "{}|{}".format( os.path.split(val)[1], data.decode("ascii") )
-                change_image( find_child( ".row.image img.image", dlg ), data )
+                change_image( dlg, val )
             else:
-                find_child( ".row.image .remove-image", dlg ).click()
+                remove_image( dlg )
         elif key == "name":
             elem = find_child( ".row.name .react-select input", dlg )
             set_elem_text( elem, val )

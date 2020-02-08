@@ -10,8 +10,9 @@ from selenium.common.exceptions import StaleElementReferenceException
 from asl_articles.search import SEARCH_ALL, SEARCH_ALL_PUBLISHERS
 from asl_articles.tests.utils import init_tests, load_fixtures, select_main_menu_option, select_sr_menu_option, \
     do_search, get_search_results, get_search_result_names, check_search_result, \
+    do_test_confirm_discard_changes, \
     wait_for, wait_for_elem, wait_for_not_elem, find_child, find_search_result, set_elem_text, \
-    set_toast_marker, check_toast, send_upload_data, change_image, get_publisher_row, \
+    set_toast_marker, check_toast, send_upload_data, change_image, remove_image, get_publisher_row, \
     check_ask_dialog, check_error_msg
 
 # ---------------------------------------------------------------------
@@ -81,7 +82,7 @@ def test_constraints( webdriver, flask_app, dbconn ):
     """Test constraint validation."""
 
     # initialize
-    init_tests( webdriver, flask_app, dbconn, enable_constraints=1, fixtures="publishers.json" )
+    init_tests( webdriver, flask_app, dbconn, disable_constraints=False, fixtures="publishers.json" )
 
     # try to create a publisher with no title
     dlg = create_publisher( {}, expected_error="Please give them a name." )
@@ -374,6 +375,17 @@ def test_clean_html( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
+def test_confirm_discard_changes( webdriver, flask_app, dbconn ):
+    """Test confirmation of discarding changes made to a dialog."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, disable_confirm_discard_changes=False )
+
+    # do the test
+    do_test_confirm_discard_changes( "new-publisher" )
+
+# ---------------------------------------------------------------------
+
 def test_timestamps( webdriver, flask_app, dbconn ):
     """Test setting of timestamps."""
 
@@ -462,11 +474,9 @@ def _update_values( dlg, vals ):
     for key,val in vals.items():
         if key == "image":
             if val:
-                data = base64.b64encode( open( val, "rb" ).read() )
-                data = "{}|{}".format( os.path.split(val)[1], data.decode("ascii") )
-                change_image( find_child( ".row.image img.image", dlg ), data )
+                change_image( dlg, val )
             else:
-                find_child( ".row.image .remove-image", dlg ).click()
+                remove_image( dlg )
         else:
             sel = ".row.{} {}".format( key , "textarea" if key == "description" else "input" )
             set_elem_text( find_child( sel, dlg ), val )

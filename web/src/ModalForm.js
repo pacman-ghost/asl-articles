@@ -13,6 +13,8 @@ export default class ModalForm extends React.Component
 {
 
     render() {
+
+        // initialize the buttons
         let buttons = [] ;
         for ( let btn in this.props.buttons ) {
             buttons.push(
@@ -21,7 +23,11 @@ export default class ModalForm extends React.Component
                 > {btn} </Button>
             ) ;
         }
-        return ( <Dialog id={this.props.formId} className="modal-form" open={true} onClose={this.onClose.bind(this)} disableBackdropClick>
+
+        // show the dialog
+        return ( <Dialog id={this.props.formId} className="modal-form" open={true} disableBackdropClick
+                   onClose = { this.onClose.bind( this ) }
+                 >
             <DialogTitle style={{background:this.props.titleColor}}> {this.props.title} </DialogTitle>
             <DialogContent dividers>
                 { typeof this.props.content === "function" ? this.props.content() : this.props.content }

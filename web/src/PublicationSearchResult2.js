@@ -4,7 +4,7 @@ import CreatableSelect from "react-select/creatable" ;
 import ReactDragListView from "react-drag-listview/lib/index.js" ;
 import { gAppRef } from "./index.js" ;
 import { ImageFileUploader } from "./FileUploader.js" ;
-import { checkConstraints, sortSelectableOptions, unloadCreatableSelect, ciCompare, isNumeric } from "./utils.js" ;
+import { checkConstraints, confirmDiscardChanges, sortSelectableOptions, unloadCreatableSelect, ciCompare, isNumeric } from "./utils.js" ;
 
 // --------------------------------------------------------------------
 
@@ -16,18 +16,34 @@ export class PublicationSearchResult2
         // initialize
         let refs = {} ;
         let imageFilename=null, imageData=null ;
+        let imageRef=null, uploadImageRef=null, removeImageRef=null ;
+
+        // prepare to save the initial values
+        let initialVals = null ;
+        function onReady() {
+            if ( ! initialVals )
+                initialVals = unloadVals() ;
+        }
 
         function doRender() {
 
+            // NOTE: We implement this as a function so that we can re-render the form after articles have been re-ordered.
+
             // initialize the image
-            let imageRef=null, uploadImageRef=null, removeImageRef=null ;
-            let imageUrl = gAppRef.makeFlaskUrl( "/images/publication/" + vals.pub_id ) ;
-            imageUrl += "?foo=" + Math.random() ; // FUDGE! To bypass the cache :-/
-            let onMissingImage = (evt) => {
+            let imageUrl ;
+            if ( initialVals )
+                imageUrl = imageRef.src ; // nb: leave whatever's there already
+            else {
+                imageUrl = gAppRef.makeFlaskUrl( "/images/publication/" + vals.pub_id ) ;
+                imageUrl += "?foo=" + Math.random() ; // FUDGE! To bypass the cache :-/
+            }
+            function onImageLoaded() { onReady() ; }
+            function onMissingImage() {
                 imageRef.src = "/images/placeholder.png" ;
                 removeImageRef.style.display = "none" ;
+                onReady() ;
             } ;
-            let onUploadImage = (evt) => {
+            function onUploadImage( evt ) {
                 if ( evt === null && !gAppRef.isFakeUploads() ) {
                     // nb: the publication image was clicked - trigger an upload request
                     uploadImageRef.click() ;
@@ -39,7 +55,7 @@ export class PublicationSearchResult2
                     imageData = data ;
                 } ) ;
             } ;
-            let onRemoveImage = () => {
+            function onRemoveImage() {
                 imageData = "{remove}" ;
                 imageRef.src = "/images/placeholder.png" ;
                 removeImageRef.style.display = "none" ;
@@ -107,9 +123,22 @@ export class PublicationSearchResult2
             const content = <div>
                 <div className="image-container">
                     <div className="row image">
-                        <img src={imageUrl} className="image" onError={onMissingImage} onClick={() => onUploadImage(null)} ref={r => imageRef=r} alt="Upload image." title="Click to upload an image for this publication." />
-                        <img src="/images/delete.png" className="remove-image" onClick={onRemoveImage} ref={r => removeImageRef=r} alt="Remove image." title="Remove the publication's image." />
-                        <input type="file" accept="image/*" onChange={onUploadImage} style={{display:"none"}} ref={r => uploadImageRef=r} />
+                        <img src={imageUrl} className="image"
+                            onLoad = {onImageLoaded}
+                            onError = {onMissingImage}
+                            onClick = { () => onUploadImage(null) }
+                            ref = { r => imageRef=r }
+                            alt="Upload image." title="Click to upload an image for this publication."
+                        />
+                        <img src="/images/delete.png" className="remove-image"
+                            onClick = {onRemoveImage}
+                            ref = { r => removeImageRef=r }
+                            alt="Remove image." title="Remove the publication's image."
+                        />
+                        <input type="file" accept="image/*" style={{display:"none"}}
+                            onChange = {onUploadImage}
+                            ref = { r => uploadImageRef=r }
+                        />
                     </div>
                 </div>
                 <div className="row name"> <label className="select top"> Name: </label>
@@ -155,6 +184,25 @@ export class PublicationSearchResult2
             return content ;
         }
 
+        function unloadVals() {
+            // unload the form values
+            let newVals = {} ;
+            for ( let r in refs ) {
+                if ( r === "publ_id" )
+                    newVals[ r ] = refs[r].state.value && refs[r].state.value.value ;
+                else if ( r === "pub_name" ) {
+                    if ( refs[r].state.value )
+                        newVals[ r ] = refs[r].state.value.label.trim() ;
+                } else if ( r === "pub_tags" ) {
+                    let tags = unloadCreatableSelect( refs[r] ) ;
+                    newVals[ r ] = tags.map( v => v.label ) ;
+                } else
+                    newVals[ r ] = refs[r].value.trim() ;
+            }
+            newVals._hasImage = ( removeImageRef.style.display !== "none" ) ;
+            return newVals ;
+        }
+
         function checkForDupe( vals ) {
             // check for an existing publication name/edition
             for ( let pub of Object.entries(gAppRef.caches.publications) ) {
@@ -190,20 +238,8 @@ export class PublicationSearchResult2
         // prepare the form buttons
         const buttons = {
             OK: () => {
-                // unload the new values
-                let newVals = {} ;
-                for ( let r in refs ) {
-                    if ( r === "publ_id" )
-                        newVals[ r ] = refs[r].state.value && refs[r].state.value.value ;
-                    else if ( r === "pub_name" ) {
-                        if ( refs[r].state.value )
-                            newVals[ r ] = refs[r].state.value.label.trim() ;
-                    } else if ( r === "pub_tags" ) {
-                        let vals = unloadCreatableSelect( refs[r] ) ;
-                        newVals[ r ] = vals.map( v => v.label ) ;
-                    } else
-                        newVals[ r ] = refs[r].value.trim() ;
-                }
+                // unload and validate the new values
+                let newVals = unloadVals() ;
                 if ( imageData ) {
                     newVals.imageData = imageData ;
                     newVals.imageFilename = imageFilename ;
@@ -225,15 +261,24 @@ export class PublicationSearchResult2
                     () => notify( newVals, refs )
                 ) ;
             },
-            Cancel: () => { gAppRef.closeModalForm() ; },
+            Cancel: () => {
+                let newVals = unloadVals() ;
+                if ( initialVals._hasImage && newVals._hasImage && imageData ) {
+                    // FUDGE! The image was changed, but we have no way to tell if it's the same image or not,
+                    // so we play it safe and force a confirmation.
+                    newVals._justDoIt = true ;
+                }
+                confirmDiscardChanges( initialVals, newVals,
+                    () => { gAppRef.closeModalForm() }
+                ) ;
+            },
         } ;
 
         // show the form
         const isNew = Object.keys( vals ).length === 0 ;
         gAppRef.showModalForm( "publication-form",
             isNew ? "New publication" : "Edit publication", "#e5f700",
-            doRender,
-            buttons
+            doRender, buttons
         ) ;
     }
 

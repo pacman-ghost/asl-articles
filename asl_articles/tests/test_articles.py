@@ -9,8 +9,9 @@ import base64
 from asl_articles.search import SEARCH_ALL_ARTICLES
 from asl_articles.tests.utils import init_tests, select_main_menu_option, select_sr_menu_option, \
     do_search, get_search_results, find_search_result, get_search_result_names, check_search_result, \
+    do_test_confirm_discard_changes, find_parent_by_class, \
     wait_for, wait_for_elem, wait_for_not_elem, find_child, find_children, \
-    set_elem_text, set_toast_marker, check_toast, send_upload_data, change_image, get_article_row, \
+    set_elem_text, set_toast_marker, check_toast, send_upload_data, change_image, remove_image, get_article_row, \
     check_ask_dialog, check_error_msg, check_constraint_warnings
 from asl_articles.tests.react_select import ReactSelect
 
@@ -101,7 +102,7 @@ def test_constraints( webdriver, flask_app, dbconn ):
     """Test constraint validation."""
 
     # initialize
-    init_tests( webdriver, flask_app, dbconn, enable_constraints=1, fixtures="publications.json" )
+    init_tests( webdriver, flask_app, dbconn, disable_constraints=False, fixtures="publications.json" )
 
     # try to create an article with no title
     dlg = create_article( {}, expected_error="Please give it a title." )
@@ -169,6 +170,40 @@ def test_constraints( webdriver, flask_app, dbconn ):
     check_search_result( article_sr, _check_sr, [
         "New article", "", "Article snippet.", "123", ["Joe Blow"], [], None
     ] )
+
+# ---------------------------------------------------------------------
+
+def test_confirm_discard_changes( webdriver, flask_app, dbconn ):
+    """Test confirmation of discarding changes made to a dialog."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, disable_confirm_discard_changes=False, fixtures="publications.json" )
+
+    # do the test
+    def update_react_select( elem, val ):
+        select = ReactSelect( find_parent_by_class( elem, "react-select" ) )
+        select.select_by_name( val )
+    def update_multiselect( elem, vals ):
+        select = ReactSelect( find_parent_by_class( elem, "react-select" ) )
+        select.update_multiselect_values( *vals )
+    do_test_confirm_discard_changes( "new-article", {
+        "publication": (
+            lambda elem: update_react_select( elem, "MMP News" ),
+            lambda elem: update_react_select( elem, "(none)" )
+        ),
+        "authors": (
+            lambda elem: update_multiselect( elem, ["+Joe Blow"] ),
+            lambda elem: update_multiselect( elem, ["-Joe Blow"] ),
+        ),
+        "scenarios": (
+            lambda elem: update_multiselect( elem, ["+Hill 621 [E]"] ),
+            lambda elem: update_multiselect( elem, ["-Hill 621 [E]"] ),
+        ),
+        "tags": (
+            lambda elem: update_multiselect( elem, ["+foo"] ),
+            lambda elem: update_multiselect( elem, ["-foo"] ),
+        )
+    } )
 
 # ---------------------------------------------------------------------
 
@@ -518,11 +553,9 @@ def _update_values( dlg, vals ):
     for key,val in vals.items():
         if key == "image":
             if val:
-                data = base64.b64encode( open( val, "rb" ).read() )
-                data = "{}|{}".format( os.path.split(val)[1], data.decode("ascii") )
-                change_image( find_child( ".row.image img.image", dlg ), data )
+                change_image( dlg, val )
             else:
-                find_child( ".row.image .remove-image", dlg ).click()
+                remove_image( dlg )
         elif key == "publication":
             select = ReactSelect( find_child( ".row.publication .react-select", dlg ) )
             select.select_by_name( val )

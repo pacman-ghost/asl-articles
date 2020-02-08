@@ -39,6 +39,7 @@ export default class App extends React.Component
         this._storeMsgs = this.isTestMode() && this.args.store_msgs ;
         this._disableSearchResultHighlighting = this.isTestMode() && this.args.no_sr_hilite ;
         this._disableConstraints = this.isTestMode() && this.args.disable_constraints ;
+        this._disableConfirmDiscardChanges = this.isTestMode() && this.args.disable_confirm_discard_changes ;
         this._fakeUploads = this.isTestMode() && this.args.fake_uploads ;
 
         // initialize
@@ -96,14 +97,12 @@ export default class App extends React.Component
         return ( <div> {content}
             { this.state.modalForm !== null &&
                 <ModalForm show={true} formId={this.state.modalForm.formId}
-                    title = {this.state.modalForm.title} titleColor = {this.state.modalForm.titleColor}
-                    content = {this.state.modalForm.content}
-                    buttons = {this.state.modalForm.buttons}
+                    {...this.state.modalForm}
                     ref = {this._modalFormRef}
                 />
             }
             { this.state.askDialog !== null &&
-                <AskDialog show={true} content={this.state.askDialog.content} buttons={this.state.askDialog.buttons} />
+                <AskDialog show={true} {...this.state.askDialog} />
             }
             <ToastContainer position="bottom-right" hideProgressBar={true} />
             { this._storeMsgs && <div>
@@ -354,6 +353,7 @@ export default class App extends React.Component
 
     isTestMode() { return process.env.REACT_APP_TEST_MODE ; }
     isDisableConstraints() { return this._disableConstraints ; }
+    isDisableConfirmDiscardChanges() { return this._disableConfirmDiscardChanges ; }
     isFakeUploads() { return this._fakeUploads ; }
     setTestAttribute( obj, attrName, attrVal ) {
         // set an attribute on an element (for testing porpoises)

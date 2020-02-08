@@ -2,6 +2,8 @@ import React from "react" ;
 import ReactDOMServer from "react-dom/server" ;
 import { gAppRef } from "./index.js" ;
 
+const isEqual = require( "lodash.isequal" ) ;
+
 // --------------------------------------------------------------------
 
 export function checkConstraints( required, requiredCaption, optional, optionalCaption, accept ) {
@@ -53,6 +55,25 @@ export function checkConstraints( required, requiredCaption, optional, optionalC
 
     // everything passed - accept the values
     accept() ;
+}
+
+export function confirmDiscardChanges( oldVals, newVals, accept ) {
+    // check if confirmations have been disabled (for testing porpoises only)
+    if ( gAppRef.isDisableConfirmDiscardChanges() ) {
+        accept() ;
+        return ;
+    }
+    // check if the values have changed
+    if ( isEqual( oldVals, newVals ) ) {
+        // nope - just do it
+        accept() ;
+    } else {
+        // yup - ask the user to confirm first
+        gAppRef.ask( "Do you want to discard your changes?", "ask", {
+            OK: accept,
+            Cancel: null,
+        } ) ;
+    }
 }
 
 export function sortSelectableOptions( options ) {

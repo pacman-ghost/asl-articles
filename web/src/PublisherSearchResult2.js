@@ -1,7 +1,7 @@
 import React from "react" ;
 import { gAppRef } from "./index.js" ;
 import { ImageFileUploader } from "./FileUploader.js" ;
-import { checkConstraints, ciCompare } from "./utils.js" ;
+import { checkConstraints, confirmDiscardChanges, ciCompare } from "./utils.js" ;
 
 // --------------------------------------------------------------------
 
@@ -10,18 +10,28 @@ export class PublisherSearchResult2
 
     static _doEditPublisher( vals, notify ) {
 
+        // initialize
         let refs = {} ;
+
+        // prepare to save the initial values
+        let initialVals = null ;
+        function onReady() {
+            if ( ! initialVals )
+                initialVals = unloadVals() ;
+        }
 
         // initialize the image
         let imageFilename=null, imageData=null ;
         let imageRef=null, uploadImageRef=null, removeImageRef=null ;
         let imageUrl = gAppRef.makeFlaskUrl( "/images/publisher/" + vals.publ_id ) ;
         imageUrl += "?foo=" + Math.random() ; // FUDGE! To bypass the cache :-/
-        let onMissingImage = (evt) => {
+        function onImageLoaded() { onReady() ; }
+        function onMissingImage() {
             imageRef.src = "/images/placeholder.png" ;
             removeImageRef.style.display = "none" ;
+            onReady() ;
         } ;
-        let onUploadImage = (evt) => {
+        function onUploadImage( evt ) {
             if ( evt === null && !gAppRef.isFakeUploads() ) {
                 // nb: the publisher image was clicked - trigger an upload request
                 uploadImageRef.click() ;
@@ -33,20 +43,33 @@ export class PublisherSearchResult2
                 imageData = data ;
             } ) ;
         } ;
-        let onRemoveImage = () => {
+        function onRemoveImage() {
             imageData = "{remove}" ;
             imageRef.src = "/images/placeholder.png" ;
             removeImageRef.style.display = "none" ;
-        } ;
+        }
 
         // prepare the form content
         /* eslint-disable jsx-a11y/img-redundant-alt */
         const content = <div>
             <div className="image-container">
                 <div className="row image">
-                    <img src={imageUrl} className="image" onError={onMissingImage} onClick={() => onUploadImage(null)} ref={r => imageRef=r} alt="Upload image." title="Click to upload an image for this publisher." />
-                    <img src="/images/delete.png" className="remove-image" onClick={onRemoveImage} ref={r => removeImageRef=r} alt="Remove image." title="Remove the publisher's image." />
-                    <input type="file" accept="image/*" onChange={onUploadImage} style={{display:"none"}} ref={r => uploadImageRef=r} />
+                    <img src={imageUrl} className="image"
+                        onLoad = {onImageLoaded}
+                        onError = {onMissingImage}
+                        onClick = { () => onUploadImage(null) }
+                        ref = { r => imageRef=r }
+                        alt="Upload image." title="Click to upload an image for this publisher."
+                    />
+                    <img src="/images/delete.png" className="remove-image"
+                        onClick = {onRemoveImage}
+                        ref = { r => removeImageRef=r }
+                        alt="Remove image." title="Remove the publisher's image."
+                    />
+                    <input type="file" accept="image/*" style={{display:"none"}}
+                        onChange = {onUploadImage}
+                        ref = { r => uploadImageRef=r }
+                    />
                 </div>
             </div>
             <div className="row name"> <label className="top"> Name: </label>
@@ -69,18 +92,24 @@ export class PublisherSearchResult2
             return false ;
         }
 
+        function unloadVals() {
+            // unload the form values
+            let newVals = {} ;
+            for ( let r in refs )
+                newVals[ r ] = refs[r].value.trim() ;
+            newVals._hasImage = ( removeImageRef.style.display !== "none" ) ;
+            return newVals ;
+        }
+
         // prepare the form buttons
         const buttons = {
             OK: () => {
-                // unload the new values
-                let newVals = {} ;
-                for ( let r in refs )
-                    newVals[ r ] = refs[r].value.trim() ;
+                // unload and validate the new values
+                let newVals = unloadVals() ;
                 if ( imageData ) {
                     newVals.imageData = imageData ;
                     newVals.imageFilename = imageFilename ;
                 }
-                // check the new values
                 const required = [
                     [ () => newVals.publ_name === "", "Please give them a name.", refs.publ_name ],
                     [ () => isNew && checkForDupe(newVals.publ_name), "There is already a publisher with this name.", refs.publ_name ],
@@ -92,12 +121,25 @@ export class PublisherSearchResult2
                     () => notify( newVals, refs )
                 ) ;
             },
-            Cancel: () => { gAppRef.closeModalForm() ; },
+            Cancel: () => {
+                let newVals = unloadVals() ;
+                if ( initialVals._hasImage && newVals._hasImage && imageData ) {
+                    // FUDGE! The image was changed, but we have no way to tell if it's the same image or not,
+                    // so we play it safe and force a confirmation.
+                    newVals._justDoIt = true ;
+                }
+                confirmDiscardChanges( initialVals, newVals,
+                    () => { gAppRef.closeModalForm() }
+                ) ;
+            },
         } ;
 
         // show the form
         const isNew = Object.keys( vals ).length === 0 ;
-        gAppRef.showModalForm( "publisher-form", isNew?"New publisher":"Edit publisher", "#eabe51", content, buttons ) ;
+        gAppRef.showModalForm( "publisher-form",
+            isNew ? "New publisher" : "Edit publisher", "#eabe51",
+            content, buttons
+        ) ;
     }
 
 }

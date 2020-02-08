@@ -2,7 +2,9 @@
 
 import os
 import json
+import itertools
 import uuid
+import base64
 import logging
 
 import sqlalchemy
@@ -49,8 +51,10 @@ def init_tests( webdriver, flask_app, dbconn, **kwargs ):
 
     # load the home page
     if webdriver:
-        if not to_bool( kwargs.pop( "enable_constraints", False ) ):
+        if to_bool( kwargs.pop( "disable_constraints", True ) ):
             kwargs[ "disable_constraints" ] = 1
+        if to_bool( kwargs.pop( "disable_confirm_discard_changes", True ) ):
+            kwargs[ "disable_confirm_discard_changes" ] = 1
         webdriver.get( webdriver.make_url( "/", **kwargs ) )
         wait_for_elem( 2, "#search-form" )
 
@@ -160,6 +164,123 @@ def check_search_result( sr, check, expected ):
 
 # ---------------------------------------------------------------------
 
+def do_test_confirm_discard_changes( menu_id, update_fields=None ): #pylint: disable=too-many-statements
+    """Test confirmation of discarding changes made to a dialog."""
+
+    # initialize
+    image_fname = os.path.join( os.path.split(__file__)[0], "fixtures/images/1.gif" )
+
+    def get_input_fields( dlg ):
+        input_fields = itertools.chain(
+            find_children( "input", dlg ),
+            find_children( "textarea", dlg )
+        )
+        input_fields = { get_field_id(f): f for f in input_fields if f.is_displayed() }
+        # NOTE: Publishers, publications and articles all have an image, but requires special handling.
+        input_fields[ "image" ] = None
+        return input_fields
+    def get_field_id( elem ):
+        if elem.get_attribute( "class" ) == "edition":
+            # FUDGE! The publication dialog has a row with two fields ("name" and "edition").
+            # We return the "edition" field, the "name" field is handled as a ReactSelect.
+            return "edition"
+        if elem.get_attribute( "class" ) == "pageno":
+            # FUDGE! The article dialog has a row with two fields ("publication" and "pageno").
+            # We return the "pageno" field, the "publication" field is handled as a ReactSelect.
+            return "pageno"
+        elem = find_parent_by_class( elem, "row" )
+        classes = set( elem.get_attribute( "class" ).split() )
+        classes.remove( "row" )
+        assert len(classes) == 1
+        return classes.pop()
+
+    # locate all the input fields
+    select_main_menu_option( menu_id )
+    dlg = wait_for_elem( 2, ".MuiDialog-root" )
+    field_ids = get_input_fields( dlg ).keys()
+    find_child( ".cancel", dlg ).click()
+
+    def update_field( field_id, dlg, elem, setVal, val=None ):
+        # check if we're updating the image
+        if field_id == "image":
+            if setVal:
+                change_image( dlg, image_fname )
+            else:
+                remove_image( dlg )
+            return None
+        # check if a custom update function has been provided
+        if update_fields and field_id in update_fields:
+            update_fields[ field_id ][ 0 if setVal else 1 ]( elem )
+            return None
+        # update the field as text
+        prev_val = elem.get_attribute( "value" )
+        if val is None:
+            val = "TEST: {}".format( field_id ) if setVal else ""
+        set_elem_text( elem, val )
+        elem.send_keys( Keys.RETURN ) # nb: in case we have a ReactSelect
+        return prev_val
+
+    def do_test( open_dialog, setVals ):
+
+        # test each input field
+        for field_id in field_ids:
+
+            # NOTE: We can't unset a publication's name once it's been set, so there's no point continuing.
+            if menu_id == "new-publication" and field_id == "name" and not setVals:
+                continue
+
+            # open the form dialog
+            open_dialog()
+            dlg = wait_for_elem( 2, ".MuiDialog-root" )
+            input_fields = get_input_fields( dlg )
+
+            # change the next input field
+            prev_val = update_field( field_id, dlg, input_fields[field_id], setVals )
+
+            # try to cancel the dialog (should get a confirmation dialog)
+            find_child( ".cancel", dlg ).click()
+            ask = wait_for_elem( 2, "#ask" )
+            assert "Do you want to discard your changes?" in find_child( ".MuiDialogContent-root", ask ).text
+            find_child( ".cancel", ask ).click()
+
+            # NOTE: We can't unset a publication's name once it's been set, so there's no point continuing.
+            if menu_id == "new-publication" and field_id == "name":
+                find_child( ".cancel", dlg ).click()
+                ask = wait_for_elem( 2, "#ask" )
+                find_child( ".ok", ask ).click()
+                continue
+            # NOTE: Changing the image will always trigger a confirmation dialog, so there's no point continuing.
+            if field_id == "image" and not setVals:
+                find_child( ".cancel", dlg ).click()
+                ask = wait_for_elem( 2, "#ask" )
+                find_child( ".ok", ask ).click()
+                continue
+
+            # restore the original value
+            if isinstance( prev_val, str ):
+                prev_val = "   {}   ".format( prev_val )
+            update_field( field_id, dlg, input_fields[field_id], not setVals, prev_val )
+
+            # try to cancel the dialog (should work without confirmation)
+            find_child( ".cancel", dlg ).click()
+            ask = wait_for_not_elem( 2, ".MuiDialog-root" )
+
+    # test using a blank object
+    do_test( lambda: select_main_menu_option( menu_id ), True )
+
+    # test using an object with every field filled in
+    select_main_menu_option( menu_id )
+    dlg = wait_for_elem( 2, ".MuiDialog-root" )
+    input_fields = get_input_fields( dlg )
+    for field_id in input_fields:
+        update_field( field_id, dlg, input_fields[field_id], True )
+    find_child( ".ok", dlg ).click()
+    results = wait_for( 2, get_search_results )
+    assert len(results) == 1
+    do_test( lambda: select_sr_menu_option( results[0], "edit" ), False )
+
+# ---------------------------------------------------------------------
+
 def wait_for( timeout, func ):
     """Wait for a condition to become true."""
     return WebDriverWait( _webdriver, timeout, 0.1 ).until(
@@ -194,6 +315,16 @@ def find_children( sel, parent=None ):
         return (parent if parent else _webdriver).find_elements_by_css_selector( sel )
     except NoSuchElementException:
         return None
+
+def find_parent_by_class( elem, class_name ):
+    """Find a parent element with the specified class."""
+    while True:
+        elem = elem.find_element_by_xpath( ".." )
+        if not elem:
+            return None
+        classes = set( elem.get_attribute( "class" ).split() )
+        if class_name in classes:
+            return elem
 
 # ---------------------------------------------------------------------
 
@@ -338,14 +469,22 @@ def get_article_row( dbconn, article_id, fields ):
 
 # ---------------------------------------------------------------------
 
-def change_image( elem, image_data ):
+def change_image( dlg, fname ):
     """Click on an image to change it."""
     # NOTE: This is a bit tricky since we started overlaying the image with the "remove image" icon :-/
-    send_upload_data( image_data,
+    data = base64.b64encode( open( fname, "rb" ).read() )
+    data = "{}|{}".format( os.path.split(fname)[1], data.decode("ascii") )
+    elem = find_child( ".row.image img.image", dlg )
+    _webdriver.execute_script( "arguments[0].scrollTo( 0, 0 )", find_child( ".MuiDialogContent-root", dlg ) )
+    send_upload_data( data,
         lambda: ActionChains( _webdriver ) \
                 .move_to_element_with_offset( elem, 1, 1 ) \
                 .click().perform()
     )
+
+def remove_image( dlg ):
+    """Remove an image."""
+    find_child( ".row.image .remove-image", dlg ).click()
 
 def set_elem_text( elem, val ):
     """Set the text for an element."""
