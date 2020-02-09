@@ -110,6 +110,14 @@ export class ArticleSearchResult2
                 return { value: s, label: makeScenarioDisplayName(gAppRef.caches.scenarios[s]) }
             } ) ;
         }
+        function onScenarioCreated( val ) {
+            const vals = parseScenarioDisplayName( val ) ;
+            if ( ! vals[0] ) {
+                // NOTE: It would be nice to show a dialog asking the user to enter the scenario name, ID and
+                // ROAR ID, but it's more trouble than it's worth :-/
+                gAppRef.showWarningToast( <div> Couldn't extract the scenario ID. <p> Please use the format <i>SCENARIO NAME [ID]</i>. </p> </div> ) ;
+            }
+        }
 
         // initialize the tags
         const tags = gAppRef.makeTagLists( vals.article_tags ) ;
@@ -162,6 +170,10 @@ export class ArticleSearchResult2
             <div className="row scenarios"> <label className="select"> Scenarios: </label>
                 <CreatableSelect className="react-select" classNamePrefix="react-select" options={allScenarios} isMulti
                     defaultValue = {currScenarios}
+                    onChange = { ( inputVal, {action} ) => {
+                        if ( action === "create-option" )
+                            onScenarioCreated( inputVal[ inputVal.length-1 ].label )
+                    } }
                     ref = { r => refs.article_scenarios=r }
                 />
             </div>
