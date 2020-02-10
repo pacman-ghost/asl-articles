@@ -106,7 +106,10 @@ export class PublicationSearchResult2
                         {article.article_pageno}
                     </span> ) ;
                 }
-                return <span> {article.article_title} { pageno && <span className="pageno"> ({pageno}) </span> } </span> ;
+                return ( <span>
+                    <span dangerouslySetInnerHTML={{__html: article.article_title}} />
+                    { pageno && <span className="pageno"> ({pageno}) </span> }
+                </span> ) ;
             }
             const dragProps = {
                 onDragEnd( fromIndex, toIndex ) {
