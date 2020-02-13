@@ -189,6 +189,25 @@ export default class App extends React.Component
         this.setState( { searchResults: newSearchResults } ) ;
     }
 
+    updatePublications( pubs ) {
+        // update the cache
+        let pubs2 = {} ;
+        for ( let i=0 ; i < pubs.length ; ++i ) {
+            const pub = pubs[ i ] ;
+            this.caches.publications[ pub.pub_id ] = pub ;
+            pubs2[ pub.pub_id ] = pub ;
+        }
+        // update the UI
+        let newSearchResults = this.state.searchResults ;
+        for ( let i=0 ; i < newSearchResults.length ; ++i ) {
+            if ( newSearchResults[i].type === "publication" && pubs2[ newSearchResults[i].pub_id ] ) {
+                newSearchResults[i] = pubs2[ newSearchResults[i].pub_id ] ;
+                newSearchResults[i].type = "publication" ;
+            }
+        }
+        this.setState( { searchResults: newSearchResults } ) ;
+    }
+
     showModalForm( formId, title, titleColor, content, buttons ) {
         // prepare the buttons
         let buttons2 = [] ;

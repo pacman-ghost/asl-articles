@@ -14,11 +14,15 @@ export class ArticleSearchResult extends React.Component
 {
 
     render() {
+
+        // prepare the basic details
         const display_title = this.props.data[ "article_title!" ] || this.props.data.article_title ;
         const display_subtitle = this.props.data[ "article_subtitle!" ] || this.props.data.article_subtitle ;
         const display_snippet = this.props.data[ "article_snippet!" ] || this.props.data.article_snippet ;
         const pub = gAppRef.caches.publications[ this.props.data.pub_id ] ;
         const image_url = gAppRef.makeFlaskImageUrl( "article", this.props.data.article_image_id, true ) ;
+
+        // prepare the authors
         let authors ;
         if ( this.props.data[ "authors!" ] ) {
             // the backend has provided us with a list of author names (possibly highlighted) - use them directly
@@ -31,6 +35,8 @@ export class ArticleSearchResult extends React.Component
                 (a) => <span className="author" key={a} dangerouslySetInnerHTML={{__html: gAppRef.caches.authors[a].author_name}} />
             ) ;
         }
+
+        // prepare the scenarios
         let scenarios ;
         if ( this.props.data[ "scenarios!" ] ) {
             // the backend has provided us with a list of scenarios (possibly highlighted) - use them directly
@@ -45,6 +51,8 @@ export class ArticleSearchResult extends React.Component
                 (s) => <span className="scenario" key={s} dangerouslySetInnerHTML={{__html: makeScenarioDisplayName(gAppRef.caches.scenarios[s])}} />
             ) ;
         }
+
+        // prepare the tags
         let tags = [] ;
         if ( this.props.data[ "tags!" ] ) {
             // the backend has provided us with a list of tags (possibly highlighted) - use them directly
@@ -61,9 +69,8 @@ export class ArticleSearchResult extends React.Component
                 ) ;
             }
         }
-        // NOTE: The "title" field is also given the CSS class "name" so that the normal CSS will apply to it.
-        // Some tests also look for a generic ".name" class name when checking search results.
-        const pub_display_name = pub ? PublicationSearchResult.makeDisplayName( pub ) : null ;
+
+        // prepare the menu
         const menu = ( <Menu>
             <MenuButton className="sr-menu" />
             <MenuList>
@@ -75,6 +82,10 @@ export class ArticleSearchResult extends React.Component
                 >Delete</MenuItem>
             </MenuList>
         </Menu> ) ;
+
+        // NOTE: The "title" field is also given the CSS class "name" so that the normal CSS will apply to it.
+        // Some tests also look for a generic ".name" class name when checking search results.
+        const pub_display_name = pub ? PublicationSearchResult.makeDisplayName( pub ) : null ;
         return ( <div className="search-result article"
                     ref = { r => gAppRef.setTestAttribute( r, "article_id", this.props.data.article_id ) }
             >
@@ -113,6 +124,8 @@ export class ArticleSearchResult extends React.Component
                     gAppRef.showWarnings( "The new article was created OK.", resp.data.warnings ) ;
                 else
                     gAppRef.showInfoToast( <div> The new article was created OK. </div> ) ;
+                if ( resp.data._publication )
+                    gAppRef.updatePublications( [ resp.data._publication ] ) ;
                 gAppRef.closeModalForm() ;
             } )
             .catch( err => {
@@ -139,6 +152,8 @@ export class ArticleSearchResult extends React.Component
                     gAppRef.showWarnings( "The article was updated OK.", resp.data.warnings ) ;
                 else
                     gAppRef.showInfoToast( <div> The article was updated OK. </div> ) ;
+                if ( resp.data._publications )
+                    gAppRef.updatePublications( resp.data._publications ) ;
                 gAppRef.closeModalForm() ;
             } )
             .catch( err => {
@@ -167,6 +182,8 @@ export class ArticleSearchResult extends React.Component
                         gAppRef.showWarnings( "The article was deleted.", resp.data.warnings ) ;
                     else
                         gAppRef.showInfoToast( <div> The article was deleted. </div> ) ;
+                    if ( resp.data._publication )
+                        gAppRef.updatePublications( [ resp.data._publication ] ) ;
                 } )
                 .catch( err => {
                     gAppRef.showErrorToast( <div> Couldn't delete the article: <div className="monospace"> {err.toString()} </div> </div> ) ;

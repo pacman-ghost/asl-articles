@@ -30,7 +30,7 @@ def do_get_publications():
     # NOTE: The front-end maintains a cache of the publications, so as a convenience,
     # we return the current list as part of the response to a create/update/delete operation.
     results = Publication.query.all()
-    return { r.pub_id: get_publication_vals(r) for r in results }
+    return { r.pub_id: get_publication_vals(r,False) for r in results }
 
 # ---------------------------------------------------------------------
 
@@ -41,14 +41,14 @@ def get_publication( pub_id ):
     pub = Publication.query.get( pub_id )
     if not pub:
         abort( 404 )
-    vals = get_publication_vals( pub )
+    vals = get_publication_vals( pub, False )
     # include the number of associated articles
     query = Article.query.filter_by( pub_id = pub_id )
     vals[ "nArticles" ] = query.count()
     _logger.debug( "- %s ; #articles=%d", pub, vals["nArticles"] )
     return jsonify( vals )
 
-def get_publication_vals( pub, add_type=False ):
+def get_publication_vals( pub, include_articles, add_type=False ):
     """Extract public fields from a Publication record."""
     vals = {
         "pub_id": pub.pub_id,
@@ -62,6 +62,9 @@ def get_publication_vals( pub, add_type=False ):
         "publ_id": pub.publ_id,
         "time_created": int( pub.time_created.timestamp() ) if pub.time_created else None,
     }
+    if include_articles:
+        articles = sorted( pub.articles, key=lambda a: 999 if a.article_seqno is None else a.article_seqno )
+        vals[ "articles" ] = [ get_article_vals(a) for a in articles ]
     if add_type:
         vals[ "type" ] = "publication"
     return vals
@@ -208,14 +211,3 @@ def delete_publication( pub_id ):
         extras[ "publications" ] = do_get_publications()
         extras[ "tags" ] = do_get_tags()
     return make_ok_response( extras=extras )
-
-# ---------------------------------------------------------------------
-
-@app.route( "/publication/<pub_id>/articles" )
-def get_publication_articles( pub_id ):
-    """Get the articles for a publication."""
-    pub = Publication.query.get( pub_id )
-    if not pub:
-        abort( 404 )
-    articles = sorted( pub.articles, key=lambda a: 999 if a.article_seqno is None else a.article_seqno )
-    return jsonify( [ get_article_vals(a) for a in articles ] )

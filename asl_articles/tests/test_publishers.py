@@ -8,10 +8,11 @@ import base64
 from selenium.common.exceptions import StaleElementReferenceException
 
 from asl_articles.search import SEARCH_ALL, SEARCH_ALL_PUBLISHERS
+from asl_articles.tests.test_publications import create_publication, edit_publication
 from asl_articles.tests.utils import init_tests, load_fixtures, select_main_menu_option, select_sr_menu_option, \
     do_search, get_search_results, get_search_result_names, check_search_result, \
     do_test_confirm_discard_changes, \
-    wait_for, wait_for_elem, wait_for_not_elem, find_child, find_search_result, set_elem_text, \
+    wait_for, wait_for_elem, wait_for_not_elem, find_child, find_children, find_search_result, set_elem_text, \
     set_toast_marker, check_toast, send_upload_data, change_image, remove_image, get_publisher_row, \
     check_ask_dialog, check_error_msg
 
@@ -383,6 +384,60 @@ def test_confirm_discard_changes( webdriver, flask_app, dbconn ):
 
     # do the test
     do_test_confirm_discard_changes( "new-publisher" )
+
+# ---------------------------------------------------------------------
+
+def test_publication_lists( webdriver, flask_app, dbconn ):
+    """Test showing publications that belong a publisher."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, fixtures="publishers.json" )
+
+    def check_publications( results, expected ):
+        for publ_name,pub_name in expected.items():
+            publ_sr = find_search_result( publ_name, results )
+            pubs = find_child( ".collapsible", publ_sr )
+            if pub_name:
+                # check that the publisher appears in the publisher's search result
+                assert find_child( ".caption", pubs ).text == "Publications:"
+                pubs = find_children( "li", pubs )
+                assert len(pubs) == 1
+                assert pubs[0].text == pub_name
+            else:
+                # check that the publisher has no associated publications
+                assert pubs is None
+
+    # check that the publishers have no publications associated with them
+    results = do_search( SEARCH_ALL_PUBLISHERS )
+    publ_name1, publ_name2 = "Avalon Hill", "Multiman Publishing"
+    check_publications( results, { publ_name1: None, publ_name2: None } )
+
+    # create a publication that has no parent publisher
+    create_publication( { "name": "no parent" } )
+    check_publications( results, { publ_name1: None, publ_name2: None } )
+
+    # create a publication that has a parent publisher
+    pub_name = "test publication"
+    create_publication( { "name": pub_name, "publisher": publ_name1 } )
+    check_publications( results, { publ_name1: pub_name, publ_name2: None } )
+
+    # move the publication to another publisher
+    pub_sr = find_search_result( pub_name )
+    edit_publication( pub_sr, { "publisher": publ_name2 } )
+    check_publications( results, { publ_name1: None, publ_name2: pub_name } )
+
+    # change the publication to have no parent publisher
+    edit_publication( pub_sr, { "publisher": "(none)" } )
+    check_publications( results, { publ_name1: None, publ_name2: None } )
+
+    # move the publication back to a publisher
+    edit_publication( pub_sr, { "publisher": publ_name1 } )
+    check_publications( results, { publ_name1: pub_name, publ_name2: None } )
+
+    # delete the publication
+    select_sr_menu_option( pub_sr, "delete" )
+    check_ask_dialog( ( "Delete this publication?", pub_name ), "ok" )
+    check_publications( results, { publ_name1: None, publ_name2: None } )
 
 # ---------------------------------------------------------------------
 

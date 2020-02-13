@@ -2,8 +2,9 @@ import React from "react" ;
 import { Menu, MenuList, MenuButton, MenuItem } from "@reach/menu-button" ;
 import "./PublicationSearchResult.css" ;
 import { PublicationSearchResult2 } from "./PublicationSearchResult2.js" ;
+import { PUBLICATION_EXCESS_ARTICLE_THRESHOLD } from "./constants.js" ;
 import { gAppRef } from "./index.js" ;
-import { pluralString, applyUpdatedVals, removeSpecialFields } from "./utils.js" ;
+import { makeCollapsibleList, pluralString, applyUpdatedVals, removeSpecialFields } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -13,9 +14,13 @@ export class PublicationSearchResult extends React.Component
 {
 
     render() {
+
+        // prepare the basic details
         const display_description = this.props.data[ "pub_description!" ] || this.props.data.pub_description ;
         const publ = gAppRef.caches.publishers[ this.props.data.publ_id ] ;
         const image_url = gAppRef.makeFlaskImageUrl( "publication", this.props.data.pub_image_id, true ) ;
+
+        // prepare the tags
         let tags = [] ;
         if ( this.props.data[ "tags!" ] ) {
             // the backend has provided us with a list of tags (possibly highlighted) - use them directly
@@ -32,6 +37,13 @@ export class PublicationSearchResult extends React.Component
                 ) ;
             }
         }
+
+        // prepare the articles
+        let articles = null ;
+        if ( this.props.data.articles )
+            articles = this.props.data.articles.map( a => a.article_title ) ;
+
+        // prepare the menu
         const menu = ( <Menu>
             <MenuButton className="sr-menu" />
             <MenuList>
@@ -43,6 +55,7 @@ export class PublicationSearchResult extends React.Component
                 >Delete</MenuItem>
             </MenuList>
         </Menu> ) ;
+
         return ( <div className="search-result publication"
                     ref = { r => gAppRef.setTestAttribute( r, "pub_id", this.props.data.pub_id ) }
             >
@@ -55,6 +68,7 @@ export class PublicationSearchResult extends React.Component
             <div className="content">
                 { image_url && <img src={image_url} className="image" alt="Publication." /> }
                 <div className="description" dangerouslySetInnerHTML={{__html: display_description}} />
+                { makeCollapsibleList( "Articles:", articles, PUBLICATION_EXCESS_ARTICLE_THRESHOLD, {float:"left",marginBottom:"0.25em"} ) }
             </div>
             <div className="footer">
                 { this.props.data.pub_date && <div> <label>Published:</label> <span className="pub_date"> {this.props.data.pub_date} </span> </div> }
@@ -79,6 +93,8 @@ export class PublicationSearchResult extends React.Component
                 else
                     gAppRef.showInfoToast( <div> The new publication was created OK. </div> ) ;
                 gAppRef.closeModalForm() ;
+                // NOTE: The parent publisher will update itself in the UI to show this new publication,
+                // since we've just received an updated copy of the publications.
             } )
             .catch( err => {
                 gAppRef.showErrorMsg( <div> Couldn't create the publication: <div className="monospace"> {err.toString()} </div> </div> ) ;
@@ -88,35 +104,32 @@ export class PublicationSearchResult extends React.Component
 
     onEditPublication() {
         // get the articles for this publication
-        axios.get( gAppRef.makeFlaskUrl( "/publication/" + this.props.data.pub_id + "/articles" ) )
-        .then( resp => {
-            let articles = resp.data ; // nb: _doEditPublication() might modify this list
-            PublicationSearchResult2._doEditPublication( this.props.data, articles, (newVals,refs) => {
-                // send the updated details to the server
-                newVals.pub_id = this.props.data.pub_id ;
+        let articles = this.props.data.articles ; // nb: _doEditPublication() might change the order of this list
+        PublicationSearchResult2._doEditPublication( this.props.data, articles, (newVals,refs) => {
+            // send the updated details to the server
+            newVals.pub_id = this.props.data.pub_id ;
+            if ( articles )
                 newVals.article_order = articles.map( a => a.article_id ) ;
-                axios.post( gAppRef.makeFlaskUrl( "/publication/update", {list:1} ), newVals )
-                .then( resp => {
-                    // update the caches
-                    gAppRef.caches.publications = resp.data.publications ;
-                    gAppRef.caches.tags = resp.data.tags ;
-                    // update the UI with the new details
-                    applyUpdatedVals( this.props.data, newVals, resp.data.updated, refs ) ;
-                    removeSpecialFields( this.props.data ) ;
-                    this.forceUpdate() ;
-                    if ( resp.data.warnings )
-                        gAppRef.showWarnings( "The publication was updated OK.", resp.data.warnings ) ;
-                    else
-                        gAppRef.showInfoToast( <div> The publication was updated OK. </div> ) ;
-                    gAppRef.closeModalForm() ;
-                } )
-                .catch( err => {
-                    gAppRef.showErrorMsg( <div> Couldn't update the publication: <div className="monospace"> {err.toString()} </div> </div> ) ;
-                } ) ;
+            axios.post( gAppRef.makeFlaskUrl( "/publication/update", {list:1} ), newVals )
+            .then( resp => {
+                // update the caches
+                gAppRef.caches.publications = resp.data.publications ;
+                gAppRef.caches.tags = resp.data.tags ;
+                // update the UI with the new details
+                applyUpdatedVals( this.props.data, newVals, resp.data.updated, refs ) ;
+                removeSpecialFields( this.props.data ) ;
+                this.forceUpdate() ;
+                if ( resp.data.warnings )
+                    gAppRef.showWarnings( "The publication was updated OK.", resp.data.warnings ) ;
+                else
+                    gAppRef.showInfoToast( <div> The publication was updated OK. </div> ) ;
+                gAppRef.closeModalForm() ;
+                // NOTE: The parent publisher will update itself in the UI to show this updated publication,
+                // since we've just received an updated copy of the publications.
+            } )
+            .catch( err => {
+                gAppRef.showErrorMsg( <div> Couldn't update the publication: <div className="monospace"> {err.toString()} </div> </div> ) ;
             } ) ;
-        } )
-        .catch( err => {
-            gAppRef.showErrorMsg( <div> Couldn't load the articles: <div className="monospace"> {err.toString()} </div> </div> ) ;
         } ) ;
     }
 

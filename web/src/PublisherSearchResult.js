@@ -2,8 +2,10 @@ import React from "react" ;
 import { Menu, MenuList, MenuButton, MenuItem } from "@reach/menu-button" ;
 import { PublisherSearchResult2 } from "./PublisherSearchResult2.js"
 import "./PublisherSearchResult.css" ;
+import { PublicationSearchResult } from "./PublicationSearchResult.js"
+import { PUBLISHER_EXCESS_PUBLICATION_THRESHOLD } from "./constants.js" ;
 import { gAppRef } from "./index.js" ;
-import { pluralString, applyUpdatedVals, removeSpecialFields } from "./utils.js" ;
+import { makeCollapsibleList, pluralString, applyUpdatedVals, removeSpecialFields } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -13,9 +15,22 @@ export class PublisherSearchResult extends React.Component
 {
 
     render() {
+
+        // prepare the basic details
         const display_name = this.props.data[ "publ_name!" ] || this.props.data.publ_name ;
         const display_description = this.props.data[ "publ_description!" ] || this.props.data.publ_description ;
         const image_url = gAppRef.makeFlaskImageUrl( "publisher", this.props.data.publ_image_id, true ) ;
+
+        // prepare the publications
+        let pubs = [] ;
+        for ( let pub of Object.entries(gAppRef.caches.publications) ) {
+            if ( pub[1].publ_id === this.props.data.publ_id )
+                pubs.push( pub[1] ) ;
+        }
+        pubs.sort( (lhs,rhs) => rhs.time_created - lhs.time_created ) ;
+        pubs = pubs.map( p => PublicationSearchResult.makeDisplayName(p) ) ;
+
+        // prepare the menu
         const menu = ( <Menu>
             <MenuButton className="sr-menu" />
             <MenuList>
@@ -27,6 +42,7 @@ export class PublisherSearchResult extends React.Component
                 >Delete</MenuItem>
             </MenuList>
         </Menu> ) ;
+
         return ( <div className="search-result publisher"
                     ref = { r => gAppRef.setTestAttribute( r, "publ_id", this.props.data.publ_id ) }
             >
@@ -38,6 +54,7 @@ export class PublisherSearchResult extends React.Component
             <div className="content">
                 { image_url && <img src={image_url} className="image" alt="Publisher." /> }
                 <div className="description" dangerouslySetInnerHTML={{__html: display_description}} />
+                { makeCollapsibleList( "Publications:", pubs, PUBLISHER_EXCESS_PUBLICATION_THRESHOLD, {float:"left",marginBottom:"0.25em"} ) }
             </div>
         </div> ) ;
     }

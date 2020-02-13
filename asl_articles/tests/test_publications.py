@@ -184,11 +184,11 @@ def test_delete_publication( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn, fixtures="publications.json" )
 
     # start to delete a publication, but cancel the operation
-    article_name = "ASL Journal (2)"
+    article_title = "ASL Journal (2)"
     results = do_search( SEARCH_ALL_PUBLICATIONS )
-    sr = find_search_result( article_name, results )
+    sr = find_search_result( article_title, results )
     select_sr_menu_option( sr, "delete" )
-    check_ask_dialog( ( "Delete this publication?", article_name ), "cancel" )
+    check_ask_dialog( ( "Delete this publication?", article_title ), "cancel" )
 
     # check that search results are unchanged on-screen
     results2 = get_search_results()
@@ -199,18 +199,18 @@ def test_delete_publication( webdriver, flask_app, dbconn ):
     assert results3 == results
 
     # delete the publication
-    sr = find_search_result( article_name, results3 )
+    sr = find_search_result( article_title, results3 )
     select_sr_menu_option( sr, "delete" )
     set_toast_marker( "info" )
-    check_ask_dialog( ( "Delete this publication?", article_name ), "ok" )
+    check_ask_dialog( ( "Delete this publication?", article_title ), "ok" )
     wait_for( 2, lambda: check_toast( "info", "The publication was deleted." ) )
 
     # check that search result was removed on-screen
-    wait_for( 2, lambda: article_name not in get_search_result_names() )
+    wait_for( 2, lambda: article_title not in get_search_result_names() )
 
     # check that the search result was deleted from the database
     results = do_search( SEARCH_ALL_PUBLICATIONS )
-    assert article_name not in get_search_result_names( results )
+    assert article_title not in get_search_result_names( results )
 
 # ---------------------------------------------------------------------
 
@@ -500,6 +500,73 @@ def test_timestamps( webdriver, flask_app, dbconn ):
     row2 = get_publication_row( dbconn, pub_id, ["time_created","time_updated"] )
     assert row2[0] == row[0]
     assert row2[1] > row2[0]
+
+# ---------------------------------------------------------------------
+
+def test_article_lists( webdriver, flask_app, dbconn ):
+    """Test showing articles that belong to a publication."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, fixtures="publications.json" )
+
+    def check_articles( results, expected ):
+        for pub_name,article_title in expected.items():
+            pub_sr = find_search_result( pub_name, results )
+            articles = find_child( ".collapsible", pub_sr )
+            if article_title:
+                # check that the article appears in the publication's search result
+                assert find_child( ".caption", articles ).text == "Articles:"
+                articles = find_children( "li", articles )
+                assert len(articles) == 1
+                assert articles[0].text == article_title
+                # check that the "edit publication" dialog is correct
+                select_sr_menu_option( pub_sr, "edit" )
+                dlg = find_child( ".MuiDialog-root" )
+                articles = find_children( ".articles li", dlg )
+                assert len(articles) == 1
+                assert articles[0].text == article_title
+                find_child( "button.cancel", dlg ).click()
+            else:
+                # check that the publication has no associated articles
+                assert articles is None
+                # check that the "edit publication" dialog is correct
+                select_sr_menu_option( pub_sr, "edit" )
+                dlg = find_child( ".MuiDialog-root" )
+                articles = find_children( ".articles", dlg )
+                assert len(articles) == 0
+                find_child( "button.cancel", dlg ).click()
+
+    # check that the publications have no articles associated with them
+    results = do_search( SEARCH_ALL_PUBLICATIONS )
+    pub_name1, pub_name2 = "ASL Journal (1)", "MMP News"
+    check_articles( results, { pub_name1: None, pub_name2: None } )
+
+    # create an article that has no parent publication
+    create_article( { "title": "no parent" } )
+    check_articles( results, { pub_name1: None, pub_name2: None } )
+
+    # create an article that has a parent publication
+    article_title = "test article"
+    create_article( { "title": article_title, "publication": pub_name1 } )
+    check_articles( results, { pub_name1: article_title, pub_name2: None } )
+
+    # move the article to another publication
+    article_sr = find_search_result( article_title )
+    edit_article( article_sr, { "publication": pub_name2 } )
+    check_articles( None, { pub_name1: None, pub_name2: article_title } )
+
+    # change the article to have no parent publication
+    edit_article( article_sr, { "publication": "(none)" } )
+    check_articles( None, { pub_name1: None, pub_name2: None } )
+
+    # move the article back into a publication
+    edit_article( article_sr, { "publication": pub_name1 } )
+    check_articles( None, { pub_name1: article_title, pub_name2: None } )
+
+    # delete the article
+    select_sr_menu_option( article_sr, "delete" )
+    check_ask_dialog( ( "Delete this article?", article_title ), "ok" )
+    check_articles( None, { pub_name1: None, pub_name2: None } )
 
 # ---------------------------------------------------------------------
 

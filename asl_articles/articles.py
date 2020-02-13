@@ -9,9 +9,11 @@ from sqlalchemy.sql.expression import func
 
 from asl_articles import app, db
 from asl_articles.models import Article, Author, ArticleAuthor, Scenario, ArticleScenario, ArticleImage
+from asl_articles.models import Publication
 from asl_articles.authors import do_get_authors
 from asl_articles.scenarios import do_get_scenarios
 from asl_articles.tags import do_get_tags
+import asl_articles.publications
 from asl_articles import search
 from asl_articles.utils import get_request_args, clean_request_args, clean_tags, encode_tags, decode_tags, \
     apply_attrs, make_ok_response
@@ -98,6 +100,9 @@ def create_article():
         extras[ "authors" ] = do_get_authors()
         extras[ "scenarios" ] = do_get_scenarios()
         extras[ "tags" ] = do_get_tags()
+        if article.pub_id:
+            pub = Publication.query.get( article.pub_id )
+            extras[ "_publication" ] = asl_articles.publications.get_publication_vals( pub, True )
     return make_ok_response( updated=updated, extras=extras, warnings=warnings )
 
 def _set_seqno( article, pub_id ):
@@ -230,6 +235,7 @@ def update_article():
     article = Article.query.get( article_id )
     if not article:
         abort( 404 )
+    orig_pub = Publication.query.get( article.pub_id ) if article.pub_id else None
     if vals["pub_id"] != article.pub_id:
         _set_seqno( article, vals["pub_id"] )
     vals[ "time_updated" ] = datetime.datetime.now()
@@ -246,6 +252,14 @@ def update_article():
         extras[ "authors" ] = do_get_authors()
         extras[ "scenarios" ] = do_get_scenarios()
         extras[ "tags" ] = do_get_tags()
+        pubs = []
+        if orig_pub and orig_pub.pub_id != article.pub_id:
+            pubs.append( asl_articles.publications.get_publication_vals( orig_pub, True ) )
+        if article.pub_id:
+            pub = Publication.query.get( article.pub_id )
+            pubs.append( asl_articles.publications.get_publication_vals( pub, True ) )
+        if pubs:
+            extras[ "_publications" ] = pubs
     return make_ok_response( updated=updated, extras=extras, warnings=warnings )
 
 # ---------------------------------------------------------------------
@@ -271,4 +285,7 @@ def delete_article( article_id ):
     if request.args.get( "list" ):
         extras[ "authors" ] = do_get_authors()
         extras[ "tags" ] = do_get_tags()
+        if article.pub_id:
+            pub = Publication.query.get( article.pub_id )
+            extras[ "_publication" ] = asl_articles.publications.get_publication_vals( pub, True )
     return make_ok_response( extras=extras )

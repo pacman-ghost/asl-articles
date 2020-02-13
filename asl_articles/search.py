@@ -118,6 +118,10 @@ def _do_search(): #pylint: disable=too-many-locals,too-many-statements,too-many-
     no_hilite = to_bool( request.json.get( "no_hilite" ) )
     _logger.info( "SEARCH REQUEST: %s", query_string )
 
+    _get_publisher_vals = lambda p: get_publisher_vals( p, True )
+    _get_publication_vals = lambda p: get_publication_vals( p, True, True )
+    _get_article_vals = lambda a: get_article_vals( a, True )
+
     # check for special query terms (for testing porpoises)
     results = []
     def find_special_term( term ):
@@ -129,11 +133,11 @@ def _do_search(): #pylint: disable=too-many-locals,too-many-statements,too-many-
         return False
     special_terms = {
         SEARCH_ALL_PUBLISHERS:
-            lambda: [ get_publisher_vals(p,True) for p in Publisher.query ], #pylint: disable=not-an-iterable
+            lambda: [ _get_publisher_vals(p) for p in Publisher.query ], #pylint: disable=not-an-iterable
         SEARCH_ALL_PUBLICATIONS:
-            lambda: [ get_publication_vals(p,True) for p in Publication.query ], #pylint: disable=not-an-iterable
+            lambda: [ _get_publication_vals(p) for p in Publication.query ], #pylint: disable=not-an-iterable
         SEARCH_ALL_ARTICLES:
-            lambda: [ get_article_vals(a,True) for a in Article.query ] #pylint: disable=not-an-iterable
+            lambda: [ _get_article_vals(a) for a in Article.query ] #pylint: disable=not-an-iterable
     }
     if find_special_term( SEARCH_ALL ):
         for term,func in special_terms.items():
@@ -179,7 +183,7 @@ def _do_search(): #pylint: disable=too-many-locals,too-many-statements,too-many-
             _logger.debug( "- {} ({:.3f})".format( obj, row[1] ) )
 
             # prepare the result for the front-end
-            result = globals()[ "get_{}_vals".format( owner_type ) ]( obj )
+            result = locals()[ "_get_{}_vals".format( owner_type ) ]( obj )
             result[ "type" ] = owner_type
 
             # return highlighted versions of the content to the caller

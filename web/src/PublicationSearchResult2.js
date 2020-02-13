@@ -223,7 +223,7 @@ export class PublicationSearchResult2
         function checkArticlePageNumbers( articles ) {
             // check the order of the article page numbers
             let curr_pageno = null ;
-            if ( articles === null )
+            if ( ! articles  )
                 return false ;
             for ( let i=0 ; i < articles.length ; ++i ) {
                 if ( ! isNumeric( articles[i].article_pageno ) )
