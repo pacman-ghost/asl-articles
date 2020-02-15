@@ -86,7 +86,8 @@ def clean_html( val, allow_tags=None, safe_attrs=None ): #pylint: disable=too-ma
     val = replace_chars( val, '"', [ "\u00ab", "\u00bb", "\u201c", "\u201d", "\u201e", "\u201f" ] )
     val = replace_chars( val, "'", [ "\u2018", "\u2019", "\u201a", "\u201b", "\u2039", "\u203a" ] )
     val = replace_chars( val, r"\1 - \2", [ re.compile( r"(\S+)\u2014(\S+)" ) ] )
-    val = replace_chars( val, "-", [ "\u2014" ] )
+    val = replace_chars( val, "-", [ "\u2013", "\u2014" ] )
+    val = replace_chars( val, "...", [ "\u2026" ] )
 
     # FUDGE! lxml replaces HTML entities with their actual character :-/ It's possible to stop it from doing this,
     # by passing in an ElementTree, which gives us an ElementTree back, and we can then control how it is serialized
