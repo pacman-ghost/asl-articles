@@ -18,7 +18,7 @@ export class PublicationSearchResult extends React.Component
         // prepare the basic details
         const display_description = this.props.data[ "pub_description!" ] || this.props.data.pub_description ;
         const publ = gAppRef.caches.publishers[ this.props.data.publ_id ] ;
-        const image_url = gAppRef.makeFlaskImageUrl( "publication", this.props.data.pub_image_id, true ) ;
+        const image_url = PublicationSearchResult.makeImageUrl( this.props.data ) ;
 
         // prepare the tags
         let tags = [] ;
@@ -200,5 +200,18 @@ export class PublicationSearchResult extends React.Component
             return pub_name ;
     }
     _makeDisplayName( allowAlternateContent ) { return PublicationSearchResult.makeDisplayName( this.props.data, allowAlternateContent ) ; }
+
+    static makeImageUrl( vals ) {
+        let image_url = gAppRef.makeFlaskImageUrl( "publication", vals.pub_image_id, true ) ;
+        if ( ! image_url ) {
+            // check if the parent publisher has an image
+            if ( vals.publ_id ) {
+                const publ = gAppRef.caches.publishers[ vals.publ_id ] ;
+                if ( publ )
+                    image_url = gAppRef.makeFlaskImageUrl( "publisher", publ.publ_image_id ) ;
+            }
+        }
+        return image_url ;
+    }
 
 }

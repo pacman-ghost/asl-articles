@@ -1,0 +1,11 @@
+{
+
+"publisher": [
+    { "publ_id": 1, "publ_name": "Joe Publisher" }
+],
+
+"publication": [
+    { "pub_name": "My Publication", "publ_id": 1}
+]
+
+}

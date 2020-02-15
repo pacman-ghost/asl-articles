@@ -349,11 +349,11 @@ export default class App extends React.Component
         }
         return url ;
     }
-    makeFlaskImageUrl( type, image_id, force ) {
+    makeFlaskImageUrl( type, imageId, force ) {
         // generate an image URL for the Flask backend server
-        if ( ! image_id )
+        if ( ! imageId )
             return null ;
-        let url = this.makeFlaskUrl( "/images/" + type + "/" + image_id ) ;
+        let url = this.makeFlaskUrl( "/images/" + type + "/" + imageId ) ;
         if ( force )
             url += "?foo=" + Math.random() ; // FUDGE! To bypass the cache :-/
         return url ;

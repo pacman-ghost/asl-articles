@@ -658,6 +658,68 @@ def test_article_order( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
+def test_default_image( webdriver, flask_app, dbconn ):
+    """Test displaying a publication's default image."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, fixtures="default-publication-image.json" )
+
+    # initialize
+    from asl_articles.tests.test_publishers import edit_publisher #pylint: disable=import-outside-toplevel
+    images = [ "1.gif", "2.gif", "3.gif" ]
+    image_fnames = {
+        f: os.path.join( os.path.split(__file__)[0], "fixtures/images/"+f )
+        for f in images
+    }
+    image_data = {
+        f: open( image_fnames[f], "rb" ).read()
+        for f in images
+    }
+
+    # show the test publisher/publication
+    results = do_search( SEARCH_ALL )
+    publ_sr = find_search_result( "Joe Publisher", results )
+    pub_sr = find_search_result( "My Publication", results )
+
+    def check_images( publ_expected, pub_expected ):
+        do_check_image( publ_sr, publ_expected )
+        do_check_image( pub_sr, pub_expected )
+    def do_check_image( sr, expected ):
+        img = find_child( "img.image", sr )
+        if img:
+            assert expected
+            image_url = img.get_attribute( "src" )
+            resp = urllib.request.urlopen( image_url ).read()
+            assert resp == image_data[ expected ]
+        else:
+            assert not expected
+
+    # add an image to the publisher
+    edit_publisher( publ_sr, { "image": image_fnames["1.gif"] } )
+    check_images( "1.gif", "1.gif" )
+
+    # add an image to the publication
+    edit_publication( pub_sr, { "image": image_fnames["2.gif"] } )
+    check_images( "1.gif", "2.gif" )
+
+    # remove the publisher's image
+    edit_publisher( publ_sr, { "image": None } )
+    check_images( None, "2.gif" )
+
+    # add a different image to the publisher
+    edit_publisher( publ_sr, { "image": image_fnames["3.gif"] } )
+    check_images( "3.gif", "2.gif" )
+
+    # remove the publication's image
+    edit_publication( pub_sr, { "image": None } )
+    check_images( "3.gif", "3.gif" )
+
+    # detach the publication from the publisher
+    edit_publication( pub_sr, { "publisher": "(none)" } )
+    check_images( "3.gif", None)
+
+# ---------------------------------------------------------------------
+
 def create_publication( vals, toast_type="info", expected_error=None, expected_constraints=None, dlg=None ):
     """Create a new publication."""
 
