@@ -67,7 +67,7 @@ export default class App extends React.Component
         let content ;
         if ( this.state.startupTasks.length > 0 ) {
             // we are still starting up
-            content = <div id="loading"> <img id="loading" src="/images/loading.gif" alt="Loading..." /></div> ;
+            content = <div id="loading"> <img id="loading" src="/images/loading.gif" alt="Loading..." /> </div> ;
         } else {
             // generate the menu
             const menu = ( <Menu id="app">
@@ -178,6 +178,7 @@ export default class App extends React.Component
     }
     _doSearch( url, args ) {
         // do the search
+        this.setState( { searchResults: "(loading)" } ) ;
         args.no_hilite = this._disableSearchResultHighlighting ;
         axios.post(
             this.makeFlaskUrl( url ), args

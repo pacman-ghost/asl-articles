@@ -216,6 +216,7 @@ def test_delete_article( webdriver, flask_app, dbconn ):
     # start to delete an article, but cancel the operation
     article_name = "Smoke Gets In Your Eyes"
     results = do_search( SEARCH_ALL_ARTICLES )
+    result_names = get_search_result_names( results )
     sr = find_search_result( article_name, results )
     select_sr_menu_option( sr, "delete" )
     check_ask_dialog( ( "Delete this article?", article_name ), "cancel" )
@@ -226,7 +227,7 @@ def test_delete_article( webdriver, flask_app, dbconn ):
 
     # check that the search results are unchanged in the database
     results3 = do_search( SEARCH_ALL_ARTICLES )
-    assert results3 == results
+    assert get_search_result_names( results3 ) == result_names
 
     # delete the article
     sr = find_search_result( article_name, results3 )

@@ -1,5 +1,6 @@
 #search-results { padding: 0 0.25em ; }
 #search-results .no-results { font-style: italic ; }
+#search-results .loading { width: 100% ; height: 100% ; }
 
 .search-result { margin-bottom: 0.5em ; clear: both ; }
 

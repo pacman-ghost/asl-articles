@@ -186,6 +186,7 @@ def test_delete_publication( webdriver, flask_app, dbconn ):
     # start to delete a publication, but cancel the operation
     article_title = "ASL Journal (2)"
     results = do_search( SEARCH_ALL_PUBLICATIONS )
+    result_names = get_search_result_names( results )
     sr = find_search_result( article_title, results )
     select_sr_menu_option( sr, "delete" )
     check_ask_dialog( ( "Delete this publication?", article_title ), "cancel" )
@@ -196,7 +197,7 @@ def test_delete_publication( webdriver, flask_app, dbconn ):
 
     # check that the search results are unchanged in the database
     results3 = do_search( SEARCH_ALL_PUBLICATIONS )
-    assert results3 == results
+    assert get_search_result_names( results3 ) == result_names
 
     # delete the publication
     sr = find_search_result( article_title, results3 )
@@ -351,7 +352,7 @@ def test_parent_publisher( webdriver, flask_app, dbconn ):
 
     # change the publication back to having no publisher
     edit_publication( sr, { "publisher": "(none)" } )
-    sr = wait_for( 2, lambda: check_result( results[0], None ) )
+    sr = wait_for( 2, lambda: check_result( sr, None ) )
 
 # ---------------------------------------------------------------------
 

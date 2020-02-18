@@ -114,6 +114,7 @@ def test_delete_publisher( webdriver, flask_app, dbconn ):
     # start to delete a publisher, but cancel the operation
     article_name = "Le Franc Tireur"
     results = do_search( SEARCH_ALL_PUBLISHERS )
+    result_names = get_search_result_names( results )
     sr = find_search_result( article_name, results )
     select_sr_menu_option( sr, "delete" )
     check_ask_dialog( ( "Delete this publisher?", article_name ), "cancel" )
@@ -124,7 +125,7 @@ def test_delete_publisher( webdriver, flask_app, dbconn ):
 
     # check that the search results are unchanged in the database
     results3 = do_search( SEARCH_ALL_PUBLISHERS )
-    assert results3 == results
+    assert get_search_result_names( results3 ) == result_names
 
     # delete the publisher
     sr = find_search_result( article_name, results3 )

@@ -16,7 +16,16 @@ export class SearchResults extends React.Component
             results = "ERROR: " + this.props.searchResults.error ;
         else if ( ! this.props.searchResults || this.props.searchResults.length === 0 )
             results = (this.props.seqNo === 0) ? null : <div className="no-results"> No results. </div> ;
-        else {
+        else if ( this.props.searchResults === "(loading)" ) {
+            results = ( <div className="loading">
+                <img id="loading" src="/images/loading.gif" alt="Loading..." style={{display:"none"}} />
+                </div> ) ;
+            setTimeout( function() {
+                let elem = document.getElementById( "loading" ) ;
+                if ( elem )
+                    elem.style.display = "block" ;
+            }, 500 ) ;
+        } else {
             results = [] ;
             this.props.searchResults.forEach( sr => {
                 if ( sr.type === "publisher" ) {
