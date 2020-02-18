@@ -514,7 +514,7 @@ def check_error_msg( expected ):
 
 def check_constraint_warnings( expected_caption, expected_constraints, click_on ):
     """Check that a constraints warning dialog is being shown, and its contents."""
-    dlg = find_child( "#ask" )
+    dlg = wait_for_elem( 2, "#ask" )
     assert find_child( ".caption", dlg ).text == expected_caption
     constraints = [ c.text for c in find_children( ".constraint", dlg ) ]
     assert set( constraints ) == set( expected_constraints )
