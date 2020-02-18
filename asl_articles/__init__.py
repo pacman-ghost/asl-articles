@@ -7,6 +7,7 @@ import logging.config
 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.exc import SQLAlchemyError
 import yaml
 
 from asl_articles.config.constants import BASE_DIR
@@ -16,6 +17,23 @@ from asl_articles.utils import to_bool
 
 def _on_startup():
     """Do startup initialization."""
+
+    # check if we have a working database connection
+    if _dbconn_string.startswith( "sqlite:///" ):
+        # NOTE: If the SQLite database is not there, a zero-byte file will be created the first time we try to use it,
+        # so we can't use the normal check we use below for other databases.
+        # NOTE: We could automatically set up a new database file and install the schema into it, but that's probably
+        # more trouble than it's worth, and possibly a cause of problems in itself :-/
+        fname = _dbconn_string[10:]
+        if not os.path.isfile( fname ):
+            asl_articles.startup.log_startup_msg( "error", "Missing SQLite database:\n{}", fname )
+            return
+    else:
+        try:
+            db.session.execute( "SELECT 1" )
+        except SQLAlchemyError as ex:
+            asl_articles.startup.log_startup_msg( "error", "Can't connect to the database:\n{}", ex )
+            return
 
     # initialize the search index
     _logger = logging.getLogger( "startup" )
@@ -80,6 +98,7 @@ db = SQLAlchemy( app )
 
 # load the application
 import asl_articles.globvars #pylint: disable=cyclic-import
+import asl_articles.startup #pylint: disable=cyclic-import
 import asl_articles.main #pylint: disable=cyclic-import
 import asl_articles.search #pylint: disable=cyclic-import
 import asl_articles.publishers #pylint: disable=cyclic-import

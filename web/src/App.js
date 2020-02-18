@@ -121,24 +121,60 @@ export default class App extends React.Component
     }
 
     componentDidMount() {
-        // initialize the caches
-        // NOTE: We maintain caches of key objects, so that we can quickly populate droplists. The backend server returns
-        // updated lists after any operation that could change them (create/update/delete), which is simpler and less error-prone
-        // than trying to manually keep our caches in sync. It's less efficient, but it won't happen too often, there won't be
-        // too many entries, and the database server is local.
-        this.caches = {} ;
-        ["publishers","publications","authors","scenarios","tags"].forEach( (type) => {
-            axios.get( this.makeFlaskUrl( "/" + type ) )
-            .then( resp => {
-                this.caches[ type ] = resp.data ;
-                this._onStartupTask( "caches." + type ) ;
-            } )
-            .catch( err => {
-                this.showErrorToast( <div> Couldn't load the {type}: <div className="monospace"> {err.toString()} </div> </div> ) ;
-            } ) ;
-        } ) ;
         // install our key handler
         window.addEventListener( "keydown", this.onKeyDown.bind( this ) ) ;
+
+        // check if the server started up OK
+        let on_startup_ok = () => {
+            // the backend server started up OK, continue our startup process
+            // initialize the caches
+            // NOTE: We maintain caches of key objects, so that we can quickly populate droplists. The backend server returns
+            // updated lists after any operation that could change them (create/update/delete), which is simpler and less error-prone
+            // than trying to manually keep our caches in sync. It's less efficient, but it won't happen too often, there won't be
+            // too many entries, and the database server is local.
+            this.caches = {} ;
+            [ "publishers", "publications", "authors", "scenarios", "tags" ].forEach( type => {
+                axios.get( this.makeFlaskUrl( "/" + type ) )
+                .then( resp => {
+                    this.caches[ type ] = resp.data ;
+                    this._onStartupTask( "caches." + type ) ;
+                } )
+                .catch( err => {
+                    this.showErrorToast( <div> Couldn't load the {type}: <div className="monospace"> {err.toString()} </div> </div> ) ;
+                } ) ;
+            } ) ;
+        }
+        let on_startup_failure = () => {
+            // the backend server had problems during startup; we hide the spinner
+            // and leave the error message(s) on-screen.
+            document.getElementById( "loading" ).style.display = "none" ;
+        }
+        axios.get( this.makeFlaskUrl( "/startup-messages" ) )
+        .then( resp => {
+            // show any messages logged by the backend server as it started up
+            [ "info", "warning", "error" ].forEach( msgType => {
+                if ( resp.data[ msgType ] ) {
+                    resp.data[ msgType ].forEach( msg => {
+                        const pos = msg.indexOf( ":\n" ) ;
+                        if ( pos !== -1 ) {
+                            msg = ( <div> {msg.substr(0,pos+1)}
+                                <div className="monospace"> {msg.substr(pos+2)} </div>
+                                </div> ) ;
+                        }
+                        const funcName = "show" + msgType[0].toUpperCase() + msgType.substr(1) + "Toast" ;
+                        this[ funcName ]( msg ) ;
+                    } ) ;
+                }
+            } ) ;
+            if ( resp.data.error && resp.data.error.length > 0 )
+                on_startup_failure() ;
+            else
+                on_startup_ok() ;
+        } )
+        .catch( err => {
+            this.showErrorToast( <div> Couldn't get the startup messages: <div className="monospace"> {err.toString()} </div> </div> ) ;
+            on_startup_failure() ;
+        } ) ;
     }
 
     componentDidUpdate() {
