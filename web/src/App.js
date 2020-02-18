@@ -73,6 +73,13 @@ export default class App extends React.Component
             const menu = ( <Menu id="app">
                 <MenuButton />
                 <MenuList>
+                    <MenuItem id="menu-search-technique"
+                        onSelect = { () => this._onSpecialSearch( "/search/tag/technique", {randomize:1} ) }
+                    >Show technique</MenuItem>
+                    <MenuItem id="menu-search-tips"
+                        onSelect = { () => this._onSpecialSearch( "/search/tag/tips", {randomize:1} ) }
+                    >Show tips</MenuItem>
+                    <div className="divider" />
                     <MenuItem id="menu-new-publisher"
                         onSelect = { () => PublisherSearchResult.onNewPublisher( this._onNewPublisher.bind(this) ) }
                     >New publisher</MenuItem>
@@ -207,10 +214,12 @@ export default class App extends React.Component
     searchForArticle( article_id ) { this._onSpecialSearch( "/search/article/" + article_id ) ; }
     searchForAuthor( author_id ) { this._onSpecialSearch( "/search/author/" + author_id ) ; }
     searchForTag( tag ) { this._onSpecialSearch( "/search/tag/" + encodeURIComponent(tag) ) ; }
-    _onSpecialSearch( url ) {
+    _onSpecialSearch( url, args ) {
         // run the search
         this._searchFormRef.current.setState( { queryString: "" } ) ;
-        this._doSearch( url, {} ) ;
+        if ( ! args )
+            args = {} ;
+        this._doSearch( url, args ) ;
     }
     _doSearch( url, args ) {
         // do the search

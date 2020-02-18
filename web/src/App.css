@@ -13,6 +13,7 @@
 [data-reach-menu-list] { padding: 5px ; }
 [data-reach-menu-item] { padding: 5px ; }
 [data-reach-menu-item][data-selected] { background: #90caf9 ; color: black ; }
+[data-reach-menu-list] .divider { height: 0 ; margin: 2px 0 ; border-top: 1px solid #aaa ; }
 
 .MuiDialogTitle-root { padding: 10px 16px 6px 16px !important ; }
 .MuiDialogContent-root>div { margin-bottom: 1em ; }

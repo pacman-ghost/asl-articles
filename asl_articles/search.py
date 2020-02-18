@@ -4,6 +4,7 @@ import os
 import sqlite3
 import configparser
 import itertools
+import random
 import tempfile
 import re
 import logging
@@ -285,6 +286,10 @@ def _do_fts_search( fts_query_string, col_names, results=None ): #pylint: disabl
 
             # add the result to the list
             results.append( result )
+
+    # check if we should randomize the results
+    if request.json and to_bool( request.json.get( "randomize" ) ):
+        random.shuffle( results )
 
     return jsonify( results )
 
