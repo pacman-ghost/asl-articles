@@ -98,7 +98,7 @@ export class PublicationSearchResult extends React.Component
             <div className="content">
                 { image_url && <img src={image_url} className="image" alt="Publication." /> }
                 <div className="description" dangerouslySetInnerHTML={{__html: display_description}} />
-                { makeCollapsibleList( "Articles:", articles, PUBLICATION_EXCESS_ARTICLE_THRESHOLD, {float:"left",marginBottom:"0.25em"} ) }
+                { makeCollapsibleList( "Articles", articles, PUBLICATION_EXCESS_ARTICLE_THRESHOLD, {float:"left",marginBottom:"0.25em"} ) }
             </div>
             <div className="footer">
                 { this.props.data.pub_date && <div> <label>Published:</label> <span className="pub_date"> {this.props.data.pub_date} </span> </div> }

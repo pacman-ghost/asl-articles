@@ -62,7 +62,7 @@ export class PublisherSearchResult extends React.Component
             <div className="content">
                 { image_url && <img src={image_url} className="image" alt="Publisher." /> }
                 <div className="description" dangerouslySetInnerHTML={{__html: display_description}} />
-                { makeCollapsibleList( "Publications:", pubs, PUBLISHER_EXCESS_PUBLICATION_THRESHOLD, {float:"left",marginBottom:"0.25em"} ) }
+                { makeCollapsibleList( "Publications", pubs, PUBLISHER_EXCESS_PUBLICATION_THRESHOLD, {float:"left",marginBottom:"0.25em"} ) }
             </div>
         </div> ) ;
     }
