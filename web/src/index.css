@@ -11,5 +11,11 @@ ul, ol { margin: 0.5em 0 0 1.25em ; }
 input[type="text"] { height: 22px ; border: 1px solid #c5c5c5 ; padding: 2px 5px ; }
 label { height: 1.25em ; margin-top: -3px ; }
 textarea { padding: 2px 5px ; resize: vertical ; }
+blockquote {
+    margin: .5em 1em .75em 1em ; padding: 5px 5px 5px 15px ;
+    border: 1px solid #ddd ; background: #fffff0 ;
+    background-image: url( "/images/blockquote.png" ) ; background-position: 2px 5px ; background-repeat: no-repeat ;
+    font-style: italic ;
+}
 
 button::-moz-focus-inner { border: 0 ; }

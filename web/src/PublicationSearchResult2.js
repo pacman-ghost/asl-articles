@@ -280,7 +280,7 @@ export class PublicationSearchResult2
         // show the form
         const isNew = Object.keys( vals ).length === 0 ;
         gAppRef.showModalForm( "publication-form",
-            isNew ? "New publication" : "Edit publication", "#e5f700",
+            isNew ? "New publication" : "Edit publication", "#e5cea0",
             doRender, buttons
         ) ;
     }
