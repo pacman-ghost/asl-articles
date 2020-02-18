@@ -93,15 +93,8 @@ def load_fixtures( session, fname ):
 def do_search( query ):
     """Run a search."""
 
-    # get the current search seq#
-    def get_seqno():
-        elem = find_child( "#search-results" )
-        if elem is None:
-            return None
-        return elem.get_attribute( "seqno" )
-    curr_seqno = get_seqno()
-
     # submit the search query
+    curr_seqno = get_search_seqno()
     form = find_child( "#search-form" )
     assert form
     elem = find_child( ".query", form )
@@ -116,7 +109,7 @@ def do_search( query ):
     find_child( "button[type='submit']", form ).click()
 
     # return the results
-    wait_for( 2, lambda: get_seqno() != curr_seqno )
+    wait_for( 2, lambda: get_search_seqno() != curr_seqno )
     return get_search_results()
 
 def get_search_results():
@@ -161,6 +154,13 @@ def check_search_result( sr, check, expected ):
         except StaleElementReferenceException:
             return None # nb: the web page updated while we were checking it
     return wait_for( 2, check_sr )
+
+def get_search_seqno():
+    """Get the current search seq#."""
+    elem = find_child( "#search-results" )
+    if not elem:
+        return None
+    return elem.get_attribute( "seqno" )
 
 # ---------------------------------------------------------------------
 

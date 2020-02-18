@@ -8,13 +8,13 @@ import tempfile
 import re
 import logging
 
-from flask import request, jsonify
+from flask import request, jsonify, abort
 
 import asl_articles
 from asl_articles import app, db
 from asl_articles.models import Publisher, Publication, Article, Author, Scenario, get_model_from_table_name
 from asl_articles.publishers import get_publisher_vals
-from asl_articles.publications import get_publication_vals
+from asl_articles.publications import get_publication_vals, get_publication_sort_key
 from asl_articles.articles import get_article_vals
 from asl_articles.utils import decode_tags, to_bool
 
@@ -22,7 +22,14 @@ _search_index_path = None
 _search_aliases = {}
 _logger = logging.getLogger( "search" )
 
-_SQLITE_FTS_SPECIAL_CHARS = "+-#':/."
+_SQLITE_FTS_SPECIAL_CHARS = "+-#':/.@$"
+
+_SEARCHABLE_COL_NAMES = [ "name", "name2", "description", "authors", "scenarios", "tags" ]
+
+_get_publisher_vals = lambda p: get_publisher_vals( p, True )
+_get_publication_vals = lambda p: get_publication_vals( p, True, True )
+_get_article_vals = lambda a: get_article_vals( a, True )
+
 _PASSTHROUGH_REGEXES = set( [
     re.compile( r"\bAND\b" ),
     re.compile( r"\bOR\b" ),
@@ -95,8 +102,76 @@ _FIELD_MAPPINGS = {
 @app.route( "/search", methods=["POST"] )
 def search():
     """Run a search."""
+    query_string = request.json.get( "query" ).strip()
+    return _do_search( query_string, None )
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+@app.route( "/search/publisher/<int:publ_id>", methods=["POST","GET"] )
+def search_publisher( publ_id ):
+    """Search for a publisher."""
+    publ = Publisher.query.get( publ_id )
+    if not publ:
+        abort( 404 )
+    results = [ get_publisher_vals( publ, True ) ]
+    pubs = sorted( publ.publications, key=get_publication_sort_key, reverse=True )
+    for pub in pubs:
+        results.append( get_publication_vals( pub, False, True ) )
+    return jsonify( results )
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+@app.route( "/search/publication/<int:pub_id>", methods=["POST","GET"] )
+def search_publication( pub_id ):
+    """Search for a publication."""
+    pub = Publication.query.get( pub_id )
+    if not pub:
+        abort( 404 )
+    results = [ get_publication_vals( pub, True, True ) ]
+    for article in pub.articles:
+        results.append( get_article_vals( article, True ) )
+    return jsonify( results )
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+@app.route( "/search/article/<int:article_id>", methods=["POST","GET"] )
+def search_article( article_id ):
+    """Search for an article."""
+    article = Article.query.get( article_id )
+    if not article:
+        abort( 404 )
+    results = [ get_article_vals( article, True ) ]
+    if article.pub_id:
+        pub = Publication.query.get( article.pub_id )
+        if pub:
+            results.append( get_publication_vals( pub, True, True ) )
+    return jsonify( results )
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+@app.route( "/search/author/<int:author_id>", methods=["POST","GET"] )
+def search_author( author_id ):
+    """Search for an author."""
+    author = Author.query.get( author_id )
+    if not author:
+        abort( 404 )
+    author_name = '"{}"'.format( author.author_name.replace( '"', '""' ) )
+    return _do_search( author_name, [ "authors" ] )
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+@app.route( "/search/tag/<tag>", methods=["POST","GET"] )
+def search_tag( tag ):
+    """Search for a tag."""
+    tag = '"{}"'.format( tag.replace( '"', '""' ) )
+    return _do_search( tag, [ "tags" ] )
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+def _do_search( query_string, col_names ):
+    """Run a search."""
     try:
-        return _do_search()
+        return _do_search2( query_string, col_names )
     except Exception as exc: #pylint: disable=broad-except
         msg = str( exc )
         if isinstance( exc, sqlite3.OperationalError ):
@@ -106,21 +181,13 @@ def search():
             msg = str( type(exc) )
         return jsonify( { "error": msg } )
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-def _do_search(): #pylint: disable=too-many-locals,too-many-statements,too-many-branches
+def _do_search2( query_string, col_names ):
     """Run a search."""
 
     # parse the request parameters
-    query_string = request.json.get( "query" ).strip()
     if not query_string:
         raise RuntimeError( "Missing query string." )
-    no_hilite = to_bool( request.json.get( "no_hilite" ) )
     _logger.info( "SEARCH REQUEST: %s", query_string )
-
-    _get_publisher_vals = lambda p: get_publisher_vals( p, True )
-    _get_publication_vals = lambda p: get_publication_vals( p, True, True )
-    _get_article_vals = lambda a: get_article_vals( a, True )
 
     # check for special query terms (for testing porpoises)
     results = []
@@ -150,9 +217,19 @@ def _do_search(): #pylint: disable=too-many-locals,too-many-statements,too-many-
     if not query_string:
         return jsonify( results )
 
-    # prepare the query
+    # do the search
     fts_query_string = _make_fts_query_string( query_string, _search_aliases )
+    return _do_fts_search( fts_query_string, col_names, results=results )
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+def _do_fts_search( fts_query_string, col_names, results=None ): #pylint: disable=too-many-locals
+    """Run an FTS search."""
+
     _logger.debug( "FTS query string: %s", fts_query_string )
+    if results is None:
+        results = []
+    no_hilite = request.json and to_bool( request.json.get( "no_hilite" ) )
 
     # NOTE: We would like to cache the connection, but SQLite connections can only be used
     # in the same thread they were created in.
@@ -164,14 +241,16 @@ def _do_search(): #pylint: disable=too-many-locals,too-many-statements,too-many-
             return "highlight( searchable, {}, '{}', '{}' )".format(
                 n, hilites[0], hilites[1]
             )
-        sql = "SELECT owner,rank,{}, {}, {}, {}, {}, {} FROM searchable" \
+        sql = "SELECT owner, rank, {}, {}, {}, {}, {}, {} FROM searchable" \
             " WHERE searchable MATCH ?" \
             " ORDER BY rank".format(
                 highlight(1), highlight(2), highlight(3), highlight(4), highlight(5), highlight(6)
             )
-        curs = dbconn.conn.execute( sql,
-            ( "{name name2 description authors scenarios tags}: " + fts_query_string, )
+        match = "{{ {} }}: {}".format(
+            " ".join( col_names or _SEARCHABLE_COL_NAMES ),
+            fts_query_string
         )
+        curs = dbconn.conn.execute( sql, (match,) )
 
         # get the results
         for row in curs:
@@ -183,7 +262,7 @@ def _do_search(): #pylint: disable=too-many-locals,too-many-statements,too-many-
             _logger.debug( "- {} ({:.3f})".format( obj, row[1] ) )
 
             # prepare the result for the front-end
-            result = locals()[ "_get_{}_vals".format( owner_type ) ]( obj )
+            result = globals()[ "_get_{}_vals".format( owner_type ) ]( obj )
             result[ "type" ] = owner_type
 
             # return highlighted versions of the content to the caller
@@ -208,6 +287,8 @@ def _do_search(): #pylint: disable=too-many-locals,too-many-statements,too-many-
             results.append( result )
 
     return jsonify( results )
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 def _make_fts_query_string( query_string, search_aliases ):
     """Generate the SQLite query string."""
@@ -286,7 +367,9 @@ def init_search( session, logger ):
         # (nor UNIQUE constraints), so we have to manage this manually :-(
         dbconn.conn.execute(
             "CREATE VIRTUAL TABLE searchable USING fts5"
-            " ( owner, name, name2, description, authors, scenarios, tags, tokenize='porter unicode61' )"
+            " ( owner, {}, tokenize='porter unicode61' )".format(
+                ", ".join( _SEARCHABLE_COL_NAMES )
+            )
         )
 
         # load the searchable content
@@ -356,9 +439,12 @@ def _do_add_or_update_searchable( dbconn, owner_type, owner, obj ):
     # when search results are presented to the user.
 
     def do_add_or_update( dbconn ):
-        dbconn.conn.execute( "INSERT INTO searchable"
-            " ( owner, name, name2, description, authors, scenarios, tags )"
-            " VALUES (?,?,?,?,?,?,?)", (
+        sql = "INSERT INTO searchable" \
+              " ( owner, {} )" \
+              " VALUES (?,?,?,?,?,?,?)".format(
+            ",".join( _SEARCHABLE_COL_NAMES )
+        )
+        dbconn.conn.execute( sql, (
             owner,
             vals.get("name"), vals.get("name2"), vals.get("description"),
             vals.get("authors"), vals.get("scenarios"), vals.get("tags")

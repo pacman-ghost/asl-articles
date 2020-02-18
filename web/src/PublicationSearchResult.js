@@ -27,21 +27,37 @@ export class PublicationSearchResult extends React.Component
             // NOTE: We don't normally show HTML in tags, but in this case we need to, in order to be able to highlight
             // matching search terms. This will have the side-effect of rendering any HTML that may be in the tag,
             // but we can live with that.
-            this.props.data[ "tags!" ].map(
-                t => tags.push( <div key={t} className="tag" dangerouslySetInnerHTML={{__html: t}} /> )
-            ) ;
+            for ( let i=0 ; i < this.props.data["tags!"].length ; ++i ) {
+                const tag = this.props.data.pub_tags[ i ] ; // nb: this is the actual tag (without highlights)
+                tags.push( <div key={tag} className="tag"
+                    dangerouslySetInnerHTML = {{ __html: this.props.data["tags!"][i] }}
+                    onClick = { () => gAppRef.searchForTag( tag ) }
+                    title = "Search for this tag."
+                /> ) ;
+            }
         } else {
             if ( this.props.data.pub_tags ) {
                 this.props.data.pub_tags.map(
-                    t => tags.push( <div key={t} className="tag"> {t} </div> )
-                ) ;
+                    tag => tags.push( <div key={tag} className="tag"
+                        onClick = { () => gAppRef.searchForTag( tag ) }
+                        title = "Search for this tag."
+                    > {tag} </div>
+                ) ) ;
             }
         }
 
         // prepare the articles
-        let articles = null ;
-        if ( this.props.data.articles )
-            articles = this.props.data.articles.map( a => a.article_title ) ;
+        let articles = [] ;
+        if ( this.props.data.articles ) {
+            for ( let i=0 ; i < this.props.data.articles.length ; ++i ) {
+                const article = this.props.data.articles[ i ] ;
+                articles.push( <span
+                    dangerouslySetInnerHTML = {{ __html: article.article_title }}
+                    onClick = { () => gAppRef.searchForArticle( article.article_id ) }
+                    title = "Show this article."
+                /> ) ;
+            }
+        }
 
         // prepare the menu
         const menu = ( <Menu>
@@ -61,9 +77,23 @@ export class PublicationSearchResult extends React.Component
             >
             <div className="header">
                 {menu}
-                { publ && <span className="publisher"> {publ.publ_name} </span> }
-                <span className="name" dangerouslySetInnerHTML={{ __html: this._makeDisplayName(true) }} />
-                { this.props.data.pub_url && <a href={this.props.data.pub_url} className="open-link" target="_blank" rel="noopener noreferrer"><img src="/images/open-link.png" alt="Open publication." title="Open this publication." /></a> }
+                { publ &&
+                    <span className="publisher"
+                        onClick={ () => gAppRef.searchForPublisher( this.props.data.publ_id ) }
+                        title = "Show this publisher."
+                    > {publ.publ_name}
+                    </span>
+                }
+                <span className="name"
+                    dangerouslySetInnerHTML = {{ __html: this._makeDisplayName( true ) }}
+                    onClick = { () => gAppRef.searchForPublication( this.props.data.pub_id ) }
+                    title = "Show this publication."
+                />
+                { this.props.data.pub_url &&
+                    <a href={this.props.data.pub_url} className="open-link" target="_blank" rel="noopener noreferrer">
+                        <img src="/images/open-link.png" alt="Open publication." title="Open this publication." />
+                    </a>
+                }
             </div>
             <div className="content">
                 { image_url && <img src={image_url} className="image" alt="Publication." /> }

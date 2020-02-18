@@ -23,32 +23,44 @@ export class ArticleSearchResult extends React.Component
         const image_url = gAppRef.makeFlaskImageUrl( "article", this.props.data.article_image_id, true ) ;
 
         // prepare the authors
-        let authors ;
+        let authors = [] ;
         if ( this.props.data[ "authors!" ] ) {
             // the backend has provided us with a list of author names (possibly highlighted) - use them directly
-            authors = makeCommaList( this.props.data["authors!"],
-                (a) => <span className="author" key={a} dangerouslySetInnerHTML={{__html: a}} />
-            ) ;
+            for ( let i=0 ; i < this.props.data["authors!"].length ; ++i ) {
+                const author_id = this.props.data.article_authors[ i ] ;
+                authors.push( <span key={i} className="author"
+                    dangerouslySetInnerHTML = {{ __html: this.props.data["authors!"][i] }}
+                    onClick = { () => gAppRef.searchForAuthor( author_id ) }
+                    title = "Show articles from this author."
+                /> ) ;
+            }
         } else {
             // we only have a list of author ID's (the normal case) - figure out what the corresponding names are
-            authors = makeCommaList( this.props.data.article_authors,
-                (a) => <span className="author" key={a} dangerouslySetInnerHTML={{__html: gAppRef.caches.authors[a].author_name}} />
-            ) ;
+            for ( let i=0 ; i < this.props.data.article_authors.length ; ++i ) {
+                const author_id = this.props.data.article_authors[ i ] ;
+                authors.push( <span key={i} className="author"
+                    dangerouslySetInnerHTML = {{ __html: gAppRef.caches.authors[ author_id ].author_name }}
+                    onClick = { () => gAppRef.searchForAuthor( author_id ) }
+                    title = "Show articles from this author."
+                /> ) ;
+            }
         }
 
         // prepare the scenarios
-        let scenarios ;
+        let scenarios = [] ;
         if ( this.props.data[ "scenarios!" ] ) {
             // the backend has provided us with a list of scenarios (possibly highlighted) - use them directly
-            let scenarios2 = [];
-            this.props.data["scenarios!"].forEach( s => scenarios2.push( makeScenarioDisplayName(s) ) ) ;
-            scenarios = makeCommaList( scenarios2,
-                (s) => <span className="scenario" key={s} dangerouslySetInnerHTML={{__html: s}} />
+            this.props.data[ "scenarios!" ].forEach( (scenario,i) =>
+                scenarios.push( <span key={i} className="scenario"
+                    dangerouslySetInnerHTML = {{ __html: makeScenarioDisplayName( scenario ) }}
+                /> )
             ) ;
         } else {
             // we only have a list of scenario ID's (the normal case) - figure out what the corresponding names are
-            scenarios = makeCommaList( this.props.data.article_scenarios,
-                (s) => <span className="scenario" key={s} dangerouslySetInnerHTML={{__html: makeScenarioDisplayName(gAppRef.caches.scenarios[s])}} />
+            this.props.data.article_scenarios.forEach( (scenario,i) =>
+                scenarios.push( <span key={i} className="scenario"
+                    dangerouslySetInnerHTML = {{ __html: makeScenarioDisplayName( gAppRef.caches.scenarios[scenario] ) }}
+                /> )
             ) ;
         }
 
@@ -59,14 +71,22 @@ export class ArticleSearchResult extends React.Component
             // NOTE: We don't normally show HTML in tags, but in this case we need to, in order to be able to highlight
             // matching search terms. This will have the side-effect of rendering any HTML that may be in the tag,
             // but we can live with that.
-            this.props.data[ "tags!" ].map(
-                t => tags.push( <div key={t} className="tag" dangerouslySetInnerHTML={{__html: t}} /> )
-            ) ;
+            for ( let i=0 ; i < this.props.data["tags!"].length ; ++i ) {
+                const tag = this.props.data.article_tags[ i ] ; // nb: this is the actual tag (without highlights)
+                tags.push( <div key={tag} className="tag"
+                    dangerouslySetInnerHTML = {{ __html: this.props.data["tags!"][i] }}
+                    onClick = { () => gAppRef.searchForTag( tag ) }
+                    title = "Search for this tag."
+                /> ) ;
+            }
         } else {
             if ( this.props.data.article_tags ) {
                 this.props.data.article_tags.map(
-                    t => tags.push( <div key={t} className="tag"> {t} </div> )
-                ) ;
+                    tag => tags.push( <div key={tag} className="tag"
+                        onClick = { () => gAppRef.searchForTag( tag ) }
+                        title = "Search for this tag."
+                    > {tag} </div>
+                ) ) ;
             }
         }
 
@@ -91,9 +111,19 @@ export class ArticleSearchResult extends React.Component
             >
             <div className="header">
                 {menu}
-                { pub_display_name && <span className="publication"> {pub_display_name} </span> }
+                { pub_display_name &&
+                    <span className="publication"
+                        onClick = { () => gAppRef.searchForPublication( this.props.data.pub_id ) }
+                        title = "Show this publication."
+                    > {pub_display_name}
+                    </span>
+                }
                 <span className="title name" dangerouslySetInnerHTML={{ __html: display_title }} />
-                { this.props.data.article_url && <a href={this.props.data.article_url} className="open-link" target="_blank" rel="noopener noreferrer"><img src="/images/open-link.png" alt="Open article." title="Open this article." /></a> }
+                { this.props.data.article_url &&
+                    <a href={this.props.data.article_url} className="open-link" target="_blank" rel="noopener noreferrer">
+                        <img src="/images/open-link.png" alt="Open article." title="Open this article." />
+                    </a>
+                }
                 { display_subtitle && <div className="subtitle" dangerouslySetInnerHTML={{ __html: display_subtitle }} /> }
             </div>
             <div className="content">
@@ -101,8 +131,8 @@ export class ArticleSearchResult extends React.Component
                 <div className="snippet" dangerouslySetInnerHTML={{__html: display_snippet}} />
             </div>
             <div className="footer">
-                { authors.length > 0 && <div className="authors"> By {authors} </div> }
-                { scenarios.length > 0 && <div className="scenarios"> Scenarios: {scenarios} </div> }
+                { authors.length > 0 && <div className="authors"> By {makeCommaList(authors)} </div> }
+                { scenarios.length > 0 && <div className="scenarios"> Scenarios: {makeCommaList(scenarios)} </div> }
                 { tags.length > 0 && <div className="tags"> Tags: {tags} </div> }
             </div>
         </div> ) ;

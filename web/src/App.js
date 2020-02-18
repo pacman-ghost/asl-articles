@@ -44,6 +44,7 @@ export default class App extends React.Component
 
         // initialize
         this._searchFormRef = React.createRef() ;
+        this._searchResultsRef = React.createRef() ;
         this._modalFormRef = React.createRef() ;
         this._setFocusTo = null ;
 
@@ -91,7 +92,10 @@ export default class App extends React.Component
                     <SearchForm onSearch={this.onSearch.bind(this)} ref={this._searchFormRef} />
                 </div>
                 {menu}
-                <SearchResults seqNo={this.state.searchSeqNo} searchResults={this.state.searchResults} />
+                <SearchResults ref={this._searchResultsRef}
+                    seqNo = {this.state.searchSeqNo}
+                    searchResults = {this.state.searchResults}
+                />
             </div> ) ;
         }
         return ( <div> {content}
@@ -156,17 +160,31 @@ export default class App extends React.Component
     onSearch( query ) {
         // run the search
         query = query.trim() ;
-        const queryStringRef = this._searchFormRef.current.queryStringRef.current ;
         if ( query.length === 0 ) {
-            this.showErrorMsg( "Please enter something to search for.", queryStringRef )
+            this.showErrorMsg( "Please enter something to search for.", this._searchFormRef.current.queryStringRef.current )
             return ;
         }
-        axios.post( this.makeFlaskUrl( "/search" ), {
-            query: query,
-            no_hilite: this._disableSearchResultHighlighting,
-        } )
+        this._doSearch( "/search", { query: query } ) ;
+    }
+    searchForPublisher( publ_id ) { this._onSpecialSearch( "/search/publisher/" + publ_id ) ; }
+    searchForPublication( pub_id ) { this._onSpecialSearch( "/search/publication/" + pub_id ) ; }
+    searchForArticle( article_id ) { this._onSpecialSearch( "/search/article/" + article_id ) ; }
+    searchForAuthor( author_id ) { this._onSpecialSearch( "/search/author/" + author_id ) ; }
+    searchForTag( tag ) { this._onSpecialSearch( "/search/tag/" + encodeURIComponent(tag) ) ; }
+    _onSpecialSearch( url ) {
+        // run the search
+        this._searchFormRef.current.setState( { queryString: "" } ) ;
+        this._doSearch( url, {} ) ;
+    }
+    _doSearch( url, args ) {
+        // do the search
+        args.no_hilite = this._disableSearchResultHighlighting ;
+        axios.post(
+            this.makeFlaskUrl( url ), args
+        )
         .then( resp => {
-            this._setFocusTo = queryStringRef ;
+            ReactDOM.findDOMNode( this._searchResultsRef.current ).scrollTo( 0, 0 ) ;
+            this._setFocusTo = this._searchFormRef.current.queryStringRef.current ;
             this.setState( { searchResults: resp.data, searchSeqNo: this.state.searchSeqNo+1 } ) ;
         } )
         .catch( err => {

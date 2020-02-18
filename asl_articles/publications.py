@@ -69,6 +69,10 @@ def get_publication_vals( pub, include_articles, add_type=False ):
         vals[ "type" ] = "publication"
     return vals
 
+def get_publication_sort_key( pub ):
+    """Get a publication's sort key."""
+    return int( pub.time_created.timestamp() ) if pub.time_created else 0
+
 # ---------------------------------------------------------------------
 
 @app.route( "/publication/create", methods=["POST"] )

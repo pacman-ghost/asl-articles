@@ -28,7 +28,11 @@ export class PublisherSearchResult extends React.Component
                 pubs.push( pub[1] ) ;
         }
         pubs.sort( (lhs,rhs) => rhs.time_created - lhs.time_created ) ;
-        pubs = pubs.map( p => PublicationSearchResult.makeDisplayName(p) ) ;
+        pubs = pubs.map( p => <span
+            dangerouslySetInnerHTML = {{ __html: PublicationSearchResult.makeDisplayName(p) }}
+            onClick = { () => gAppRef.searchForPublication( p.pub_id ) }
+            title = "Show this publication."
+        /> ) ;
 
         // prepare the menu
         const menu = ( <Menu>
@@ -49,7 +53,11 @@ export class PublisherSearchResult extends React.Component
             <div className="header">
                 {menu}
                 <span className="name" dangerouslySetInnerHTML={{ __html: display_name }} />
-                { this.props.data.publ_url && <a href={this.props.data.publ_url} className="open-link" target="_blank" rel="noopener noreferrer"><img src="/images/open-link.png" alt="Open publisher." title="Go to this publisher." /></a> }
+                { this.props.data.publ_url &&
+                    <a href={this.props.data.publ_url} className="open-link" target="_blank" rel="noopener noreferrer">
+                        <img src="/images/open-link.png" alt="Open publisher." title="Go to this publisher." />
+                    </a>
+                }
             </div>
             <div className="content">
                 { image_url && <img src={image_url} className="image" alt="Publisher." /> }

@@ -174,23 +174,19 @@ export function makeCollapsibleList( caption, vals, maxItems, style ) {
     if ( ! vals || vals.length === 0 )
         return null ;
     let items=[], excessItems=[] ;
-    let excessItemRefs={}, flipButtonRef=null ;
+    let excessItemsRef=null, flipButtonRef=null ;
     for ( let i=0 ; i < vals.length ; ++i ) {
-        if ( i < maxItems ) {
-            items.push(
-                <li key={i} dangerouslySetInnerHTML={{ __html: vals[i] }} />
-            ) ;
-        } else {
-            excessItems.push(
-                <li key={i} dangerouslySetInnerHTML={{ __html: vals[i] }} style={{display:"none"}} ref={r => excessItemRefs[i]=r} />
-            ) ;
-        }
+        let item ;
+        if ( typeof vals[i] === "string" )
+            item = <li key={i} dangerouslySetInnerHTML={{ __html: vals[i] }} /> ;
+        else
+            item = <li key={i}> {vals[i]} </li> ; // nb: we assume we were given JSX
+        ( i < maxItems ? items : excessItems ).push( item ) ;
     }
     function flipExcessItems() {
         const pos = flipButtonRef.src.lastIndexOf( "/" ) ;
         const show = flipButtonRef.src.substr( pos ) === "/collapsible-down.png" ;
-        for ( let r in excessItemRefs )
-            excessItemRefs[r].style.display = show ? "list-item" : "none" ;
+        excessItemsRef.style.display = show ? "block" : "none" ;
         flipButtonRef.src = flipButtonRef.src.substr( 0, pos ) + (show ? "/collapsible-up.png" : "/collapsible-down.png") ;
     }
     return ( <div className="collapsible" style={style}>
@@ -198,15 +194,19 @@ export function makeCollapsibleList( caption, vals, maxItems, style ) {
             { excessItems.length > 0 && <img src="images/collapsible-down.png" onClick={flipExcessItems} ref={r => flipButtonRef=r} alt="Show/hide extra items." /> }
         </div>
         <ul> {items} </ul>
-        { excessItems.length > 0 && <ul> {excessItems} </ul> }
+        { excessItems.length > 0 &&
+            <ul className="excess" ref={r => excessItemsRef=r} style={{display:"none"}}>
+                {excessItems}
+            </ul>
+        }
         </div> ) ;
 }
 
-export function makeCommaList( vals, extract ) {
+export function makeCommaList( vals ) {
     let result = [] ;
     if ( vals ) {
         for ( let i=0 ; i < vals.length ; ++i ) {
-            result.push( extract( vals[i] ) ) ;
+            result.push( vals[i] ) ;
             if ( i < vals.length-1 )
                 result.push( ", " ) ;
         }
