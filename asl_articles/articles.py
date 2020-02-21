@@ -61,6 +61,12 @@ def get_article_vals( article, add_type=False ):
         vals[ "type" ] = "article"
     return vals
 
+def get_article_sort_key( article ):
+    """Get an article's sort key."""
+    # NOTE: This is used to sort articles within their parent publication.
+    # NOTE: Articles should always have a seq# but sometimes they might not (e.g. created via a fixture).
+    return 999 if article.article_seqno is None else article.article_seqno
+
 # ---------------------------------------------------------------------
 
 @app.route( "/article/create", methods=["POST"] )

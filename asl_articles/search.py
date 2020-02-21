@@ -16,7 +16,7 @@ from asl_articles import app, db
 from asl_articles.models import Publisher, Publication, Article, Author, Scenario, get_model_from_table_name
 from asl_articles.publishers import get_publisher_vals
 from asl_articles.publications import get_publication_vals, get_publication_sort_key
-from asl_articles.articles import get_article_vals
+from asl_articles.articles import get_article_vals, get_article_sort_key
 from asl_articles.utils import decode_tags, to_bool
 
 _search_index_path = None
@@ -129,7 +129,8 @@ def search_publication( pub_id ):
     if not pub:
         abort( 404 )
     results = [ get_publication_vals( pub, True, True ) ]
-    for article in pub.articles:
+    articles = sorted( pub.articles, key=get_article_sort_key )
+    for article in articles:
         results.append( get_article_vals( article, True ) )
     return jsonify( results )
 

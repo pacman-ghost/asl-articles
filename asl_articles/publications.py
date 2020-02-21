@@ -8,7 +8,7 @@ from flask import request, jsonify, abort
 
 from asl_articles import app, db
 from asl_articles.models import Publication, PublicationImage, Article
-from asl_articles.articles import get_article_vals
+from asl_articles.articles import get_article_vals, get_article_sort_key
 from asl_articles.tags import do_get_tags
 from asl_articles import search
 from asl_articles.utils import get_request_args, clean_request_args, clean_tags, encode_tags, decode_tags, \
@@ -63,14 +63,15 @@ def get_publication_vals( pub, include_articles, add_type=False ):
         "time_created": int( pub.time_created.timestamp() ) if pub.time_created else None,
     }
     if include_articles:
-        articles = sorted( pub.articles, key=lambda a: 999 if a.article_seqno is None else a.article_seqno )
-        vals[ "articles" ] = [ get_article_vals(a) for a in articles ]
+        articles = sorted( pub.articles, key=get_article_sort_key )
+        vals[ "articles" ] = [ get_article_vals( a ) for a in articles ]
     if add_type:
         vals[ "type" ] = "publication"
     return vals
 
 def get_publication_sort_key( pub ):
     """Get a publication's sort key."""
+    # NOTE: This is used to sort publications within their parent publisher.
     return int( pub.time_created.timestamp() ) if pub.time_created else 0
 
 # ---------------------------------------------------------------------
