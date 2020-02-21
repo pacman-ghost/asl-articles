@@ -117,7 +117,7 @@ def search_publisher( publ_id ):
     results = [ get_publisher_vals( publ, True ) ]
     pubs = sorted( publ.publications, key=get_publication_sort_key, reverse=True )
     for pub in pubs:
-        results.append( get_publication_vals( pub, False, True ) )
+        results.append( get_publication_vals( pub, True, True ) )
     return jsonify( results )
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
