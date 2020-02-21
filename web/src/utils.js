@@ -194,8 +194,8 @@ export function makeCollapsibleList( caption, vals, maxItems, style ) {
     else
         caption = <span> {caption} <span className="count"> ({vals.length}) </span> </span> ;
     return ( <div className="collapsible" style={style}>
-        <div className="caption"> {caption}
-            { excessItems.length > 0 && <img src="images/collapsible-down.png" onClick={flipExcessItems} ref={r => flipButtonRef=r} alt="Show/hide extra items." /> }
+        <div className="caption" onClick={flipExcessItems}> {caption}
+            { excessItems.length > 0 && <img src="images/collapsible-down.png" ref={r => flipButtonRef=r} alt="Show/hide extra items." /> }
         </div>
         <ul> {items} </ul>
         { excessItems.length > 0 &&
