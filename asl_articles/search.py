@@ -108,6 +108,15 @@ def search():
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+@app.route( "/search/publishers", methods=["POST","GET"] )
+def search_publishers():
+    """Return all publishers."""
+    publs = sorted( Publisher.query.all(), key=lambda p: p.publ_name.lower() )
+    results = [ get_publisher_vals( p, True ) for p in publs ]
+    return jsonify( results )
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 @app.route( "/search/publisher/<int:publ_id>", methods=["POST","GET"] )
 def search_publisher( publ_id ):
     """Search for a publisher."""

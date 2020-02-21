@@ -73,6 +73,9 @@ export default class App extends React.Component
             const menu = ( <Menu id="app">
                 <MenuButton />
                 <MenuList>
+                    <MenuItem id="menu-show-publishers"
+                        onSelect = { () => this._onSpecialSearch( "/search/publishers" ) }
+                    >Show publishers</MenuItem>
                     <MenuItem id="menu-search-technique"
                         onSelect = { () => this._onSpecialSearch( "/search/tag/technique", {randomize:1} ) }
                     >Show technique</MenuItem>
