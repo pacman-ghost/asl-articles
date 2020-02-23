@@ -4,7 +4,7 @@ import "./PublicationSearchResult.css" ;
 import { PublicationSearchResult2 } from "./PublicationSearchResult2.js" ;
 import { PUBLICATION_EXCESS_ARTICLE_THRESHOLD } from "./constants.js" ;
 import { gAppRef } from "./index.js" ;
-import { makeCollapsibleList, pluralString, applyUpdatedVals, removeSpecialFields } from "./utils.js" ;
+import { makeCollapsibleList, pluralString, applyUpdatedVals, removeSpecialFields, isLink } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -19,6 +19,11 @@ export class PublicationSearchResult extends React.Component
         const display_description = this.props.data[ "pub_description!" ] || this.props.data.pub_description ;
         const publ = gAppRef.caches.publishers[ this.props.data.publ_id ] ;
         const image_url = PublicationSearchResult.makeImageUrl( this.props.data ) ;
+
+        // prepare the publication's URL
+        let pub_url = this.props.data.pub_url  ;
+        if ( pub_url && ! isLink(pub_url) )
+            pub_url = gAppRef.makeExternalDocUrl( pub_url ) ;
 
         // prepare the tags
         let tags = [] ;
@@ -89,8 +94,8 @@ export class PublicationSearchResult extends React.Component
                     onClick = { () => gAppRef.searchForPublication( this.props.data.pub_id ) }
                     title = "Show this publication."
                 />
-                { this.props.data.pub_url &&
-                    <a href={this.props.data.pub_url} className="open-link" target="_blank" rel="noopener noreferrer">
+                { pub_url &&
+                    <a href={pub_url} className="open-link" target="_blank" rel="noopener noreferrer">
                         <img src="/images/open-link.png" alt="Open publication." title="Open this publication." />
                     </a>
                 }

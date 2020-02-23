@@ -4,7 +4,7 @@ import { ArticleSearchResult2 } from "./ArticleSearchResult2.js" ;
 import "./ArticleSearchResult.css" ;
 import { PublicationSearchResult } from "./PublicationSearchResult.js" ;
 import { gAppRef } from "./index.js" ;
-import { makeScenarioDisplayName, applyUpdatedVals, removeSpecialFields, makeCommaList } from "./utils.js" ;
+import { makeScenarioDisplayName, applyUpdatedVals, removeSpecialFields, makeCommaList, isLink } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -21,6 +21,17 @@ export class ArticleSearchResult extends React.Component
         const display_snippet = this.props.data[ "article_snippet!" ] || this.props.data.article_snippet ;
         const pub = gAppRef.caches.publications[ this.props.data.pub_id ] ;
         const image_url = gAppRef.makeFlaskImageUrl( "article", this.props.data.article_image_id, true ) ;
+
+        // prepare the article's URL
+        let article_url = this.props.data.article_url ;
+        if ( article_url ) {
+            if ( ! isLink( article_url ) )
+                article_url = gAppRef.makeExternalDocUrl( article_url ) ;
+        } else if ( pub && pub.pub_url ) {
+            article_url = gAppRef.makeExternalDocUrl( pub.pub_url ) ;
+            if ( article_url.substr( article_url.length-4 ) === ".pdf" && this.props.data.article_pageno )
+                article_url += "#page=" + this.props.data.article_pageno ;
+        }
 
         // prepare the authors
         let authors = [] ;
@@ -119,8 +130,8 @@ export class ArticleSearchResult extends React.Component
                     </span>
                 }
                 <span className="title name" dangerouslySetInnerHTML={{ __html: display_title }} />
-                { this.props.data.article_url &&
-                    <a href={this.props.data.article_url} className="open-link" target="_blank" rel="noopener noreferrer">
+                { article_url &&
+                    <a href={article_url} className="open-link" target="_blank" rel="noopener noreferrer">
                         <img src="/images/open-link.png" alt="Open article." title="Open this article." />
                     </a>
                 }

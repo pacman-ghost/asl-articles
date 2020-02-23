@@ -265,3 +265,11 @@ export function isNumeric( val ) {
         return false ;
     return ! isNaN( val ) ;
 }
+
+export function isLink( val ) {
+    if ( val.substr(0,7) === "http://" || val.substr(0,8) === "https://" )
+        return true ;
+    if ( val.substr(0,7) === "file://" )
+        return true ;
+    return false ;
+}

@@ -425,6 +425,12 @@ export default class App extends React.Component
             url += "?foo=" + Math.random() ; // FUDGE! To bypass the cache :-/
         return url ;
     }
+    makeExternalDocUrl( url ) {
+        // generate a URL for an external document
+        if ( url.substr( 0, 2 ) === "$/" )
+            url = url.substr( 2 ) ;
+        return this.makeFlaskUrl( "/docs/" + encodeURIComponent(url) ) ;
+    }
 
     _onStartupTask( taskId ) {
         // flag that the specified startup task has completed

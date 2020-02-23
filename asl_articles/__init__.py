@@ -108,6 +108,7 @@ import asl_articles.authors #pylint: disable=cyclic-import
 import asl_articles.scenarios #pylint: disable=cyclic-import
 import asl_articles.images #pylint: disable=cyclic-import
 import asl_articles.tags #pylint: disable=cyclic-import
+import asl_articles.docs #pylint: disable=cyclic-import
 import asl_articles.utils #pylint: disable=cyclic-import
 
 # initialize

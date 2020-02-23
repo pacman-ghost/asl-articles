@@ -9,6 +9,9 @@
 # This is done via the SQLITE variable, but since Docker doesn't allow any way to do things conditionally,
 # it needs to be set even if it's not being used :-/
 #
+# Similarly, EXTERNAL_DOCS_BASEDIR is the base directory for external documents that we want to link to,
+# but it needs to be set even if it's not being used :-/
+#
 # See the run-containers.sh script that manages all of this.
 
 version: "3"
@@ -29,5 +32,6 @@ services:
         - "5002:5000"
         volumes:
         - $SQLITE:/data/sqlite.db
+        - $EXTERNAL_DOCS_BASEDIR:/data/docs/
         environment:
         - DBCONN

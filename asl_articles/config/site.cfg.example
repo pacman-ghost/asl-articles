@@ -4,3 +4,6 @@
 ;   sqlite:////home/pacman-ghost/asl-articles.db
 ;   postgresql://USER:PASS@localhost/asl_articles
 DB_CONN_STRING = ...
+
+; Base directory for external documents.
+EXTERNAL_DOCS_BASEDIR = ...
