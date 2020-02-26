@@ -388,15 +388,17 @@ def init_search( session, logger ):
         )
 
         # load the searchable content
+        # NOTE: We insert content in reverse chronological order to get more recent
+        # content to appear before other equally-ranked content.
         logger.debug( "Loading the search index..." )
         logger.debug( "- Loading publishers." )
-        for publ in session.query( Publisher ):
+        for publ in session.query( Publisher ).order_by( Publisher.time_created.desc() ):
             add_or_update_publisher( dbconn, publ )
         logger.debug( "- Loading publications." )
-        for pub in session.query( Publication ):
+        for pub in session.query( Publication ).order_by( Publication.time_created.desc() ):
             add_or_update_publication( dbconn, pub )
         logger.debug( "- Loading articles." )
-        for article in session.query( Article ):
+        for article in session.query( Article ).order_by( Article.time_created.desc() ):
             add_or_update_article( dbconn, article )
 
     # load the search aliases
