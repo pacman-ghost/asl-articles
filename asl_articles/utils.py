@@ -175,7 +175,7 @@ def encode_tags( tags ):
     """Encode tags prior to storing them in the database."""
     if not tags:
         return None
-    return "\n".join( t.lower() for t in tags )
+    return "\n".join( tags )
 
 def decode_tags( tags ):
     """Decode tags after loading them from the database."""
