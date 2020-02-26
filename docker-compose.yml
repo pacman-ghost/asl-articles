@@ -35,3 +35,4 @@ services:
         - $EXTERNAL_DOCS_BASEDIR:/data/docs/
         environment:
         - DBCONN
+        - EXTERNAL_DOCS_BASEDIR
