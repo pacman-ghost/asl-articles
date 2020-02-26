@@ -445,7 +445,7 @@ def test_make_fts_query_string():
 
     # initialize
     search_aliases = _load_search_aliases( [
-        ( "mmp", "Multi-Man Publishing ; Multiman Publishing" )
+        ( "mmp", "Multi-Man Publishing = Multiman Publishing" )
     ] )
 
     def do_test( query, expected ):

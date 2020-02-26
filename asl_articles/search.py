@@ -413,7 +413,7 @@ def _load_search_aliases( aliases ):
     """Load the search aliases."""
     search_aliases = {}
     for row in aliases:
-        vals = itertools.chain( [row[0]], row[1].split(";") )
+        vals = itertools.chain( [row[0]], row[1].split("=") )
         vals = [ v.strip().lower() for v in vals ]
         _logger.debug( "- %s", vals )
         for v in vals:
