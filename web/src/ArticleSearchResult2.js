@@ -240,6 +240,8 @@ export class ArticleSearchResult2
                     [ () => newVals.article_pageno !== "" && !isNumeric(newVals.article_pageno), "The page number is not numeric.", refs.article_pageno ],
                     [ () => newVals.article_snippet === "", "No snippet was provided.", refs.article_snippet ],
                     [ () => newVals.article_authors.length === 0, "No authors were specified.", refs.article_authors ],
+                    [ () => newVals.article_tags && newVals.article_tags.length === 1 && newVals.article_tags[0] === "tips", "This tip has no other tags." ],
+                    [ () => newVals.article_tags && newVals.article_tags.length === 1 && newVals.article_tags[0] === "technique", "This technique article has no other tags." ],
                 ] ;
                 const verb = isNew ? "create" : "update" ;
                 checkConstraints(
