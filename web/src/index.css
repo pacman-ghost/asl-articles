@@ -7,7 +7,7 @@ body {
     -moz-osx-font-smoothing: grayscale ;
 }
 
-ul, ol { margin: 0.5em 0 0 1.25em ; }
+ul, ol { margin: 0 0 0 1.25em ; }
 input[type="text"] { height: 22px ; border: 1px solid #c5c5c5 ; padding: 2px 5px ; }
 label { height: 1.25em ; margin-top: -3px ; }
 textarea { padding: 2px 5px ; resize: vertical ; }
