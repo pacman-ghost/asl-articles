@@ -11,7 +11,7 @@ if [ -z "$1" ]; then
     echo
     echo "  If you want link articles to their original documents, specify a base directory for the documents."
     echo
-    echo "  The TAG env variable should also be set to specify which containers to run e.g."
+    echo "  The TAG env variable can also be set to specify which containers to run e.g."
     echo "    TAG=testing ./run.sh /tmp/asl-articles.db"
     exit 0
 fi
@@ -43,8 +43,8 @@ if [ "$TAG" == "testing" ]; then
 elif [ "$TAG" == "prod" ]; then
     export ENABLE_TESTS=
 else
-    echo Invalid value for TAG.
-    exit 2
+    export ENABLE_TESTS=
+    export TAG=latest
 fi
 
 # build the containers
