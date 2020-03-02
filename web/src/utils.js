@@ -187,7 +187,7 @@ export function makeCollapsibleList( caption, vals, maxItems, style ) {
         const pos = flipButtonRef.src.lastIndexOf( "/" ) ;
         const show = flipButtonRef.src.substr( pos ) === "/collapsible-down.png" ;
         excessItemsRef.style.display = show ? "block" : "none" ;
-        flipButtonRef.src = flipButtonRef.src.substr( 0, pos ) + (show ? "/collapsible-up.png" : "/collapsible-down.png") ;
+        flipButtonRef.src = show ? "/images/collapsible-up.png" : "/images/collapsible-down.png" ;
     }
     if ( excessItems.length === 0 )
         caption = <span> {caption+":"} </span> ;
@@ -201,7 +201,7 @@ export function makeCollapsibleList( caption, vals, maxItems, style ) {
     return ( <div className="collapsible" style={style}>
         <div className="caption" onClick={onClick} style={style2} >
             {caption}
-            { excessItems.length > 0 && <img src="images/collapsible-down.png" ref={r => flipButtonRef=r} alt="Show/hide extra items." /> }
+            { excessItems.length > 0 && <img src="/images/collapsible-down.png" ref={r => flipButtonRef=r} alt="Show/hide extra items." /> }
         </div>
         <ul> {items} </ul>
         { excessItems.length > 0 &&
