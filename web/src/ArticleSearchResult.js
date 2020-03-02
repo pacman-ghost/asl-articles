@@ -41,7 +41,7 @@ export class ArticleSearchResult extends React.Component
             for ( let i=0 ; i < this.props.data["authors!"].length ; ++i ) {
                 const author_id = this.props.data.article_authors[ i ] ;
                 authors.push( <Link key={i} className="author" title="Show articles from this author."
-                    to = { "/author/" + author_id }
+                    to = { gAppRef.makeAppUrl( "/author/" + author_id ) }
                     dangerouslySetInnerHTML = {{ __html: this.props.data["authors!"][i] }}
                 /> ) ;
             }
@@ -50,7 +50,7 @@ export class ArticleSearchResult extends React.Component
             for ( let i=0 ; i < this.props.data.article_authors.length ; ++i ) {
                 const author_id = this.props.data.article_authors[ i ] ;
                 authors.push( <Link key={i} className="author" title="Show articles from this author."
-                    to = { "/author/" + author_id }
+                    to = { gAppRef.makeAppUrl( "/author/" + author_id ) }
                     dangerouslySetInnerHTML = {{ __html: gAppRef.caches.authors[ author_id ].author_name }}
                 /> ) ;
             }
@@ -84,7 +84,7 @@ export class ArticleSearchResult extends React.Component
             for ( let i=0 ; i < this.props.data["tags!"].length ; ++i ) {
                 const tag = this.props.data.article_tags[ i ] ; // nb: this is the actual tag (without highlights)
                 tags.push( <Link key={tag} className="tag" title="Search for this tag."
-                    to = { "/tag/" + encodeURIComponent(tag) }
+                    to = { gAppRef.makeAppUrl( "/tag/" + encodeURIComponent(tag) ) }
                     dangerouslySetInnerHTML = {{ __html: this.props.data["tags!"][i] }}
                 /> ) ;
             }
@@ -92,7 +92,7 @@ export class ArticleSearchResult extends React.Component
             if ( this.props.data.article_tags ) {
                 this.props.data.article_tags.map(
                     tag => tags.push( <Link key={tag} className="tag" title="Search for this tag."
-                        to = { "/tag/" + encodeURIComponent(tag) }
+                        to = { gAppRef.makeAppUrl( "/tag/" + encodeURIComponent(tag) ) }
                     > {tag} </Link> )
                 ) ;
             }
@@ -121,7 +121,7 @@ export class ArticleSearchResult extends React.Component
                 {menu}
                 { pub_display_name &&
                     <Link className="publication" title="Show this publication."
-                        to = { "/publication/" + this.props.data.pub_id }
+                        to = { gAppRef.makeAppUrl( "/publication/" + this.props.data.pub_id ) }
                         dangerouslySetInnerHTML = {{ __html: pub_display_name }}
                     />
                 }

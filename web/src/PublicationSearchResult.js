@@ -36,7 +36,7 @@ export class PublicationSearchResult extends React.Component
             for ( let i=0 ; i < this.props.data["tags!"].length ; ++i ) {
                 const tag = this.props.data.pub_tags[ i ] ; // nb: this is the actual tag (without highlights)
                 tags.push( <Link key={tag} className="tag" title="Search for this tag."
-                    to = { "/tag/" + encodeURIComponent(tag) }
+                    to = { gAppRef.makeAppUrl( "/tag/" + encodeURIComponent(tag) ) }
                     dangerouslySetInnerHTML = {{ __html: this.props.data["tags!"][i] }}
                 /> ) ;
             }
@@ -44,7 +44,7 @@ export class PublicationSearchResult extends React.Component
             if ( this.props.data.pub_tags ) {
                 this.props.data.pub_tags.map(
                     tag => tags.push( <Link key={tag} className="tag" title="Search for this tag."
-                        to = { "/tag/" + encodeURIComponent(tag) }
+                        to = { gAppRef.makeAppUrl( "/tag/" + encodeURIComponent(tag) ) }
                     > {tag} </Link> )
                 ) ;
             }
@@ -56,7 +56,7 @@ export class PublicationSearchResult extends React.Component
             for ( let i=0 ; i < this.props.data.articles.length ; ++i ) {
                 const article = this.props.data.articles[ i ] ;
                 articles.push( <Link title="Show this article."
-                    to = { "/article/" + article.article_id }
+                    to = { gAppRef.makeAppUrl( "/article/" + article.article_id ) }
                     dangerouslySetInnerHTML = {{ __html: article.article_title }}
                 /> ) ;
             }
@@ -82,12 +82,12 @@ export class PublicationSearchResult extends React.Component
                 {menu}
                 { publ &&
                     <Link className="publisher" title="Show this publisher."
-                        to = { "/publisher/" + this.props.data.publ_id }
+                        to = { gAppRef.makeAppUrl( "/publisher/" + this.props.data.publ_id ) }
                     > {publ.publ_name}
                     </Link>
                 }
                 <Link className="name" title="Show this publication."
-                    to = { "/publication/" + this.props.data.pub_id }
+                    to = { gAppRef.makeAppUrl( "/publication/" + this.props.data.pub_id ) }
                     dangerouslySetInnerHTML = {{ __html: this._makeDisplayName( true ) }}
                 />
                 { pub_url &&

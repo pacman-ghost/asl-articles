@@ -30,7 +30,7 @@ export class PublisherSearchResult extends React.Component
         }
         pubs.sort( (lhs,rhs) => rhs.time_created - lhs.time_created ) ;
         pubs = pubs.map( p => <Link title="Show this publication."
-            to = { "/publication/" + p.pub_id }
+            to = { gAppRef.makeAppUrl( "/publication/" + p.pub_id ) }
             dangerouslySetInnerHTML = {{ __html: PublicationSearchResult.makeDisplayName(p) }}
         /> ) ;
 

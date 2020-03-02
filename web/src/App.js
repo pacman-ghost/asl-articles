@@ -427,6 +427,13 @@ export class App extends React.Component
         return [ tagList, allTags ] ;
     }
 
+    makeAppUrl( url ) {
+        // FUDGE! The test suite needs any URL parameters to passed on to the next page if a link is clicked.
+        if ( this.isTestMode() )
+            url += window.location.search ;
+        return url ;
+    }
+
     makeFlaskUrl( url, args ) {
         // generate a URL for the Flask backend server
         url = this._flaskBaseUrl + url ;
