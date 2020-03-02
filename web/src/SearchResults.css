@@ -16,6 +16,7 @@
 .search-result .header a.open-link img { height: 1.2em ; margin-bottom: -0.2em ; }
 
 .search-result.publisher .header { border: 1px solid #c0c0c0 ; background: #eabe51 ; }
+.search-result.publisher .header a.name { color: inherit ; text-decoration: none ; }
 .search-result.publication .header { border: 1px solid #c0c0c0 ; background: #e5cea0 ; }
 .search-result.publication .header a.name { color: inherit ; text-decoration: none ; }
 .search-result.article .header { border: 1px solid #c0c0c0 ; background: #d3edfc ; }

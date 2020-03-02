@@ -83,8 +83,8 @@ export class PublicationSearchResult extends React.Component
                 { publ &&
                     <Link className="publisher" title="Show this publisher."
                         to = { gAppRef.makeAppUrl( "/publisher/" + this.props.data.publ_id ) }
-                    > {publ.publ_name}
-                    </Link>
+                        dangerouslySetInnerHTML={{ __html: publ.publ_name }}
+                    />
                 }
                 <Link className="name" title="Show this publication."
                     to = { gAppRef.makeAppUrl( "/publication/" + this.props.data.pub_id ) }
