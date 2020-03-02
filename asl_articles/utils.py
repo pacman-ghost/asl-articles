@@ -2,6 +2,7 @@
 
 import re
 import typing
+import itertools
 import logging
 
 from flask import jsonify, abort
@@ -9,6 +10,10 @@ import lxml.html.clean
 
 _html_whitelists = None
 _startup_logger = logging.getLogger( "startup" )
+
+_CONTROL_CHARS = list( ch for ch in itertools.chain( range(0,31+1), range(127,159+1) )
+    if ch not in (10,13)
+)
 
 # ---------------------------------------------------------------------
 
@@ -64,7 +69,7 @@ def make_ok_response( extras=None, updated=None, warnings=None ):
 
 # ---------------------------------------------------------------------
 
-def clean_html( val, allow_tags=None, safe_attrs=None ): #pylint: disable=too-many-locals,too-many-branches
+def clean_html( val, allow_tags=None, safe_attrs=None ): #pylint: disable=too-many-locals,too-many-branches,too-many-statements
     """Sanitize HTML using a whitelist."""
 
     # check if we need to do anything
@@ -88,6 +93,10 @@ def clean_html( val, allow_tags=None, safe_attrs=None ): #pylint: disable=too-ma
     val = replace_chars( val, r"\1 - \2", [ re.compile( r"(\S+)\u2014(\S+)" ) ] )
     val = replace_chars( val, "-", [ "\u2013", "\u2014" ] )
     val = replace_chars( val, "...", [ "\u2026" ] )
+
+    # remove control characters
+    val = val.replace( "\t", " " )
+    val = "".join( ch for ch in val if ord(ch) not in _CONTROL_CHARS )
 
     # FUDGE! lxml replaces HTML entities with their actual character :-/ It's possible to stop it from doing this,
     # by passing in an ElementTree, which gives us an ElementTree back, and we can then control how it is serialized
