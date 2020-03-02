@@ -13,31 +13,35 @@ import yaml
 from asl_articles.config.constants import BASE_DIR
 from asl_articles.utils import to_bool
 
+_disable_db_startup = False
+
 # ---------------------------------------------------------------------
 
 def _on_startup():
     """Do startup initialization."""
 
-    # check if we have a working database connection
-    if _dbconn_string.startswith( "sqlite:///" ):
-        # NOTE: If the SQLite database is not there, a zero-byte file will be created the first time we try to use it,
-        # so we can't use the normal check we use below for other databases.
-        # NOTE: We could automatically set up a new database file and install the schema into it, but that's probably
-        # more trouble than it's worth, and possibly a cause of problems in itself :-/
-        fname = _dbconn_string[10:]
-        if not os.path.isfile( fname ):
-            asl_articles.startup.log_startup_msg( "error", "Missing SQLite database:\n{}", fname )
-            return
-    else:
-        try:
-            db.session.execute( "SELECT 1" )
-        except SQLAlchemyError as ex:
-            asl_articles.startup.log_startup_msg( "error", "Can't connect to the database:\n{}", ex )
-            return
+    if not _disable_db_startup:
 
-    # initialize the search index
-    _logger = logging.getLogger( "startup" )
-    asl_articles.search.init_search( db.session, _logger )
+        # check if we have a working database connection
+        if _dbconn_string.startswith( "sqlite:///" ):
+            # NOTE: If the SQLite database is not there, a zero-byte file will be created the first time
+            # we try to use it, so we can't use the normal check we use below for other databases.
+            # NOTE: We could automatically set up a new database file and install the schema into it,
+            # but that's probably more trouble than it's worth, and possibly a cause of problems in itself :-/
+            fname = _dbconn_string[10:]
+            if not os.path.isfile( fname ):
+                asl_articles.startup.log_startup_msg( "error", "Missing SQLite database:\n{}", fname )
+                return
+        else:
+            try:
+                db.session.execute( "SELECT 1" )
+            except SQLAlchemyError as ex:
+                asl_articles.startup.log_startup_msg( "error", "Can't connect to the database:\n{}", ex )
+                return
+
+        # initialize the search index
+        _logger = logging.getLogger( "startup" )
+        asl_articles.search.init_search( db.session, _logger )
 
 # ---------------------------------------------------------------------
 
@@ -91,7 +95,7 @@ if _cfg.get( "IS_CONTAINER" ):
     #   docker run -e DBCONN=...
     _dbconn_string = os.environ.get( "DBCONN" )
 else:
-    _dbconn_string = app.config[ "DB_CONN_STRING" ]
+    _dbconn_string = app.config.get( "DB_CONN_STRING" )
 app.config[ "SQLALCHEMY_DATABASE_URI" ] = _dbconn_string
 app.config[ "SQLALCHEMY_TRACK_MODIFICATIONS" ] = False
 app.config[ "SQLALCHEMY_ECHO" ] = to_bool( app.config.get( "SQLALCHEMY_ECHO" ) )

@@ -84,6 +84,9 @@ def flask_app( request ):
 
     # check if we need to start a local Flask server
     if not flask_url:
+        # FUDGE! If we're going to create our own Flask server, we want to stop it from checking
+        # the *configured* database connection string (since it will fail to start if there's a problem).
+        asl_articles._disable_db_startup = True #pylint: disable=protected-access
         # yup - make it so
         thread = threading.Thread(
             target = lambda: app.run(
