@@ -105,7 +105,9 @@ export class App extends React.Component
             // generate the main content
             content = ( <div>
                 <div id="header">
-                    <img className="logo" src="/images/app.png" alt="Logo" />
+                    <a href={gAppRef.makeAppUrl("/")} title="Home page.">
+                        <img className="logo" src="/images/app.png" alt="Logo" />
+                    </a>
                     <div className="app-name"> {APP_NAME} </div>
                     <SearchForm onSearch={this.onSearch.bind(this)} ref={this._searchFormRef} />
                 </div>
