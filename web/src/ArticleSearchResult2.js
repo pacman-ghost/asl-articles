@@ -3,7 +3,7 @@ import Select from "react-select" ;
 import CreatableSelect from "react-select/creatable" ;
 import { NEW_ARTICLE_PUB_PRIORITY_CUTOFF } from "./constants.js" ;
 import { PublicationSearchResult } from "./PublicationSearchResult.js" ;
-import { gAppRef } from "./index.js" ;
+import { gAppRef } from "./App.js" ;
 import { ImageFileUploader } from "./FileUploader.js" ;
 import { makeScenarioDisplayName, parseScenarioDisplayName, checkConstraints, confirmDiscardChanges, sortSelectableOptions, unloadCreatableSelect, isNumeric } from "./utils.js" ;
 

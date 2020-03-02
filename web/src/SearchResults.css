@@ -17,11 +17,9 @@
 
 .search-result.publisher .header { border: 1px solid #c0c0c0 ; background: #eabe51 ; }
 .search-result.publication .header { border: 1px solid #c0c0c0 ; background: #e5cea0 ; }
-.search-result.publication .header .name { cursor: pointer ; }
-.search-result.publication .header .publisher { cursor: pointer ; }
+.search-result.publication .header a.name { color: inherit ; text-decoration: none ; }
 .search-result.article .header { border: 1px solid #c0c0c0 ; background: #d3edfc ; }
 .search-result.article .header .subtitle { font-size: 80% ; font-style: italic ; color: #333 ; }
-.search-result.article .header .publication { cursor: pointer ; }
 
 .search-result.publication .header .publisher , .search-result.article .header .publication {
     float: right ; margin-right: 0.5em ; font-size: 80% ; font-style: italic ; color: #444 ;
@@ -32,16 +30,15 @@
 .search-result .content p:first-child { margin-top: 0 ; }
 .search-result .content .image { float: left ; margin: 0.25em 0.5em 0.5em 0 ; max-height: 8em ; max-width: 6em ; }
 .search-result .content .collapsible { margin-top:0.5em ; font-size: 90% ; color: #333 ; }
+.search-result .content .collapsible a { color: #333 ; text-decoration: none ; }
 .search-result .content .collapsible .caption { cursor: pointer ; }
 .search-result .content .collapsible .caption img { height: 0.75em ; margin-left: 0.25em ; }
 .search-result .content .collapsible .count { font-size: 80% ; font-style: italic ; color: #666 ; }
 .search-result .content .collapsible ul { margin: 0 0 0 1em ; }
-.search-result.publisher .content .collapsible li { cursor: pointer ; }
-.search-result.publication .content .collapsible li { cursor: pointer ; }
 
 .search-result .footer { clear: both ; padding: 0 5px ; font-size: 80% ; font-style: italic ; color: #666 ; }
-.search-result .footer .tag { display: inline ; margin-right: 0.25em ; padding: 0 2px ; border: 1px solid #ccc ; background: #f0f0f0 ; cursor: pointer ; }
-.search-result.article .footer .author { cursor: pointer ; }
+.search-result .footer a { color: #666 ; text-decoration: none ; }
+.search-result .footer .tag { display: inline ; margin-right: 0.25em ; padding: 0 2px ; border: 1px solid #ccc ; background: #f0f0f0 ; }
 
 .search-result .hilite { padding: 0 2px ; background: #ffffa0 ; }
 .search-result.publisher .header .hilite { background: #e0a040 ; }

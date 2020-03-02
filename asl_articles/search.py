@@ -9,7 +9,7 @@ import tempfile
 import re
 import logging
 
-from flask import request, jsonify, abort
+from flask import request, jsonify
 
 import asl_articles
 from asl_articles import app, db
@@ -117,12 +117,12 @@ def search_publishers():
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-@app.route( "/search/publisher/<int:publ_id>", methods=["POST","GET"] )
+@app.route( "/search/publisher/<publ_id>", methods=["POST","GET"] )
 def search_publisher( publ_id ):
     """Search for a publisher."""
     publ = Publisher.query.get( publ_id )
     if not publ:
-        abort( 404 )
+        return jsonify( [] )
     results = [ get_publisher_vals( publ, True ) ]
     pubs = sorted( publ.publications, key=get_publication_sort_key, reverse=True )
     for pub in pubs:
@@ -131,12 +131,12 @@ def search_publisher( publ_id ):
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-@app.route( "/search/publication/<int:pub_id>", methods=["POST","GET"] )
+@app.route( "/search/publication/<pub_id>", methods=["POST","GET"] )
 def search_publication( pub_id ):
     """Search for a publication."""
     pub = Publication.query.get( pub_id )
     if not pub:
-        abort( 404 )
+        return jsonify( [] )
     results = [ get_publication_vals( pub, True, True ) ]
     articles = sorted( pub.articles, key=get_article_sort_key )
     for article in articles:
@@ -145,12 +145,12 @@ def search_publication( pub_id ):
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-@app.route( "/search/article/<int:article_id>", methods=["POST","GET"] )
+@app.route( "/search/article/<article_id>", methods=["POST","GET"] )
 def search_article( article_id ):
     """Search for an article."""
     article = Article.query.get( article_id )
     if not article:
-        abort( 404 )
+        return jsonify( [] )
     results = [ get_article_vals( article, True ) ]
     if article.pub_id:
         pub = Publication.query.get( article.pub_id )
@@ -160,12 +160,12 @@ def search_article( article_id ):
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-@app.route( "/search/author/<int:author_id>", methods=["POST","GET"] )
+@app.route( "/search/author/<author_id>", methods=["POST","GET"] )
 def search_author( author_id ):
     """Search for an author."""
     author = Author.query.get( author_id )
     if not author:
-        abort( 404 )
+        return jsonify( [] )
     author_name = '"{}"'.format( author.author_name.replace( '"', '""' ) )
     return _do_search( author_name, [ "authors" ] )
 

@@ -1,6 +1,6 @@
 import { MAX_IMAGE_UPLOAD_SIZE } from "./constants.js" ;
 import { bytesDisplayString } from "./utils.js" ;
-import { gAppRef } from "./index.js" ;
+import { gAppRef } from "./App.js" ;
 
 // --------------------------------------------------------------------
 

@@ -2,7 +2,7 @@ import React from "react" ;
 import Select from "react-select" ;
 import CreatableSelect from "react-select/creatable" ;
 import ReactDragListView from "react-drag-listview/lib/index.js" ;
-import { gAppRef } from "./index.js" ;
+import { gAppRef } from "./App.js" ;
 import { ImageFileUploader } from "./FileUploader.js" ;
 import { checkConstraints, confirmDiscardChanges, sortSelectableOptions, unloadCreatableSelect, ciCompare, isNumeric } from "./utils.js" ;
 

@@ -1,10 +1,11 @@
 import React from "react" ;
+import { Link } from "react-router-dom" ;
 import { Menu, MenuList, MenuButton, MenuItem } from "@reach/menu-button" ;
 import { PublisherSearchResult2 } from "./PublisherSearchResult2.js"
 import "./PublisherSearchResult.css" ;
 import { PublicationSearchResult } from "./PublicationSearchResult.js"
 import { PUBLISHER_EXCESS_PUBLICATION_THRESHOLD } from "./constants.js" ;
-import { gAppRef } from "./index.js" ;
+import { gAppRef } from "./App.js" ;
 import { makeCollapsibleList, pluralString, applyUpdatedVals, removeSpecialFields } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
@@ -28,10 +29,9 @@ export class PublisherSearchResult extends React.Component
                 pubs.push( pub[1] ) ;
         }
         pubs.sort( (lhs,rhs) => rhs.time_created - lhs.time_created ) ;
-        pubs = pubs.map( p => <span
+        pubs = pubs.map( p => <Link title="Show this publication."
+            to = { "/publication/" + p.pub_id }
             dangerouslySetInnerHTML = {{ __html: PublicationSearchResult.makeDisplayName(p) }}
-            onClick = { () => gAppRef.searchForPublication( p.pub_id ) }
-            title = "Show this publication."
         /> ) ;
 
         // prepare the menu

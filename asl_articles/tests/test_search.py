@@ -6,9 +6,9 @@ from asl_articles.search import SEARCH_ALL
 from asl_articles.tests.test_publishers import create_publisher, edit_publisher
 from asl_articles.tests.test_publications import create_publication, edit_publication
 from asl_articles.tests.test_articles import create_article, edit_article
-from asl_articles.tests.utils import init_tests, select_sr_menu_option, \
+from asl_articles.tests.utils import init_tests, select_main_menu_option, select_sr_menu_option, \
     wait_for, wait_for_elem, find_child, find_children, check_ask_dialog, \
-    do_search, get_search_results, get_search_result_names, find_search_result, get_search_seqno
+    do_search, get_search_results, get_search_result_names, find_search_result
 
 # ---------------------------------------------------------------------
 
@@ -278,22 +278,18 @@ def test_publisher_search( webdriver, flask_app, dbconn ):
     # initialize
     init_tests( webdriver, flask_app, dbconn, fixtures="search.json" )
 
-    def click_on_publisher( sr, expected ):
+    def click_on_publisher( sr, expected_publ, expected_sr ):
         elem = find_child( ".header .publisher", sr )
-        assert elem.text == expected
-        seq_no = get_search_seqno()
+        assert elem.text == expected_publ
         elem.click()
-        wait_for( 2, lambda: get_search_seqno() != seq_no )
-        assert find_child( "#search-form input.query" ).get_attribute( "value" ) == ""
-        return get_search_results()
+        wait_for( 2, lambda: get_search_result_names() == expected_sr )
 
     # find a publication and click on its parent publisher
     results = do_search( "fantastic" )
     assert len(results) == 1
-    click_on_publisher( results[0], "View From The Trenches" )
-    assert get_search_result_names() == [
+    click_on_publisher( results[0], "View From The Trenches", [
         "View From The Trenches", "View From The Trenches (100)"
-    ]
+    ] )
 
 # ---------------------------------------------------------------------
 
@@ -303,7 +299,7 @@ def test_publication_search( webdriver, flask_app, dbconn ):
     # initialize
     init_tests( webdriver, flask_app, dbconn, fixtures="search.json" )
 
-    def click_on_publication( sr, expected ):
+    def click_on_publication( sr, expected_pub, expected_sr ):
         classes = sr.get_attribute( "class" ).split()
         if "article" in classes:
             elem = find_child( ".header .publication", sr )
@@ -313,36 +309,30 @@ def test_publication_search( webdriver, flask_app, dbconn ):
         else:
             assert "publication" in classes
             elem = find_child( ".header .name", sr )
-        assert elem.text == expected
-        seq_no = get_search_seqno()
+        assert elem.text == expected_pub
         elem.click()
-        wait_for( 2, lambda: get_search_seqno() != seq_no )
-        assert find_child( "#search-form input.query" ).get_attribute( "value" ) == ""
-        return get_search_results()
+        wait_for( 2, lambda: get_search_result_names() == expected_sr )
 
     # find a publication and click on it
     results = do_search( "vftt" )
     sr = find_search_result( "View From The Trenches (100)", results )
-    click_on_publication( sr, "View From The Trenches (100)" )
-    assert get_search_result_names() == [
+    click_on_publication( sr, "View From The Trenches (100)", [
         "View From The Trenches (100)", "Jagdpanzer 38(t) Hetzer"
-    ]
+    ] )
 
     # find an article and click on its parent publication
     results = do_search( "neutral" )
     assert len(results) == 1
-    click_on_publication( results[0], "ASL Journal (5)" )
-    assert get_search_result_names() == [
+    click_on_publication( results[0], "ASL Journal (5)", [
         "ASL Journal (5)", "The Jungle Isn't Neutral", "Hunting DUKWs and Buffalos"
-    ]
+    ] )
 
     # find a publisher and click on one of its publications
     results = do_search( "mmp" )
     assert len(results) == 1
-    click_on_publication( results[0], "ASL Journal (4)" )
-    assert get_search_result_names() == [
+    click_on_publication( results[0], "ASL Journal (4)", [
         "ASL Journal (4)", "Hit 'Em High, Or Hit 'Em Low", "'Bolts From Above"
-    ]
+    ] )
 
 # ---------------------------------------------------------------------
 
@@ -352,23 +342,20 @@ def test_article_search( webdriver, flask_app, dbconn ):
     # initialize
     init_tests( webdriver, flask_app, dbconn, fixtures="search.json" )
 
-    def click_on_article( sr, expected ):
+    def click_on_article( sr, expected_pub, expected_sr ):
         elems = find_children( ".content .collapsible li", sr )
         elem = elems[0] # nb: we just use the first one
-        assert elem.text == expected
-        seq_no = get_search_seqno()
+        assert elem.text == expected_pub
         elem.click()
-        wait_for( 2, lambda: get_search_seqno() != seq_no )
+        wait_for( 2, lambda: get_search_result_names() == expected_sr )
         assert find_child( "#search-form input.query" ).get_attribute( "value" ) == ""
-        return get_search_results()
 
     # find a publication and click on one of its articles
     results = do_search( "vftt" )
     sr = find_search_result( "View From The Trenches (100)", results )
-    click_on_article( sr, "Jagdpanzer 38(t) Hetzer" )
-    assert get_search_result_names() == [
+    click_on_article( sr, "Jagdpanzer 38(t) Hetzer", [
         "Jagdpanzer 38(t) Hetzer", "View From The Trenches (100)"
-    ]
+    ] )
 
 # ---------------------------------------------------------------------
 
@@ -378,23 +365,20 @@ def test_author_search( webdriver, flask_app, dbconn ):
     # initialize
     init_tests( webdriver, flask_app, dbconn, fixtures="search.json" )
 
-    def click_on_author( sr, expected ):
+    def click_on_author( sr, expected_author, expected_sr ):
         authors = find_children( ".authors .author", sr )
         assert len(authors) == 1
-        assert authors[0].text == expected
-        seq_no = get_search_seqno()
+        assert authors[0].text == expected_author
         authors[0].click()
-        wait_for( 2, lambda: get_search_seqno() != seq_no )
-        assert find_child( "#search-form input.query" ).get_attribute( "value" ) == ""
+        wait_for( 2, lambda: get_search_result_names() == expected_sr )
         return get_search_results()
 
     # find an article and click on the author
     results = do_search( SEARCH_ALL )
-    sr = find_search_result( "Jagdpanzer 38(t) Hetzer" )
-    results = click_on_author( sr, "Michael Davies" )
-    assert get_search_result_names( results ) == [
+    sr = find_search_result( "Jagdpanzer 38(t) Hetzer", results )
+    click_on_author( sr, "Michael Davies", [
         "Jagdpanzer 38(t) Hetzer"
-    ]
+    ] )
 
 # ---------------------------------------------------------------------
 
@@ -404,11 +388,9 @@ def test_tag_search( webdriver, flask_app, dbconn ):
     # initialize
     init_tests( webdriver, flask_app, dbconn, fixtures="search.json" )
 
-    def click_on_tag( tag ):
-        seq_no = get_search_seqno()
+    def click_on_tag( tag, expected ):
         tag.click()
-        wait_for( 2, lambda: get_search_seqno() != seq_no )
-        assert find_child( "#search-form input.query" ).get_attribute( "value" ) == ""
+        wait_for( 2, lambda: get_search_result_names() == expected )
         return get_search_results()
     def get_tags( sr ):
         return find_children( ".tags .tag", sr )
@@ -418,25 +400,109 @@ def test_tag_search( webdriver, flask_app, dbconn ):
     assert len(results) == 1
     tags = get_tags( results[0] )
     assert [ t.text for t in tags ] == [ "#aslj", "#mortars" ]
-    results = click_on_tag( tags[0] )
     expected = [
         "ASL Journal (4)", "ASL Journal (5)",
         "'Bolts From Above", "The Jungle Isn't Neutral", "Hunting DUKWs and Buffalos", "Hit 'Em High, Or Hit 'Em Low"
     ]
-    assert get_search_result_names( results ) == expected
+    results = click_on_tag( tags[0], expected )
 
     # click on another "#aslj" tag
     tags = get_tags( results[0] )
     assert [ t.text for t in tags ] == [ "#aslj" ]
-    results = click_on_tag( tags[0] )
-    assert get_search_result_names( results ) == expected
+    results = click_on_tag( tags[0], expected )
 
     # click on a "#PTO" tag
-    sr = find_search_result( "The Jungle Isn't Neutral" )
+    sr = find_search_result( "The Jungle Isn't Neutral", results )
     tags = get_tags( sr )
     assert [ t.text for t in tags ] == [ "#aslj", "#PTO" ]
-    results = click_on_tag( tags[1] )
-    assert get_search_result_names( results ) == [ "The Jungle Isn't Neutral" ]
+    click_on_tag( tags[1], [ "The Jungle Isn't Neutral" ] )
+
+# ---------------------------------------------------------------------
+
+def test_special_searches( webdriver, flask_app, dbconn ):
+    """Test special searches."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, fixtures="search.json" )
+
+    # initialize
+    def get_url():
+        url = webdriver.current_url
+        pos = url.find( "?" )
+        if pos >= 0:
+            url = url[:pos]
+        while url.endswith( "/" ):
+            url = url[:-1]
+        return url
+    url_stem = get_url()
+
+    title_stem = "ASL Articles"
+    def check_title( expected ):
+        if expected:
+            return webdriver.title == "{} - {}".format( title_stem, expected )
+        else:
+            return webdriver.title == title_stem
+
+    def check_results( expected_url, expected_title, expected_sr ):
+        wait_for( 2, lambda: check_title( expected_title ) )
+        assert get_url() == "{}/{}".format( url_stem, expected_url ) if expected_url else url_stem
+        results = get_search_results()
+        assert get_search_result_names( results ) == expected_sr
+        return results
+
+    # test showing "technique" articles
+    select_main_menu_option( "search-technique" )
+    check_results( "", "Technique", [ "A technique article" ] )
+
+    # test showing "tip" articles
+    select_main_menu_option( "search-tips" )
+    check_results( "", "Tips", [ "A tip article" ] )
+
+    # test showing all publishers
+    select_main_menu_option( "show-publishers" )
+    results = check_results( "", "All publishers", [
+        "Multi-Man Publishing", "View From The Trenches"
+    ] )
+
+    # test showing a single publication
+    pubs = find_children( ".collapsible li", results[1] )
+    assert [ p.text for p in pubs ] == [ "View From The Trenches (100)" ]
+    pubs[0].click()
+    results = check_results( "publication/12", "View From The Trenches (100)", [
+        "View From The Trenches (100)", "Jagdpanzer 38(t) Hetzer"
+    ] )
+
+    # test showing a single publisher
+    publ = find_child( "a.publisher", results[0] )
+    assert publ.text == "View From The Trenches"
+    publ.click()
+    results = check_results( "publisher/2", "View From The Trenches", [
+        "View From The Trenches", "View From The Trenches (100)"
+    ] )
+
+    # test showing a single article
+    articles = find_children( ".collapsible li", results[1] )
+    assert [ a.text for a in articles ] == [ "Jagdpanzer 38(t) Hetzer" ]
+    articles[0].click()
+    results = check_results( "article/520", "Jagdpanzer 38(t) Hetzer" , [
+        "Jagdpanzer 38(t) Hetzer", "View From The Trenches (100)"
+    ] )
+
+    # test showing an author's articles
+    authors = find_children( "a.author", results[0] )
+    assert [ a.text for a in authors ] == [ "Michael Davies" ]
+    authors[0].click()
+    results = check_results( "author/1003", "Michael Davies" , [
+        "Jagdpanzer 38(t) Hetzer"
+    ] )
+
+    # test searching for a tag
+    tags = find_children( "a.tag", results[0] )
+    assert [ t.text for t in tags ] == [ "jagdpanzer" ]
+    tags[0].click()
+    check_results( "tag/jagdpanzer", "jagdpanzer" , [
+        "Jagdpanzer 38(t) Hetzer"
+    ] )
 
 # ---------------------------------------------------------------------
 

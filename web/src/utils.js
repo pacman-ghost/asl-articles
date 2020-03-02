@@ -1,6 +1,6 @@
 import React from "react" ;
 import ReactDOMServer from "react-dom/server" ;
-import { gAppRef } from "./index.js" ;
+import { gAppRef } from "./App.js" ;
 
 const isEqual = require( "lodash.isequal" ) ;
 

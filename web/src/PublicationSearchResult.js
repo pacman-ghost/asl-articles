@@ -1,9 +1,10 @@
 import React from "react" ;
+import { Link } from "react-router-dom" ;
 import { Menu, MenuList, MenuButton, MenuItem } from "@reach/menu-button" ;
 import "./PublicationSearchResult.css" ;
 import { PublicationSearchResult2 } from "./PublicationSearchResult2.js" ;
 import { PUBLICATION_EXCESS_ARTICLE_THRESHOLD } from "./constants.js" ;
-import { gAppRef } from "./index.js" ;
+import { gAppRef } from "./App.js" ;
 import { makeCollapsibleList, pluralString, applyUpdatedVals, removeSpecialFields, isLink } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
@@ -34,20 +35,18 @@ export class PublicationSearchResult extends React.Component
             // but we can live with that.
             for ( let i=0 ; i < this.props.data["tags!"].length ; ++i ) {
                 const tag = this.props.data.pub_tags[ i ] ; // nb: this is the actual tag (without highlights)
-                tags.push( <div key={tag} className="tag"
+                tags.push( <Link key={tag} className="tag" title="Search for this tag."
+                    to = { "/tag/" + encodeURIComponent(tag) }
                     dangerouslySetInnerHTML = {{ __html: this.props.data["tags!"][i] }}
-                    onClick = { () => gAppRef.searchForTag( tag ) }
-                    title = "Search for this tag."
                 /> ) ;
             }
         } else {
             if ( this.props.data.pub_tags ) {
                 this.props.data.pub_tags.map(
-                    tag => tags.push( <div key={tag} className="tag"
-                        onClick = { () => gAppRef.searchForTag( tag ) }
-                        title = "Search for this tag."
-                    > {tag} </div>
-                ) ) ;
+                    tag => tags.push( <Link key={tag} className="tag" title="Search for this tag."
+                        to = { "/tag/" + encodeURIComponent(tag) }
+                    > {tag} </Link> )
+                ) ;
             }
         }
 
@@ -56,10 +55,9 @@ export class PublicationSearchResult extends React.Component
         if ( this.props.data.articles ) {
             for ( let i=0 ; i < this.props.data.articles.length ; ++i ) {
                 const article = this.props.data.articles[ i ] ;
-                articles.push( <span
+                articles.push( <Link title="Show this article."
+                    to = { "/article/" + article.article_id }
                     dangerouslySetInnerHTML = {{ __html: article.article_title }}
-                    onClick = { () => gAppRef.searchForArticle( article.article_id ) }
-                    title = "Show this article."
                 /> ) ;
             }
         }
@@ -83,16 +81,14 @@ export class PublicationSearchResult extends React.Component
             <div className="header">
                 {menu}
                 { publ &&
-                    <span className="publisher"
-                        onClick={ () => gAppRef.searchForPublisher( this.props.data.publ_id ) }
-                        title = "Show this publisher."
+                    <Link className="publisher" title="Show this publisher."
+                        to = { "/publisher/" + this.props.data.publ_id }
                     > {publ.publ_name}
-                    </span>
+                    </Link>
                 }
-                <span className="name"
+                <Link className="name" title="Show this publication."
+                    to = { "/publication/" + this.props.data.pub_id }
                     dangerouslySetInnerHTML = {{ __html: this._makeDisplayName( true ) }}
-                    onClick = { () => gAppRef.searchForPublication( this.props.data.pub_id ) }
-                    title = "Show this publication."
                 />
                 { pub_url &&
                     <a href={pub_url} className="open-link" target="_blank" rel="noopener noreferrer">

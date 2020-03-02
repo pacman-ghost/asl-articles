@@ -55,7 +55,7 @@ def init_tests( webdriver, flask_app, dbconn, **kwargs ):
             kwargs[ "disable_constraints" ] = 1
         if to_bool( kwargs.pop( "disable_confirm_discard_changes", True ) ):
             kwargs[ "disable_confirm_discard_changes" ] = 1
-        webdriver.get( webdriver.make_url( "/", **kwargs ) )
+        webdriver.get( webdriver.make_url( "", **kwargs ) )
         wait_for_elem( 2, "#search-form" )
 
     return session

@@ -3,7 +3,7 @@ import "./SearchResults.css" ;
 import { PublisherSearchResult } from "./PublisherSearchResult" ;
 import { PublicationSearchResult } from "./PublicationSearchResult" ;
 import { ArticleSearchResult } from "./ArticleSearchResult" ;
-import { gAppRef } from "./index.js" ;
+import { gAppRef } from "./App.js" ;
 
 // --------------------------------------------------------------------
 

@@ -13,14 +13,17 @@ import { ArticleSearchResult } from "./ArticleSearchResult" ;
 import ModalForm from "./ModalForm";
 import AskDialog from "./AskDialog" ;
 import { makeSmartBulletList } from "./utils.js" ;
+import { APP_NAME } from "./constants.js" ;
 import "./App.css" ;
 
 const axios = require( "axios" ) ;
 const queryString = require( "query-string" ) ;
 
+export let gAppRef = null ;
+
 // --------------------------------------------------------------------
 
-export default class App extends React.Component
+export class App extends React.Component
 {
     constructor( props ) {
 
@@ -33,6 +36,8 @@ export default class App extends React.Component
             askDialog: null,
             startupTasks: [ "caches.publishers", "caches.publications", "caches.authors", "caches.scenarios", "caches.tags" ],
         } ;
+        gAppRef = this ;
+        this.setWindowTitle( null ) ;
 
         // initialize
         this.args = queryString.parse( window.location.search ) ;
@@ -74,14 +79,17 @@ export default class App extends React.Component
                 <MenuButton />
                 <MenuList>
                     <MenuItem id="menu-show-publishers"
-                        onSelect = { () => this._onSpecialSearch( "/search/publishers" ) }
-                    >Show publishers</MenuItem>
+                        onSelect = { () => this.runSpecialSearch( "/search/publishers", null,
+                            () => { this.setWindowTitle( "All publishers" ) }
+                    ) } > Show publishers </MenuItem>
                     <MenuItem id="menu-search-technique"
-                        onSelect = { () => this._onSpecialSearch( "/search/tag/technique", {randomize:1} ) }
-                    >Show technique</MenuItem>
+                        onSelect = { () => this.runSpecialSearch( "/search/tag/technique", {randomize:1},
+                            () => { this.setWindowTitle( "Technique" ) }
+                    ) } > Show technique </MenuItem>
                     <MenuItem id="menu-search-tips"
-                        onSelect = { () => this._onSpecialSearch( "/search/tag/tips", {randomize:1} ) }
-                    >Show tips</MenuItem>
+                        onSelect = { () => this.runSpecialSearch( "/search/tag/tips", {randomize:1},
+                            () => { this.setWindowTitle( "Tips" ) }
+                    ) } > Show tips </MenuItem>
                     <div className="divider" />
                     <MenuItem id="menu-new-publisher"
                         onSelect = { () => PublisherSearchResult.onNewPublisher( this._onNewPublisher.bind(this) ) }
@@ -98,7 +106,7 @@ export default class App extends React.Component
             content = ( <div>
                 <div id="header">
                     <img className="logo" src="/images/app.png" alt="Logo" />
-                    <div className="app-name"> ASL Articles </div>
+                    <div className="app-name"> {APP_NAME} </div>
                     <SearchForm onSearch={this.onSearch.bind(this)} ref={this._searchFormRef} />
                 </div>
                 {menu}
@@ -212,20 +220,16 @@ export default class App extends React.Component
         }
         this._doSearch( "/search", { query: query } ) ;
     }
-    searchForPublisher( publ_id ) { this._onSpecialSearch( "/search/publisher/" + publ_id ) ; }
-    searchForPublication( pub_id ) { this._onSpecialSearch( "/search/publication/" + pub_id ) ; }
-    searchForArticle( article_id ) { this._onSpecialSearch( "/search/article/" + article_id ) ; }
-    searchForAuthor( author_id ) { this._onSpecialSearch( "/search/author/" + author_id ) ; }
-    searchForTag( tag ) { this._onSpecialSearch( "/search/tag/" + encodeURIComponent(tag) ) ; }
-    _onSpecialSearch( url, args ) {
+    runSpecialSearch( url, args, onDone ) {
         // run the search
         this._searchFormRef.current.setState( { queryString: "" } ) ;
         if ( ! args )
             args = {} ;
-        this._doSearch( url, args ) ;
+        this._doSearch( url, args, onDone ) ;
     }
-    _doSearch( url, args ) {
+    _doSearch( url, args, onDone ) {
         // do the search
+        this.setWindowTitle( null ) ;
         this.setState( { searchResults: "(loading)" } ) ;
         args.no_hilite = this._disableSearchResultHighlighting ;
         axios.post(
@@ -235,6 +239,8 @@ export default class App extends React.Component
             ReactDOM.findDOMNode( this._searchResultsRef.current ).scrollTo( 0, 0 ) ;
             this._setFocusTo = this._searchFormRef.current.queryStringRef.current ;
             this.setState( { searchResults: resp.data, searchSeqNo: this.state.searchSeqNo+1 } ) ;
+            if ( onDone )
+                onDone() ;
         } )
         .catch( err => {
             this.showErrorResponse( "The search query failed", err ) ;
@@ -441,6 +447,28 @@ export default class App extends React.Component
         }
         this.state.startupTasks.splice( pos, 1 ) ;
         this.setState( { startupTasks: this.state.startupTasks } ) ;
+        if ( this.state.startupTasks.length === 0 )
+            this._onStartupComplete() ;
+    }
+    _onStartupComplete() {
+        // startup has completed, we're ready to go
+        if ( this.props.warning )
+            this.showWarningToast( this.props.warning ) ;
+        if ( this.props.doSearch )
+            this.props.doSearch() ;
+    }
+
+    setWindowTitleFromSearchResults( srType, idField, idVal, nameField ) {
+        for ( let sr of Object.entries( this.state.searchResults ) ) {
+            if ( sr[1].type === srType && String(sr[1][idField]) === idVal ) {
+                this.setWindowTitle( typeof nameField === "function" ? nameField(sr[1]) : sr[1][nameField] ) ;
+                return ;
+            }
+        }
+        this.setWindowTitle( null ) ;
+    }
+    setWindowTitle( caption ) {
+        document.title = caption ? APP_NAME + " - " + caption : APP_NAME ;
     }
 
     isTestMode() { return process.env.REACT_APP_TEST_MODE ; }

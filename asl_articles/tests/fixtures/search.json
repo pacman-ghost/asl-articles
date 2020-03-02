@@ -65,7 +65,18 @@
     { "article_id": 520,
       "article_title": "Jagdpanzer 38(t) Hetzer",
       "article_snippet": "In the 1930s the Germans conducted a number of military exercises which showed that close support from light field guns was helpful for infantry operations.",
+      "article_tags": "jagdpanzer",
       "pub_id": 12
+    },
+    { "article_id": 600,
+      "article_title": "A tip article",
+      "article_snippet": "This is a 'tip' article.",
+      "article_tags": "tips"
+    },
+    { "article_id": 601,
+      "article_title": "A technique article",
+      "article_snippet": "This is a 'technique' article.",
+      "article_tags": "technique"
     }
 ],
 

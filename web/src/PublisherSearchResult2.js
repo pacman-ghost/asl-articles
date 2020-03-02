@@ -1,5 +1,5 @@
 import React from "react" ;
-import { gAppRef } from "./index.js" ;
+import { gAppRef } from "./App.js" ;
 import { ImageFileUploader } from "./FileUploader.js" ;
 import { checkConstraints, confirmDiscardChanges, ciCompare } from "./utils.js" ;
 

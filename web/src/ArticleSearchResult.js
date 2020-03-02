@@ -1,9 +1,10 @@
 import React from "react" ;
+import { Link } from "react-router-dom" ;
 import { Menu, MenuList, MenuButton, MenuItem } from "@reach/menu-button" ;
 import { ArticleSearchResult2 } from "./ArticleSearchResult2.js" ;
 import "./ArticleSearchResult.css" ;
 import { PublicationSearchResult } from "./PublicationSearchResult.js" ;
-import { gAppRef } from "./index.js" ;
+import { gAppRef } from "./App.js" ;
 import { makeScenarioDisplayName, applyUpdatedVals, removeSpecialFields, makeCommaList, isLink } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
@@ -39,20 +40,18 @@ export class ArticleSearchResult extends React.Component
             // the backend has provided us with a list of author names (possibly highlighted) - use them directly
             for ( let i=0 ; i < this.props.data["authors!"].length ; ++i ) {
                 const author_id = this.props.data.article_authors[ i ] ;
-                authors.push( <span key={i} className="author"
+                authors.push( <Link key={i} className="author" title="Show articles from this author."
+                    to = { "/author/" + author_id }
                     dangerouslySetInnerHTML = {{ __html: this.props.data["authors!"][i] }}
-                    onClick = { () => gAppRef.searchForAuthor( author_id ) }
-                    title = "Show articles from this author."
                 /> ) ;
             }
         } else {
             // we only have a list of author ID's (the normal case) - figure out what the corresponding names are
             for ( let i=0 ; i < this.props.data.article_authors.length ; ++i ) {
                 const author_id = this.props.data.article_authors[ i ] ;
-                authors.push( <span key={i} className="author"
+                authors.push( <Link key={i} className="author" title="Show articles from this author."
+                    to = { "/author/" + author_id }
                     dangerouslySetInnerHTML = {{ __html: gAppRef.caches.authors[ author_id ].author_name }}
-                    onClick = { () => gAppRef.searchForAuthor( author_id ) }
-                    title = "Show articles from this author."
                 /> ) ;
             }
         }
@@ -84,20 +83,18 @@ export class ArticleSearchResult extends React.Component
             // but we can live with that.
             for ( let i=0 ; i < this.props.data["tags!"].length ; ++i ) {
                 const tag = this.props.data.article_tags[ i ] ; // nb: this is the actual tag (without highlights)
-                tags.push( <div key={tag} className="tag"
+                tags.push( <Link key={tag} className="tag" title="Search for this tag."
+                    to = { "/tag/" + encodeURIComponent(tag) }
                     dangerouslySetInnerHTML = {{ __html: this.props.data["tags!"][i] }}
-                    onClick = { () => gAppRef.searchForTag( tag ) }
-                    title = "Search for this tag."
                 /> ) ;
             }
         } else {
             if ( this.props.data.article_tags ) {
                 this.props.data.article_tags.map(
-                    tag => tags.push( <div key={tag} className="tag"
-                        onClick = { () => gAppRef.searchForTag( tag ) }
-                        title = "Search for this tag."
-                    > {tag} </div>
-                ) ) ;
+                    tag => tags.push( <Link key={tag} className="tag" title="Search for this tag."
+                        to = { "/tag/" + encodeURIComponent(tag) }
+                    > {tag} </Link> )
+                ) ;
             }
         }
 
@@ -123,11 +120,10 @@ export class ArticleSearchResult extends React.Component
             <div className="header">
                 {menu}
                 { pub_display_name &&
-                    <span className="publication"
-                        onClick = { () => gAppRef.searchForPublication( this.props.data.pub_id ) }
-                        title = "Show this publication."
-                    > {pub_display_name}
-                    </span>
+                    <Link className="publication" title="Show this publication."
+                        to = { "/publication/" + this.props.data.pub_id }
+                        dangerouslySetInnerHTML = {{ __html: pub_display_name }}
+                    />
                 }
                 <span className="title name" dangerouslySetInnerHTML={{ __html: display_title }} />
                 { article_url &&
