@@ -13,7 +13,8 @@ from flask import request, jsonify
 
 import asl_articles
 from asl_articles import app, db
-from asl_articles.models import Publisher, Publication, Article, Author, Scenario, get_model_from_table_name
+from asl_articles.models import Publisher, Publication, Article, Author, Scenario, ArticleAuthor, ArticleScenario, \
+    get_model_from_table_name
 from asl_articles.publishers import get_publisher_vals
 from asl_articles.publications import get_publication_vals, get_publication_sort_key
 from asl_articles.articles import get_article_vals, get_article_sort_key
@@ -66,16 +67,20 @@ class SearchDbConn:
 
 def _get_authors( article ):
     """Return the searchable authors for an article."""
-    author_ids = [ a.author_id for a in article.article_authors ]
-    query = db.session.query( Author ).filter( Author.author_id.in_( author_ids ) )
-    return "\n".join( a.author_name for a in query )
+    query = db.session.query( Author, ArticleAuthor ) \
+        .filter( ArticleAuthor.article_id == article.article_id ) \
+        .join( Author, ArticleAuthor.author_id == Author.author_id ) \
+        .order_by( ArticleAuthor.seq_no )
+    return "\n".join( a[0].author_name for a in query )
 
 def _get_scenarios( article ):
     """Return the searchable scenarios for an article."""
-    scenario_ids = [ s.scenario_id for s in article.article_scenarios ]
-    query = db.session.query( Scenario ).filter( Scenario.scenario_id.in_( scenario_ids ) )
-    return "\n".join(
-        "{}\t{}".format( s.scenario_display_id, s.scenario_name ) if s.scenario_display_id else s.scenario_name
+    query = db.session.query( Scenario, ArticleScenario ) \
+        .filter( ArticleScenario.article_id == article.article_id ) \
+        .join( Scenario, ArticleScenario.scenario_id == Scenario.scenario_id ) \
+        .order_by( ArticleScenario.seq_no )
+    return "\n".join( "{}\t{}".format( s[0].scenario_display_id, s[0].scenario_name ) if s[0].scenario_display_id
+        else s[0].scenario_name
         for s in query
     )
 
