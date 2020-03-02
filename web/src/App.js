@@ -203,6 +203,11 @@ export class App extends React.Component
             else
                 this._setFocusTo.focus() ;
         }
+        else {
+            let elem = document.getElementById( "search-results" ) ;
+            if ( elem )
+                setTimeout( () => elem.focus(), 10 ) ;
+        }
         this._setFocusTo = null ;
     }
 
@@ -237,7 +242,6 @@ export class App extends React.Component
         )
         .then( resp => {
             ReactDOM.findDOMNode( this._searchResultsRef.current ).scrollTo( 0, 0 ) ;
-            this._setFocusTo = this._searchFormRef.current.queryStringRef.current ;
             this.setState( { searchResults: resp.data, searchSeqNo: this.state.searchSeqNo+1 } ) ;
             if ( onDone )
                 onDone() ;
@@ -301,7 +305,6 @@ export class App extends React.Component
     }
 
     closeModalForm() {
-        this._setFocusTo = this._searchFormRef.current.queryStringRef ;
         this.setState( { modalForm: null } ) ;
     }
 
@@ -362,7 +365,7 @@ export class App extends React.Component
                 if ( notify )
                     notify() ;
                 // dismiss the dialog
-                this._setFocusTo = setFocusTo ? setFocusTo : this._searchFormRef.current.queryStringRef ;
+                this._setFocusTo = setFocusTo ;
                 this.setState( { askDialog: null } ) ;
             } ;
         }
