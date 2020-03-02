@@ -510,9 +510,10 @@ def test_make_fts_query_string():
     """Test generating FTS query strings."""
 
     # initialize
-    search_aliases = _load_search_aliases( [
-        ( "mmp", "Multi-Man Publishing = Multiman Publishing" )
-    ] )
+    search_aliases = _load_search_aliases(
+        [ ( "aaa", "bbb ; ccc" ) ],
+        [ ( "mmp", "Multi-Man Publishing = Multiman Publishing" ) ]
+    )
 
     def do_test( query, expected ):
         assert _make_fts_query_string( query, search_aliases ) == expected
@@ -566,6 +567,11 @@ def test_make_fts_query_string():
     do_test( "NOT", "NOT" )
     do_test( "foo OR bar", "foo OR bar" )
     do_test( "(a OR b)", "(a OR b)" )
+
+    # test search aliases
+    do_test( "aaa", "(aaa OR bbb OR ccc)" )
+    do_test( "bbb", "bbb" )
+    do_test( "ccc", "ccc" )
 
     # test search aliases
     do_test( "MMP", '("multi-man publishing" OR "multiman publishing" OR mmp)' )

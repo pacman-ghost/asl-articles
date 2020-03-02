@@ -412,12 +412,22 @@ def init_search( session, logger ):
     _logger.debug( "Loading search aliases: %s", fname )
     cfg.read( fname )
     global _search_aliases
-    _search_aliases = _load_search_aliases( cfg.items( "Search aliases" ) )
+    def get_section( section_name ):
+        try:
+            return cfg.items( section_name )
+        except configparser.NoSectionError:
+            return []
+    _search_aliases = _load_search_aliases( get_section("Search aliases"), get_section("Search aliases 2") )
 
-def _load_search_aliases( aliases ):
+def _load_search_aliases( aliases, aliases2 ):
     """Load the search aliases."""
     search_aliases = {}
     for row in aliases:
+        vals = [ row[0] ]
+        vals.extend( v.strip() for v in row[1].split( ";" ) )
+        search_aliases[ row[0] ] = vals
+        _logger.debug( "- %s => %s", row[0], vals )
+    for row in aliases2:
         vals = itertools.chain( [row[0]], row[1].split("=") )
         vals = [ v.strip().lower() for v in vals ]
         _logger.debug( "- %s", vals )
