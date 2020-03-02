@@ -8,6 +8,8 @@ body {
 }
 
 ul, ol { margin: 0 0 0 1.25em ; }
+ul { list-style-image: url("/images/bullet.png") }
+ul ul, ol ul { list-style-image: url("/images/bullet2.png") }
 input[type="text"] { height: 22px ; border: 1px solid #c5c5c5 ; padding: 2px 5px ; }
 label { height: 1.25em ; margin-top: -3px ; }
 textarea { padding: 2px 5px ; resize: vertical ; }
