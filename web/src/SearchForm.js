@@ -20,7 +20,7 @@ export default class SearchForm extends React.Component
     render() {
         return (
             <form id="search-form" onSubmit={this.onSearch.bind(this)}>
-            <label className="caption"> Search&nbsp;for: </label>
+            <label className="caption"> Sea<u>r</u>ch&nbsp;for: </label>
             <input type="text" className="query"
                 value = {this.state.queryString}
                 onChange = { e => this.setState( { queryString: e.target.value } ) }

@@ -378,7 +378,7 @@ export class App extends React.Component
 
     onKeyDown( evt ) {
         // check if a modal dialog is open and Ctrl-Enter was pressed
-        if ( this._modalFormRef && evt.keyCode === 13 && evt.ctrlKey ) {
+        if ( this._modalFormRef.current && evt.keyCode === 13 && evt.ctrlKey ) {
             let dlg = ReactDOM.findDOMNode( this._modalFormRef.current ) ;
             if ( dlg ) {
                 // yup - accept the dialog
@@ -387,6 +387,19 @@ export class App extends React.Component
                     btn.click() ;
                 else
                     console.log( "ERROR: Can't find default button." ) ;
+            }
+        }
+        // check for other shortcuts
+        if ( ! this._modalFormRef.current ) {
+            // Alt-R: set focus to query string
+            if ( evt.key === "r" && evt.altKey ) {
+                if ( this._searchFormRef.current ) {
+                    let elem = this._searchFormRef.current.queryStringRef.current ;
+                    if ( elem ) {
+                        elem.focus() ;
+                        elem.select() ;
+                    }
+                }
             }
         }
     }
