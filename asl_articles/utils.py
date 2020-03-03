@@ -108,7 +108,7 @@ def clean_html( val, allow_tags=None, safe_attrs=None ): #pylint: disable=too-ma
     # We hack around this by replacing all HTML entities with a special marker string, clean the HTML,
     # then replace all the marker strings with their original HTML entities :-/
     markers = {}
-    matches = list( re.finditer( "&[a-z]+;", val ) )
+    matches = list( re.finditer( "&[a-z][a-z0-9]+;", val ) )
     matches = reversed( matches )
     for n,mo in enumerate(matches):
         marker = "[!${}$!]".format( n )
