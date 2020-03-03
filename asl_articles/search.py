@@ -421,21 +421,30 @@ def init_search( session, logger ):
 
 def _load_search_aliases( aliases, aliases2 ):
     """Load the search aliases."""
+
+    # initialize
     search_aliases = {}
+
+    def add_search_alias( key, vals ):
+        if key in search_aliases:
+            _logger.warning( "Found duplicate search alias: %s", key )
+        search_aliases[ key ] =vals
+
+    # load the search aliases
     for row in aliases:
         vals = [ row[0] ]
         vals.extend( v.strip() for v in row[1].split( ";" ) )
-        search_aliases[ row[0] ] = vals
+        add_search_alias( row[0], vals )
         _logger.debug( "- %s => %s", row[0], vals )
+
+    # load the search aliases
     for row in aliases2:
         vals = itertools.chain( [row[0]], row[1].split("=") )
         vals = [ v.strip().lower() for v in vals ]
         _logger.debug( "- %s", vals )
         for v in vals:
-            if v in search_aliases:
-                _logger.warning( "Found duplicate search alias: %s", v )
-                continue
-            search_aliases[ v ] = vals
+            add_search_alias( v, vals )
+
     return search_aliases
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
