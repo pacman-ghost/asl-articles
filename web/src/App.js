@@ -200,15 +200,19 @@ export class App extends React.Component
     componentDidUpdate() {
         // we've finished rendering the page, check if we should set focus
         if ( this._setFocusTo ) {
+            // yup - set focus to the requested control
             if ( this._setFocusTo.current )
                 this._setFocusTo.current.focus() ;
             else
                 this._setFocusTo.focus() ;
         }
         else {
-            let elem = document.getElementById( "search-results" ) ;
-            if ( elem )
-                setTimeout( () => elem.focus(), 10 ) ;
+            // nope - set focus to the search results (so that Page Up/Down et.al. will work)
+            if ( ! this._modalFormRef.current ) {
+                let elem = document.getElementById( "search-results" ) ;
+                if ( elem )
+                    setTimeout( () => elem.focus(), 10 ) ;
+            }
         }
         this._setFocusTo = null ;
     }
