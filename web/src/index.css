@@ -13,6 +13,7 @@ ul ul, ol ul { list-style-image: url("/images/bullet2.png") }
 input[type="text"] { height: 22px ; border: 1px solid #c5c5c5 ; padding: 2px 5px ; }
 label { height: 1.25em ; margin-top: -3px ; }
 textarea { padding: 2px 5px ; resize: vertical ; }
+pre { font-size: 90% ; }
 blockquote {
     margin: .5em 1em .75em 1em ; padding: 5px 5px 5px 15px ;
     border: 1px solid #ddd ; background: #fffff0 ;

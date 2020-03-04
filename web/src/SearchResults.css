@@ -1,4 +1,4 @@
-#search-results { padding: 0 0.25em ; }
+#search-results { padding: 0 0.25em ; outline: none ; }
 #search-results .no-results { font-style: italic ; }
 #search-results .loading { width: 100% ; height: 100% ; }
 
