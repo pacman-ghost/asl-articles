@@ -28,7 +28,16 @@ export class PublisherSearchResult extends React.Component
             if ( pub[1].publ_id === this.props.data.publ_id )
                 pubs.push( pub[1] ) ;
         }
-        pubs.sort( (lhs,rhs) => rhs.time_created - lhs.time_created ) ;
+        pubs.sort( (lhs,rhs) => {
+            if ( lhs.pub_seqno && rhs.pub_seqno )
+                return rhs.pub_seqno - lhs.pub_seqno ;
+            else if ( lhs.pub_seqno )
+                return +1 ;
+            else if ( rhs.pub_seqno )
+                return -1 ;
+            else
+                return rhs.time_created - lhs.time_created ; // nb: we compare timestamps for back-compat
+        } ) ;
         pubs = pubs.map( p => <Link title="Show this publication."
             to = { gAppRef.makeAppUrl( "/publication/" + p.pub_id ) }
             dangerouslySetInnerHTML = {{ __html: PublicationSearchResult.makeDisplayName(p) }}

@@ -5,6 +5,7 @@ import base64
 import logging
 
 from flask import request, jsonify, abort
+from sqlalchemy.sql.expression import func
 
 from asl_articles import app, db
 from asl_articles.models import Publication, PublicationImage, Article
@@ -57,6 +58,7 @@ def get_publication_vals( pub, include_articles, add_type=False ):
         "pub_date": pub.pub_date,
         "pub_description": pub.pub_description,
         "pub_url": pub.pub_url,
+        "pub_seqno": pub.pub_seqno,
         "pub_image_id": pub.pub_id if pub.pub_image else None,
         "pub_tags": decode_tags( pub.pub_tags ),
         "publ_id": pub.publ_id,
@@ -72,7 +74,16 @@ def get_publication_vals( pub, include_articles, add_type=False ):
 def get_publication_sort_key( pub ):
     """Get a publication's sort key."""
     # NOTE: This is used to sort publications within their parent publisher.
-    return int( pub.time_created.timestamp() ) if pub.time_created else 0
+    # FUDGE! We used to sort by time_created, but later added a seq#, so we now want to
+    # sort by seq# first, then fallback to time_created.
+    # NOTE: We assume that the seq# values are all small, and less than any timestamp.
+    # This means that any seq# value will appear before any timestamp in the sort order.
+    if pub.pub_seqno:
+        return pub.pub_seqno
+    elif pub.time_created:
+        return int( pub.time_created.timestamp() )
+    else:
+        return 0
 
 # ---------------------------------------------------------------------
 
@@ -97,6 +108,7 @@ def create_publication():
     vals[ "time_created" ] = datetime.datetime.now()
     pub = Publication( **vals )
     db.session.add( pub )
+    _set_seqno( pub, pub.publ_id )
     _save_image( pub, updated )
     db.session.commit()
     _logger.debug( "- New ID: %d", pub.pub_id )
@@ -108,6 +120,24 @@ def create_publication():
         extras[ "publications" ] = do_get_publications()
         extras[ "tags" ] = do_get_tags()
     return make_ok_response( updated=updated, extras=extras, warnings=warnings )
+
+def _set_seqno( pub, publ_id ):
+    """Set a publication's seq#."""
+    if publ_id:
+        # NOTE: Since we currently don't provide a way to set the seq# in the UI,
+        # we leave a gap between the seq# we assign here, to allow the user to manually
+        # insert publications into the gap at a later time.
+        max_seqno = db.session.query( func.max( Publication.pub_seqno ) ) \
+            .filter( Publication.publ_id == publ_id ) \
+            .scalar()
+        if max_seqno is None:
+            pub.pub_seqno = 1
+        elif max_seqno == 1:
+            pub.pub_seqno = 10
+        else:
+            pub.pub_seqno = max_seqno + 10
+    else:
+        pub.pub_seqno = None
 
 def _save_image( pub, updated ):
     """Save the publication's image."""
@@ -158,6 +188,8 @@ def update_publication():
     pub = Publication.query.get( pub_id )
     if not pub:
         abort( 404 )
+    if vals["publ_id"] != pub.publ_id:
+        _set_seqno( pub, vals["publ_id"] )
     vals[ "time_updated" ] = datetime.datetime.now()
     apply_attrs( pub, vals )
     _save_image( pub, updated )

@@ -38,6 +38,7 @@ class Publication( db.Model ):
     pub_date = db.Column( db.String(100) ) # nb: this is just a display string
     pub_description = db.Column( db.String(1000) )
     pub_url = db.Column( db.String(500) )
+    pub_seqno = db.Column( db.Integer )
     pub_tags = db.Column( db.String(1000) )
     publ_id = db.Column( db.Integer,
         db.ForeignKey( Publisher.__table__.c.publ_id, ondelete="CASCADE" )

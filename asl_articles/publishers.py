@@ -131,7 +131,7 @@ def update_publisher():
     warnings = []
     updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
 
-    # update the publication
+    # update the publisher
     publ = Publisher.query.get( publ_id )
     if not publ:
         abort( 404 )
