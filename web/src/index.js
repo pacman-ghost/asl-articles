@@ -37,7 +37,10 @@ ReactDOM.render(
             /> } />
             <Route path="/author/:authorId" render={ (props) => <App {...props} key={"author:"+props.match.params.authorId}
                 doSearch = { () => gAppRef.runSpecialSearch( "/search/author/"+gAppRef.props.match.params.authorId, null,
-                    () => gAppRef.setWindowTitle( gAppRef.caches.authors[ gAppRef.props.match.params.authorId ].author_name )
+                    () => {
+                        const author = gAppRef.caches.authors[ gAppRef.props.match.params.authorId ] ;
+                        gAppRef.setWindowTitle( author ? author.author_name : "Unknown author" )
+                    }
                 ) }
             /> } />
             <Route path="/tag/:tag" render={ (props) => <App {...props} key={"tag:"+props.match.params.tag}
