@@ -35,6 +35,7 @@
 .search-result .content .collapsible .caption img { height: 0.75em ; margin-left: 0.25em ; }
 .search-result .content .collapsible .count { font-size: 80% ; font-style: italic ; color: #666 ; }
 .search-result .content .collapsible ul { margin: 0 0 0 1em ; }
+.search-result .content .collapsible .more { font-size: 80% ; font-style: italic ; color: #666 ; cursor: pointer ; }
 
 .search-result .footer { clear: both ; padding: 0 5px ; font-size: 80% ; font-style: italic ; color: #666 ; }
 .search-result .footer a { color: #666 ; text-decoration: none ; }

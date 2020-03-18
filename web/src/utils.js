@@ -174,7 +174,7 @@ export function makeCollapsibleList( caption, vals, maxItems, style ) {
     if ( ! vals || vals.length === 0 )
         return null ;
     let items=[], excessItems=[] ;
-    let excessItemsRef=null, flipButtonRef=null ;
+    let excessItemsRef=null, excessItemsMoreRef=null, flipButtonRef=null ;
     for ( let i=0 ; i < vals.length ; ++i ) {
         let item ;
         if ( typeof vals[i] === "string" )
@@ -188,6 +188,7 @@ export function makeCollapsibleList( caption, vals, maxItems, style ) {
         const show = flipButtonRef.src.substr( pos ) === "/collapsible-down.png" ;
         excessItemsRef.style.display = show ? "block" : "none" ;
         flipButtonRef.src = show ? "/images/collapsible-up.png" : "/images/collapsible-down.png" ;
+        excessItemsMoreRef.style.display = show ? "none" : "block" ;
     }
     if ( excessItems.length === 0 )
         caption = <span> {caption+":"} </span> ;
@@ -204,11 +205,12 @@ export function makeCollapsibleList( caption, vals, maxItems, style ) {
             { excessItems.length > 0 && <img src="/images/collapsible-down.png" ref={r => flipButtonRef=r} alt="Show/hide extra items." /> }
         </div>
         <ul> {items} </ul>
-        { excessItems.length > 0 &&
+        { excessItems.length > 0 && <div>
             <ul className="excess" ref={r => excessItemsRef=r} style={{display:"none"}}>
                 {excessItems}
             </ul>
-        }
+            <div className="more" onClick={onClick} ref={r => excessItemsMoreRef=r}> more... </div>
+        </div> }
         </div> ) ;
 }
 
