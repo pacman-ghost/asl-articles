@@ -40,6 +40,8 @@ def clean_request_args( vals, fields, warnings, logger ):
     """Clean incoming data."""
     cleaned = {}
     for f in fields:
+        if f.endswith( "_url" ):
+            continue # nb: don't clean URL's
         f = _parse_arg_name( f )[ 0 ]
         if isinstance( vals[f], str ):
             val2 = clean_html( vals[f] )
