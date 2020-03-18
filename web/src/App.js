@@ -78,18 +78,9 @@ export class App extends React.Component
             const menu = ( <Menu id="app">
                 <MenuButton />
                 <MenuList>
-                    <MenuItem id="menu-show-publishers"
-                        onSelect = { () => this.runSpecialSearch( "/search/publishers", null,
-                            () => { this.setWindowTitle( "All publishers" ) }
-                    ) } > Show publishers </MenuItem>
-                    <MenuItem id="menu-search-technique"
-                        onSelect = { () => this.runSpecialSearch( "/search/tag/technique", {randomize:1},
-                            () => { this.setWindowTitle( "Technique" ) }
-                    ) } > Show technique </MenuItem>
-                    <MenuItem id="menu-search-tips"
-                        onSelect = { () => this.runSpecialSearch( "/search/tag/tips", {randomize:1},
-                            () => { this.setWindowTitle( "Tips" ) }
-                    ) } > Show tips </MenuItem>
+                    <MenuItem id="menu-show-publishers" onSelect={this._showPublishers.bind(this)}> Show publishers </MenuItem>
+                    <MenuItem id="menu-search-technique" onSelect={this._showTechniqueArticles.bind(this)}> Show technique </MenuItem>
+                    <MenuItem id="menu-search-tips" onSelect={this._showTipsArticles.bind(this)}> Show tips </MenuItem>
                     <div className="divider" />
                     <MenuItem id="menu-new-publisher"
                         onSelect = { () => PublisherSearchResult.onNewPublisher( this._onNewPublisher.bind(this) ) }
@@ -231,13 +222,6 @@ export class App extends React.Component
         }
         this._doSearch( "/search", { query: query } ) ;
     }
-    runSpecialSearch( url, args, onDone ) {
-        // run the search
-        this._searchFormRef.current.setState( { queryString: "" } ) ;
-        if ( ! args )
-            args = {} ;
-        this._doSearch( url, args, onDone ) ;
-    }
     _doSearch( url, args, onDone ) {
         // do the search
         this.setWindowTitle( null ) ;
@@ -256,6 +240,29 @@ export class App extends React.Component
             this.showErrorResponse( "The search query failed", err ) ;
             this.setState( { searchResults: null, searchSeqNo: this.state.searchSeqNo+1 } ) ;
         } ) ;
+    }
+
+    runSpecialSearch( url, args, onDone ) {
+        // run the search
+        this._searchFormRef.current.setState( { queryString: "" } ) ;
+        if ( ! args )
+            args = {} ;
+        this._doSearch( url, args, onDone ) ;
+    }
+    _showPublishers() {
+        this.runSpecialSearch( "/search/publishers", null,
+            () => { this.setWindowTitle( "All publishers" ) }
+        )
+    }
+    _showTechniqueArticles() {
+        this.runSpecialSearch( "/search/tag/technique", {randomize:1},
+            () => { this.setWindowTitle( "Technique" ) }
+        )
+    }
+    _showTipsArticles() {
+        this.runSpecialSearch( "/search/tag/tips", {randomize:1},
+            () => { this.setWindowTitle( "Tips" ) }
+        )
     }
 
     _onNewPublisher( publ_id, vals ) { this._addNewSearchResult( vals, "publisher", "publ_id", publ_id ) ; }

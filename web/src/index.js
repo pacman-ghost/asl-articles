@@ -10,6 +10,15 @@ import "./index.css" ;
 ReactDOM.render(
     <BrowserRouter>
         <Switch>
+            <Route path="/publishers" render={ (props) => <App {...props} key="publishers"
+                doSearch = { () => gAppRef._showPublishers() }
+            /> } />
+            <Route path="/technique" render={ (props) => <App {...props} key="technique"
+                doSearch = { () => gAppRef._showTechniqueArticles() }
+            /> } />
+            <Route path="/tips" render={ (props) => <App {...props} key="tips"
+                doSearch = { () => gAppRef._showTipsArticles() }
+            /> } />
             <Route path="/publisher/:publId" render={ (props) => <App {...props} key={"publ:"+props.match.params.publId}
                 doSearch = { () => gAppRef.runSpecialSearch( "/search/publisher/"+gAppRef.props.match.params.publId, null,
                     () => gAppRef.setWindowTitleFromSearchResults( "publisher", "publ_id", gAppRef.props.match.params.publId, "publ_name" )
