@@ -6,7 +6,7 @@
 .modal-form .row input , .row textarea , .row .react-select { flex-grow: 1 ; }
 
 .modal-form .row.image { display: block ; }
-.modal-form .row.image img.image { margin-right: 1em ; max-height: 5em ; cursor: pointer ; }
+.modal-form .row.image img.image { margin-right: 1em ; max-width: 8em ; max-height: 5em ; cursor: pointer ; }
 .modal-form .row.image img.remove-image { height: 1em ; margin-left: 0.25em ; cursor: pointer ; }
 
 .modal-form .image-container { position: relative ; display: inline-block ; float: left ; }

@@ -27,8 +27,8 @@
 }
 
 .search-result .content { padding: 2px 5px ; font-size: 90% ; }
-.search-result .content p { margin-top: 0.25em ; }
-.search-result .content p:first-child { margin-top: 0 ; }
+.search-result .content p:not(:first-child) { margin-top: 0.25em ; }
+.search-result .content ul p, .search-result .content ol p { margin-top: 0.1em ; }
 .search-result .content .image { float: left ; margin: 0.25em 0.5em 0.5em 0 ; max-height: 8em ; max-width: 6em ; }
 .search-result .content .collapsible { margin-top:0.5em ; font-size: 90% ; color: #333 ; }
 .search-result .content .collapsible a { color: #333 ; text-decoration: none ; }

@@ -1,5 +1,5 @@
 #header { position: absolute ; top: 5px ; left: 5px ; right: 5px ; height: 65px ; }
-#search-results { position: absolute ; top: 95px ; bottom: 0 ; left: 5px ; right: 5px ; overflow: auto ; }
+#search-results { position: absolute ; top: 95px ; bottom: 5px ; left: 5px ; right: 5px ; overflow: auto ; }
 
 #header { border: 1px solid #ccc ; background: #eee ; border-top-right-radius: 10px ; padding: 5px 5px 10px 5px ; }
 #header .logo { float: left ; height: 70px ; }
