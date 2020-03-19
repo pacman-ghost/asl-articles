@@ -4,6 +4,7 @@ import { Menu, MenuList, MenuButton, MenuItem } from "@reach/menu-button" ;
 import { ArticleSearchResult2 } from "./ArticleSearchResult2.js" ;
 import "./ArticleSearchResult.css" ;
 import { PublicationSearchResult } from "./PublicationSearchResult.js" ;
+import { RatingStars } from "./RatingStars.js" ;
 import { gAppRef } from "./App.js" ;
 import { makeScenarioDisplayName, applyUpdatedVals, removeSpecialFields, makeCommaList, isLink } from "./utils.js" ;
 
@@ -125,6 +126,9 @@ export class ArticleSearchResult extends React.Component
                         dangerouslySetInnerHTML = {{ __html: pub_display_name }}
                     />
                 }
+                <RatingStars rating={this.props.data.article_rating} title="Rate this article."
+                    onChange = { this.onRatingChange.bind( this ) }
+                />
                 <span className="title name" dangerouslySetInnerHTML={{ __html: display_title }} />
                 { article_url &&
                     <a href={article_url} className="open-link" target="_blank" rel="noopener noreferrer">
@@ -143,6 +147,17 @@ export class ArticleSearchResult extends React.Component
                 { tags.length > 0 && <div className="tags"> Tags: {tags} </div> }
             </div>
         </div> ) ;
+    }
+
+    onRatingChange( newRating, onFailed ) {
+        axios.post( gAppRef.makeFlaskUrl( "/article/update-rating", null ), {
+            article_id: this.props.data.article_id,
+            rating: newRating,
+        } ).catch( err => {
+            gAppRef.showErrorMsg( <div> Couldn't update the rating: <div className="monospace"> {err.toString()} </div> </div> ) ;
+            if ( onFailed )
+                onFailed() ;
+        } ) ;
     }
 
     static onNewArticle( notify ) {

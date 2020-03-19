@@ -99,7 +99,8 @@ _FIELD_MAPPINGS = {
     },
     "article": { "name": "article_title", "name2": "article_subtitle", "description": "article_snippet",
         "authors": _get_authors, "scenarios": _get_scenarios,
-        "tags": lambda article: _get_tags( article.article_tags )
+        "tags": lambda article: _get_tags( article.article_tags ),
+        "rating": "article_rating"
     }
 }
 
@@ -257,9 +258,9 @@ def _do_fts_search( fts_query_string, col_names, results=None ): #pylint: disabl
             return "highlight( searchable, {}, '{}', '{}' )".format(
                 n, hilites[0], hilites[1]
             )
-        sql = "SELECT owner, rank, {}, {}, {}, {}, {}, {} FROM searchable" \
+        sql = "SELECT owner, rank, {}, {}, {}, {}, {}, {}, rating FROM searchable" \
             " WHERE searchable MATCH ?" \
-            " ORDER BY rank".format(
+            " ORDER BY rating DESC, rank".format(
                 highlight(1), highlight(2), highlight(3), highlight(4), highlight(5), highlight(6)
             )
         match = "{{ {} }}: {}".format(
@@ -280,6 +281,7 @@ def _do_fts_search( fts_query_string, col_names, results=None ): #pylint: disabl
             # prepare the result for the front-end
             result = globals()[ "_get_{}_vals".format( owner_type ) ]( obj )
             result[ "type" ] = owner_type
+            result[ "rank" ] = row[1]
 
             # return highlighted versions of the content to the caller
             fields = _FIELD_MAPPINGS[ owner_type ]
@@ -387,7 +389,7 @@ def init_search( session, logger ):
         # (nor UNIQUE constraints), so we have to manage this manually :-(
         dbconn.conn.execute(
             "CREATE VIRTUAL TABLE searchable USING fts5"
-            " ( owner, {}, tokenize='porter unicode61' )".format(
+            " ( owner, {}, rating, tokenize='porter unicode61' )".format(
                 ", ".join( _SEARCHABLE_COL_NAMES )
             )
         )
@@ -481,14 +483,15 @@ def _do_add_or_update_searchable( dbconn, owner_type, owner, obj ):
 
     def do_add_or_update( dbconn ):
         sql = "INSERT INTO searchable" \
-              " ( owner, {} )" \
-              " VALUES (?,?,?,?,?,?,?)".format(
+              " ( owner, {}, rating )" \
+              " VALUES (?,?,?,?,?,?,?,?)".format(
             ",".join( _SEARCHABLE_COL_NAMES )
         )
         dbconn.conn.execute( sql, (
             owner,
             vals.get("name"), vals.get("name2"), vals.get("description"),
-            vals.get("authors"), vals.get("scenarios"), vals.get("tags")
+            vals.get("authors"), vals.get("scenarios"), vals.get("tags"),
+            vals.get("rating")
         ) )
 
     # update the database

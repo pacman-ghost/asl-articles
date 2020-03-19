@@ -67,6 +67,7 @@ class Article( db.Model ):
     article_pageno = db.Column( db.String(20) )
     article_url = db.Column( db.String(500) )
     article_tags = db.Column( db.String(1000) )
+    article_rating = db.Column( db.Integer )
     pub_id = db.Column( db.Integer,
         db.ForeignKey( Publication.__table__.c.pub_id, ondelete="CASCADE" )
     )

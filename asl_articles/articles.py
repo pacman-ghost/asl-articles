@@ -55,6 +55,7 @@ def get_article_vals( article, add_type=False ):
         "article_url": article.article_url,
         "article_scenarios": [ s.scenario_id for s in scenarios ],
         "article_tags": decode_tags( article.article_tags ),
+        "article_rating": article.article_rating,
         "pub_id": article.pub_id,
     }
     if add_type:
@@ -267,6 +268,28 @@ def update_article():
         if pubs:
             extras[ "_publications" ] = pubs
     return make_ok_response( updated=updated, extras=extras, warnings=warnings )
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+@app.route( "/article/update-rating", methods=["POST"] )
+def update_article_rating():
+    """Update an article's rating."""
+
+    # parse the input
+    article_id = request.json[ "article_id" ]
+    new_rating = int( request.json[ "rating" ] )
+    if new_rating < 0 or new_rating > 3:
+        raise ValueError( "Invalid rating." )
+
+    # update the article's rating
+    article = Article.query.get( article_id )
+    if not article:
+        abort( 404 )
+    article.article_rating = new_rating
+    db.session.commit()
+    search.add_or_update_article( None, article )
+
+    return "OK"
 
 # ---------------------------------------------------------------------
 

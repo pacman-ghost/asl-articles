@@ -484,6 +484,61 @@ def test_timestamps( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
+def test_article_ratings( webdriver, flask_app, dbconn ):
+    """Test article ratings."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, fixtures="articles.json" )
+
+    def do_test( article_sr, star_no, expected ):
+
+        # click the specified article star
+        stars = find_children( ".rating-stars img", article_sr )
+        stars[ star_no ].click()
+        for sr_no,sr in enumerate(results):
+            assert get_rating(sr) == expected[sr_no]
+
+        # compare the ratings on-screen with what's in the database
+        for sr in results:
+            article_id = sr.get_attribute( "testing--article_id" )
+            ui_rating = get_rating( sr )
+            db_rating = dbconn.execute(
+                "SELECT article_rating FROM article WHERE article_id={}".format( article_id )
+            ).scalar()
+            if db_rating is None:
+                assert ui_rating == 0
+            else:
+                assert ui_rating == db_rating
+
+    def get_rating( article_sr ):
+        stars = [
+            "disabled" not in star.get_attribute("src")
+            for star in find_children( ".rating-stars img", article_sr )
+        ]
+        rating = 0
+        for star in stars:
+            if not star:
+                assert all( not s for s in stars[rating+1:] )
+                break
+            rating += 1
+        return rating
+
+    # get the test articles
+    results = do_search( SEARCH_ALL_ARTICLES )
+
+    # do the tests
+    do_test( results[0], 2, [3,0] )
+    do_test( results[1], 1, [3,2] )
+
+    # do the tests
+    do_test( results[0], 2, [2,2] )
+    do_test( results[0], 2, [3,2] )
+    do_test( results[0], 0, [1,2] )
+    do_test( results[0], 0, [0,2] )
+    do_test( results[0], 0, [1,2] )
+
+# ---------------------------------------------------------------------
+
 def create_article( vals, toast_type="info", expected_error=None, expected_constraints=None, dlg=None ):
     """Create a new article."""
 
