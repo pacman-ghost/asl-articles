@@ -1,6 +1,6 @@
 """ Test search operations. """
 
-from asl_articles.search import _load_search_aliases, _make_fts_query_string
+from asl_articles.search import _load_search_aliases, _make_fts_query_string, _find_aslrb_ruleids
 from asl_articles.search import SEARCH_ALL
 
 from asl_articles.tests.test_publishers import create_publisher, edit_publisher
@@ -580,6 +580,58 @@ def test_make_fts_query_string():
     do_test( "multi-man publishing", '"multi-man" AND publishing' )
     do_test( 'abc "multi-man publishing" xyz',
         'abc AND ("multi-man publishing" OR "multiman publishing" OR mmp) AND xyz'
+    )
+
+# ---------------------------------------------------------------------
+
+def test_aslrb_links():
+    """Test creating links to the ASLRB."""
+
+    def do_test( snippet, expected ):
+        matches = _find_aslrb_ruleids( snippet )
+        if expected:
+            assert len(matches) == len(expected)
+            for match,exp in zip(matches,expected):
+                startpos, endpos, ruleid, caption = match
+                if isinstance( exp, str ):
+                    assert exp == ruleid == caption
+                    assert exp == snippet[ startpos : endpos ]
+                else:
+                    assert isinstance( exp, tuple )
+                    assert exp[0] == ruleid
+                    assert exp[1] == caption
+        else:
+            assert matches == []
+
+    # test detecting ruleid's
+    do_test( "A1.23", ["A1.23"] )
+    do_test( " A1.23 ", ["A1.23"] )
+    do_test( ".A1.23,", ["A1.23"] )
+    do_test( "xA1.23,", None )
+    do_test( "A1.23 B.4 C5. D6", ["A1.23","B.4"] )
+    do_test( "A1.23 B.4,C5.;D6", ["A1.23","B.4"] )
+
+    # test ruleid ranges
+    do_test( "A1.23-", ["A1.23"] )
+    do_test( "A1.23-4", [ ("A1.23","A1.23-4") ] )
+    do_test( "A1.23-45", [ ("A1.23","A1.23-45") ] )
+    do_test( "A1.23-.6", [ ("A1.23","A1.23-.6") ] )
+    do_test( "A1.23-.6.7", [ ("A1.23","A1.23-.6") ] )
+
+    # test manually created links
+    do_test( "A1.23 Z9.99",
+        [ "A1.23", "Z9.99" ]
+    )
+    do_test( "A1.23 {:D5.6|foo:} Z9.99",
+        [ "A1.23", ("D5.6","foo"), "Z9.99" ]
+    )
+    do_test( "A1.23 {:|foo:} Z9.99",
+        [ "A1.23", ("","foo"), "Z9.99" ]
+    )
+    # NOTE: Because the following manual link has no caption, it won't get detected as a manual link,
+    # and so the ruleid is detected as a normal ruleid.
+    do_test( "A1.23 {:D5.6|:} Z9.99",
+        [ "A1.23", "D5.6", "Z9.99" ]
     )
 
 # ---------------------------------------------------------------------

@@ -3,13 +3,15 @@
 
 # parse the command-line arguments
 if [ -z "$1" ]; then
-    echo "Usage: `basename "$0"` <db-conn> <external-docs>"
+    echo "Usage: `basename "$0"` <db-conn> <external-docs> <aslrb-url>"
     echo "  Build and launch the \"asl-articles\" containers, using the specified database e.g."
     echo "    ~/asl-articles.db (path to a SQLite database)"
     echo "    postgresql://USER:PASS@host/dbname (database connection string)"
     echo "  Note that the database server address is relative to the container i.e. NOT \"localhost\"."
     echo
     echo "  If you want link articles to their original documents, specify a base directory for the documents."
+    echo
+    echo "  If you want to have links to an eASLRB, specify its base URL."
     echo
     echo "  The TAG env variable can also be set to specify which containers to run e.g."
     echo "    TAG=testing ./run.sh /tmp/asl-articles.db"
@@ -34,6 +36,9 @@ if [ ! -z "$2" ]; then
 else
     # FUDGE! This needs to be set, even if it's not being used :-/
     export EXTERNAL_DOCS_BASEDIR=/dev/null
+fi
+if [ ! -z "$3" ]; then
+    export ASLRB_BASE_URL=$3
 fi
 
 # initialize

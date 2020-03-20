@@ -27,6 +27,7 @@ _logger = logging.getLogger( "search" )
 
 _SQLITE_FTS_SPECIAL_CHARS = "+-#':/.@$"
 
+# NOTE: The column order defined here is important, since we have to access row results by column index.
 _SEARCHABLE_COL_NAMES = [ "name", "name2", "description", "authors", "scenarios", "tags" ]
 
 _get_publisher_vals = lambda p: get_publisher_vals( p, True )
@@ -147,7 +148,9 @@ def search_publication( pub_id ):
     results = [ get_publication_vals( pub, True, True ) ]
     articles = sorted( pub.articles, key=get_article_sort_key )
     for article in articles:
-        results.append( get_article_vals( article, True ) )
+        article =  get_article_vals( article, True )
+        _create_aslrb_links( article )
+        results.append( article )
     return jsonify( results )
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -158,9 +161,11 @@ def search_article( article_id ):
     article = Article.query.get( article_id )
     if not article:
         return jsonify( [] )
-    results = [ get_article_vals( article, True ) ]
-    if article.pub_id:
-        pub = Publication.query.get( article.pub_id )
+    article = get_article_vals( article, True )
+    _create_aslrb_links( article )
+    results = [ article ]
+    if article["pub_id"]:
+        pub = Publication.query.get( article["pub_id"] )
         if pub:
             results.append( get_publication_vals( pub, True, True ) )
     return jsonify( results )
@@ -293,7 +298,8 @@ def _do_fts_search( fts_query_string, col_names, results=None ): #pylint: disabl
 
             # return highlighted versions of the content to the caller
             fields = _FIELD_MAPPINGS[ owner_type ]
-            for col_no,col_name in enumerate(["name","name2","description"]):
+            assert _SEARCHABLE_COL_NAMES[:3] == [ "name", "name2", "description" ]
+            for col_no,col_name in enumerate(_SEARCHABLE_COL_NAMES[:3]):
                 field = fields.get( col_name )
                 if not field:
                     continue
@@ -308,6 +314,10 @@ def _do_fts_search( fts_query_string, col_names, results=None ): #pylint: disabl
                 result[ "scenarios!" ] = [ s.split("\t") for s in row[6].split("\n") ]
             if row[7] and BEGIN_HILITE in row[7]:
                 result[ "tags!" ] = row[7].split( "\n" )
+
+            # create links to the eASLRB
+            if owner_type == "article":
+                _create_aslrb_links( result )
 
             # add the result to the list
             results.append( result )
@@ -371,6 +381,110 @@ def _make_fts_query_string( query_string, search_aliases ):
     words = [ w.replace("'","''") for w in words ]
 
     return " AND ".join( words )
+
+# ---------------------------------------------------------------------
+
+# regex's that specify what a ruleid looks like
+_RULEID_REGEXES = [
+    re.compile( r"\b[A-Z]\d{0,3}\.\d{1,5}[A-Za-z]?\b" ),
+    # nb: while there are ruleid's like "C5", it's far more likely this is referring to a hex :-/
+    #re.compile( r"\b[A-Z]\d{1,4}[A-Za-z]?\b" ),
+]
+
+def _create_aslrb_links( article ):
+    """Create links to the ASLRB for ruleid's."""
+
+    # initialize
+    base_url = app.config.get( "ASLRB_BASE_URL",  os.environ.get("ASLRB_BASE_URL") )
+    if not base_url:
+        return
+    if "article_snippet!" in article:
+        snippet = article[ "article_snippet!" ]
+    else:
+        snippet = article[ "article_snippet" ]
+
+    def make_link( startpos, endpos, ruleid, caption ):
+        nonlocal snippet
+        if ruleid:
+            link = "<a href='{}#{}' class='aslrb' target='_blank'>{}</a>".format(
+                base_url, ruleid, caption
+            )
+            snippet = snippet[:startpos] + link + snippet[endpos:]
+        else:
+            # NOTE: We can get here when a manually-created link has no ruleid e.g. because the content
+            # contains something that is incorrectly being detected as a ruleid, and the user has fixed it up.
+            snippet = snippet[:startpos] + caption + snippet[endpos:]
+
+    # find ruleid's in the snippet and replace them with links to the ASLRB
+    matches = _find_aslrb_ruleids( snippet )
+    for match in reversed(matches):
+        startpos, endpos, ruleid, caption = match
+        make_link( startpos, endpos, ruleid, caption )
+    article[ "article_snippet!" ] = snippet
+
+def _find_aslrb_ruleids( val ): #pylint: disable=too-many-branches
+    """Find ruleid's."""
+
+    # locate any manually-created links; format is "{:ruleid|caption:}"
+    # NOTE: The ruleid is optional, so that if something is incorrectly being detected as a ruleid,
+    # the user can disable the link by creating one of these with no ruleid.
+    manual = list( re.finditer( r"{:(.*?)\|(.+?):}", val ) )
+    def is_manual( target ):
+        return any(
+            target.start() >= mo.start() and target.end() <= mo.end()
+            for mo in manual
+        )
+
+    # look for ruleid's
+    matches = []
+    for regex in _RULEID_REGEXES:
+        for mo in regex.finditer( val ):
+            if is_manual( mo ):
+                continue # nb: ignore any ruleid's that are part of a manually-created link
+            matches.append( mo )
+
+    # FUDGE! Remove overlapping matches e.g. if we have "B1.23", we will have matches for "B1" and "B1.23".
+    matches2, prev_mo = [], None
+    matches.sort( key=lambda mo: mo.start() )
+    for mo in matches:
+        if prev_mo and mo.start() == prev_mo.start() and len(mo.group()) < len(prev_mo.group()):
+            continue
+        matches2.append( mo )
+        prev_mo = mo
+
+    # extract the start/end positions of each match, ruleid and caption
+    matches = [
+        [ mo.start(), mo.end(), mo.group(), mo.group() ]
+        for mo in matches2
+    ]
+
+    # NOTE: If we have something like "C1.23-.45", we want to link to "C1.23",
+    # but have the <a> tag wrap the whole thing.
+    # NOTE: This won't work if the user searched for "C1.23", since it will be wrapped
+    # in a highlight <span>.
+    for match in matches:
+        endpos = match[1]
+        if endpos == len(val) or val[endpos] != "-":
+            continue
+        nchars, allow_dot = 1, True
+        while endpos + nchars < len(val):
+            ch = val[ endpos + nchars ]
+            if ch.isdigit():
+                nchars += 1
+            elif ch == "." and allow_dot:
+                nchars += 1
+                allow_dot = False
+            else:
+                break
+        if nchars > 1:
+            match[1] += nchars
+            match[3] = val[ match[0] : match[1] ]
+
+    # add any manually-created links
+    for mo in manual:
+        matches.append( [ mo.start(), mo.end(), mo.group(1), mo.group(2) ] )
+
+    return sorted( matches, key=lambda m: m[0] )
 
 # ---------------------------------------------------------------------
 

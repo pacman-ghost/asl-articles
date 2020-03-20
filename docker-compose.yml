@@ -12,6 +12,8 @@
 # Similarly, EXTERNAL_DOCS_BASEDIR is the base directory for external documents that we want to link to,
 # but it needs to be set even if it's not being used :-/
 #
+## Similary, ASLRB_BASE_URL is the base URL for an external eASLRB.
+#
 # See the run-containers.sh script that manages all of this.
 
 version: "3"
@@ -36,3 +38,4 @@ services:
         environment:
         - DBCONN
         - EXTERNAL_DOCS_BASEDIR
+        - ASLRB_BASE_URL
