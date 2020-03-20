@@ -11,9 +11,10 @@
     cursor: pointer ;
 }
 [data-reach-menu-list] { padding: 5px ; }
-[data-reach-menu-item] { padding: 5px ; }
+[data-reach-menu-item] { display: flex ; height: 1.25em ; padding: 5px ; }
 [data-reach-menu-item][data-selected] { background: #90caf9 ; color: black ; }
 [data-reach-menu-list] .divider { height: 0 ; margin: 2px 0 ; border-top: 1px solid #aaa ; }
+[data-reach-menu-list] img { height: 100% ; margin-top: -0.1em ; margin-right: 0.5em ; }
 
 .MuiDialogTitle-root { padding: 10px 16px 6px 16px !important ; }
 .MuiDialogContent-root>div { margin-bottom: 1em ; }

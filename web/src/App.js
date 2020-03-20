@@ -78,19 +78,25 @@ export class App extends React.Component
             const menu = ( <Menu id="app">
                 <MenuButton />
                 <MenuList>
-                    <MenuItem id="menu-show-publishers" onSelect={this._showPublishers.bind(this)}> Show publishers </MenuItem>
-                    <MenuItem id="menu-search-technique" onSelect={this._showTechniqueArticles.bind(this)}> Show technique </MenuItem>
-                    <MenuItem id="menu-search-tips" onSelect={this._showTipsArticles.bind(this)}> Show tips </MenuItem>
+                    <MenuItem id="menu-show-publishers" onSelect={ () => this._showPublishers() } >
+                        <img src="/images/icons/publisher.png" alt="Show publishers." /> Show publishers
+                    </MenuItem>
+                    <MenuItem id="menu-search-technique" onSelect={ () => this._showTechniqueArticles() } >
+                        <img src="/images/icons/technique.png" alt="Show technique articles." /> Show technique
+                    </MenuItem>
+                    <MenuItem id="menu-search-tips" onSelect={ () => this._showTipsArticles() } >
+                        <img src="/images/icons/tips.png" alt="Show tip articles." /> Show tips
+                    </MenuItem>
                     <div className="divider" />
-                    <MenuItem id="menu-new-publisher"
-                        onSelect = { () => PublisherSearchResult.onNewPublisher( this._onNewPublisher.bind(this) ) }
-                    >New publisher</MenuItem>
-                    <MenuItem id="menu-new-publication"
-                        onSelect = { () => PublicationSearchResult.onNewPublication( this._onNewPublication.bind(this) ) }
-                    >New publication</MenuItem>
-                    <MenuItem id="menu-new-article"
-                        onSelect = { () => ArticleSearchResult.onNewArticle( this._onNewArticle.bind(this) ) }
-                    >New article</MenuItem>
+                    <MenuItem id="menu-new-publisher" onSelect={ () => PublisherSearchResult.onNewPublisher( this._onNewPublisher.bind(this) ) } >
+                        <img src="/images/icons/publisher.png" alt="New publisher." /> New publisher
+                    </MenuItem>
+                    <MenuItem id="menu-new-publication" onSelect={ () => PublicationSearchResult.onNewPublication( this._onNewPublication.bind(this) ) } >
+                        <img src="/images/icons/publication.png" alt="New publication." /> New publication
+                    </MenuItem>
+                    <MenuItem id="menu-new-article" onSelect={ () => ArticleSearchResult.onNewArticle( this._onNewArticle.bind(this) ) } >
+                        <img src="/images/icons/article.png" alt="New article." /> New article
+                    </MenuItem>
                 </MenuList>
             </Menu> ) ;
             // generate the main content

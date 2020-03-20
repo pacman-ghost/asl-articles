@@ -47,12 +47,12 @@ export class PublisherSearchResult extends React.Component
         const menu = ( <Menu>
             <MenuButton className="sr-menu" />
             <MenuList>
-                <MenuItem className="edit"
-                    onSelect = { this.onEditPublisher.bind( this ) }
-                >Edit</MenuItem>
-                <MenuItem className="delete"
-                    onSelect = { this.onDeletePublisher.bind( this ) }
-                >Delete</MenuItem>
+                <MenuItem className="edit" onSelect={ () => this.onEditPublisher() } >
+                    <img src="/images/icons/edit.png" alt="Edit." /> Edit
+                </MenuItem>
+                <MenuItem className="delete" onSelect={ () => this.onDeletePublisher() } >
+                    <img src="/images/icons/delete.png" alt="Delete." /> Delete
+                </MenuItem>
             </MenuList>
         </Menu> ) ;
 

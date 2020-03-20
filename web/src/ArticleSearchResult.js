@@ -103,12 +103,12 @@ export class ArticleSearchResult extends React.Component
         const menu = ( <Menu>
             <MenuButton className="sr-menu" />
             <MenuList>
-                <MenuItem className="edit"
-                    onSelect = { this.onEditArticle.bind( this ) }
-                >Edit</MenuItem>
-                <MenuItem className="delete"
-                    onSelect = { this.onDeleteArticle.bind( this ) }
-                >Delete</MenuItem>
+                <MenuItem className="edit" onSelect={ () => this.onEditArticle() } >
+                    <img src="/images/icons/edit.png" alt="Edit." /> Edit
+                </MenuItem>
+                <MenuItem className="delete" onSelect={ () => this.onDeleteArticle() } >
+                    <img src="/images/icons/delete.png" alt="Delete." /> Delete
+                </MenuItem>
             </MenuList>
         </Menu> ) ;
 

@@ -279,8 +279,12 @@ export class PublicationSearchResult2
 
         // show the form
         const isNew = Object.keys( vals ).length === 0 ;
+        const title = ( <div style={{display:"flex"}}>
+            <img src="/images/icons/publication.png" alt="Dialog icon." />
+            {isNew ? "New publication" : "Edit publication"}
+        </div> ) ;
         gAppRef.showModalForm( "publication-form",
-            isNew ? "New publication" : "Edit publication", "#e5cea0",
+            title, "#e5cea0",
             doRender, buttons
         ) ;
     }
