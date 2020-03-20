@@ -22,6 +22,7 @@ from asl_articles.utils import decode_tags, to_bool
 
 _search_index_path = None
 _search_aliases = {}
+_search_weights = {}
 _logger = logging.getLogger( "search" )
 
 _SQLITE_FTS_SPECIAL_CHARS = "+-#':/.@$"
@@ -252,15 +253,22 @@ def _do_fts_search( fts_query_string, col_names, results=None ): #pylint: disabl
     # in the same thread they were created in.
     with SearchDbConn() as dbconn:
 
+        # generate the search weights
+        weights = []
+        weights.append( 0.0 ) # nb: this is for the "owner" column
+        for col_name in _SEARCHABLE_COL_NAMES:
+            weights.append( _search_weights.get( col_name, 1.0 ) )
+
         # run the search
         hilites = [ "", "" ] if no_hilite else [ BEGIN_HILITE, END_HILITE ]
         def highlight( n ):
             return "highlight( searchable, {}, '{}', '{}' )".format(
                 n, hilites[0], hilites[1]
             )
-        sql = "SELECT owner, rank, {}, {}, {}, {}, {}, {}, rating FROM searchable" \
+        sql = "SELECT owner, bm25(searchable,{}) AS rank, {}, {}, {}, {}, {}, {}, rating FROM searchable" \
             " WHERE searchable MATCH ?" \
             " ORDER BY rating DESC, rank".format(
+                ",".join( str(w) for w in weights ),
                 highlight(1), highlight(2), highlight(3), highlight(4), highlight(5), highlight(6)
             )
         match = "{{ {} }}: {}".format(
@@ -387,6 +395,8 @@ def init_search( session, logger ):
 
         # NOTE: We would like to make "owner" the primary key, but FTS doesn't support primary keys
         # (nor UNIQUE constraints), so we have to manage this manually :-(
+        # IMPORTANT: The column order is important here, since we use the column index to generate
+        # the bm25() clause when doing searches.
         dbconn.conn.execute(
             "CREATE VIRTUAL TABLE searchable USING fts5"
             " ( owner, {}, rating, tokenize='porter unicode61' )".format(
@@ -420,6 +430,19 @@ def init_search( session, logger ):
         except configparser.NoSectionError:
             return []
     _search_aliases = _load_search_aliases( get_section("Search aliases"), get_section("Search aliases 2") )
+
+    # load the search weights
+    _logger.debug( "Loading search weights:" )
+    global _search_weights
+    for row in get_section( "Search weights" ):
+        if row[0] not in _SEARCHABLE_COL_NAMES:
+            _logger.warning( "- Unknown search weight field: %s", row[0] )
+            continue
+        try:
+            _search_weights[ row[0] ] = float( row[1] )
+            _logger.debug( "- %s = %s", row[0], row[1] )
+        except ValueError:
+            _logger.warning( "- Invalid search weight for \"%s\": %s", row[0], row[1] )
 
 def _load_search_aliases( aliases, aliases2 ):
     """Load the search aliases."""
