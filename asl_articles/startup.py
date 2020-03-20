@@ -19,4 +19,9 @@ def get_startup_msgs():
 
 def log_startup_msg( msg_type, msg, *args, **kwargs ):
     """Log a startup message."""
-    _startup_msgs[ msg_type ].append( msg.format( *args, **kwargs ) )
+    logger = kwargs.pop( "logger", None )
+    msg = msg.format( *args, **kwargs )
+    if logger:
+        assert msg_type in ("info","warning","error")
+        getattr( logger, msg_type )( "%s", msg )
+    _startup_msgs[ msg_type ].append( msg )

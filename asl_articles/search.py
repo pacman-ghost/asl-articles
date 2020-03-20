@@ -436,13 +436,19 @@ def init_search( session, logger ):
     global _search_weights
     for row in get_section( "Search weights" ):
         if row[0] not in _SEARCHABLE_COL_NAMES:
-            _logger.warning( "- Unknown search weight field: %s", row[0] )
+            asl_articles.startup.log_startup_msg( "warning",
+                "Unknown search weight field: {}", row[0],
+                logger = _logger
+            )
             continue
         try:
             _search_weights[ row[0] ] = float( row[1] )
             _logger.debug( "- %s = %s", row[0], row[1] )
         except ValueError:
-            _logger.warning( "- Invalid search weight for \"%s\": %s", row[0], row[1] )
+            asl_articles.startup.log_startup_msg( "warning",
+                "Invalid search weight for \"{}\": {}", row[0], row[1],
+                logger = _logger
+            )
 
 def _load_search_aliases( aliases, aliases2 ):
     """Load the search aliases."""
@@ -452,7 +458,10 @@ def _load_search_aliases( aliases, aliases2 ):
 
     def add_search_alias( key, vals ):
         if key in search_aliases:
-            _logger.warning( "Found duplicate search alias: %s", key )
+            asl_articles.startup.log_startup_msg( "warning",
+                "Found duplicate search alias: {}", key,
+                logger = _logger
+            )
         search_aliases[ key ] =vals
 
     # load the search aliases
