@@ -54,6 +54,7 @@ def find_broken_links( conn, url_base, table_name, col_names ):
             url = os.path.join( url_base, url )
         url = url.replace( " ", "%20" ).replace( "#", "%23" )
 
+        #print( "Checking {}: {}".format( name, url ), file=sys.stderr )
         try:
             buf =  urllib.request.urlopen( url ).read()
         except urllib.error.HTTPError:
