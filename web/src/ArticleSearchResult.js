@@ -129,7 +129,10 @@ export class ArticleSearchResult extends React.Component
                 <RatingStars rating={this.props.data.article_rating} title="Rate this article."
                     onChange = { this.onRatingChange.bind( this ) }
                 />
-                <span className="title name" dangerouslySetInnerHTML={{ __html: display_title }} />
+                <Link className="title name" title="Show this article."
+                    to = { gAppRef.makeAppUrl( "/article/" + this.props.data.article_id ) }
+                    dangerouslySetInnerHTML = {{ __html: display_title }}
+                />
                 { article_url &&
                     <a href={article_url} className="open-link" target="_blank" rel="noopener noreferrer">
                         <img src="/images/open-link.png" alt="Open article." title="Open this article." />
