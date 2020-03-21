@@ -112,6 +112,7 @@ export class App extends React.Component
                 <SearchResults ref={this._searchResultsRef}
                     seqNo = {this.state.searchSeqNo}
                     searchResults = {this.state.searchResults}
+                    type = {this.props.type}
                 />
             </div> ) ;
         }

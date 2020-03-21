@@ -55,10 +55,21 @@ export class PublicationSearchResult extends React.Component
         if ( this.props.data.articles ) {
             for ( let i=0 ; i < this.props.data.articles.length ; ++i ) {
                 const article = this.props.data.articles[ i ] ;
-                articles.push( <Link title="Show this article."
-                    to = { gAppRef.makeAppUrl( "/article/" + article.article_id ) }
-                    dangerouslySetInnerHTML = {{ __html: article.article_title }}
-                /> ) ;
+                if ( this.props.onArticleClick ) {
+                    // forward clicks on the article to the parent
+                    articles.push( <div
+                        dangerouslySetInnerHTML = {{__html: article.article_title}}
+                        onClick = { () => this.props.onArticleClick( article.article_id ) }
+                        style = {{ cursor: "pointer" }}
+                        title = "Go to this article."
+                    /> ) ;
+                } else {
+                    // handle clicks on the article normally
+                    articles.push( <Link title="Show this article."
+                        to = { gAppRef.makeAppUrl( "/article/" + article.article_id ) }
+                        dangerouslySetInnerHTML = {{ __html: article.article_title }}
+                    /> ) ;
+                }
             }
         }
 
