@@ -22,6 +22,7 @@
 .search-result.article .header { border: 1px solid #c0c0c0 ; background: #d3edfc ; }
 .search-result.article .header a.name { color: inherit ; text-decoration: none ; }
 .search-result.article .header .subtitle { font-size: 80% ; font-style: italic ; color: #333 ; }
+.search-result.article .header .subtitle i { color: #666 ; }
 
 .search-result.publication .header .publisher , .search-result.article .header .publication {
     float: right ; margin-right: 0.5em ; font-size: 80% ; font-style: italic ; color: #444 ;
@@ -30,6 +31,7 @@
 .search-result .content { padding: 2px 5px ; font-size: 90% ; }
 .search-result .content p:not(:first-child) { margin-top: 0.25em ; }
 .search-result .content ul p, .search-result .content ol p { margin-top: 0.1em ; }
+.search-result .content i i { color: #666 ; }
 .search-result .content a.aslrb { color: #804040 ; text-decoration: none ; border-bottom: 1px dotted #804040 ; }
 .search-result .content .image { float: left ; margin: 0.25em 0.5em 0.5em 0 ; max-height: 8em ; max-width: 6em ; }
 .search-result .content .collapsible { margin-top:0.5em ; font-size: 90% ; color: #333 ; }
