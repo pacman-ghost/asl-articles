@@ -1,20 +1,4 @@
-# Set the TAG environment variable to set the image tag e.g.
-#   TAG=testing docker-compose build ...
-#
-# Set the ENABLE_TESTS build argument to support test functionality in the containers e.g.
-#   docker-compose build --build-arg ENABLE_TESTS=1
-#
-# DBCONN is a database connection string that is passed straight through to the Flask container.
-# However, if we're talking to a SQLite database, we also need to mount the file into the container.
-# This is done via the SQLITE variable, but since Docker doesn't allow any way to do things conditionally,
-# it needs to be set even if it's not being used :-/
-#
-# Similarly, EXTERNAL_DOCS_BASEDIR is the base directory for external documents that we want to link to,
-# but it needs to be set even if it's not being used :-/
-#
-## Similary, ASLRB_BASE_URL is the base URL for an external eASLRB.
-#
-# See the run-containers.sh script that manages all of this.
+# IMPORTANT: Use run-containers.sh to set up the necessary environment variables.
 
 version: "3"
 
@@ -35,8 +19,10 @@ services:
         volumes:
         - $SQLITE:/data/sqlite.db
         - $EXTERNAL_DOCS_BASEDIR:/data/docs/
+        - $USER_FILES_BASEDIR:/data/user-files/
         - $AUTHOR_ALIASES:/app/asl_articles/config/author-aliases.cfg
         environment:
         - DBCONN
         - EXTERNAL_DOCS_BASEDIR
+        - USER_FILES_BASEDIR
         - ASLRB_BASE_URL

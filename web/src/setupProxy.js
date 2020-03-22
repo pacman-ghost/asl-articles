@@ -8,4 +8,9 @@ module.exports = function( app ) {
         pathRewrite: { "^/api/": "/" },
         changeOrigin: true,
     } ) ) ;
+    app.use( "/user", proxy( {
+        target: process.env.REACT_APP_FLASK_URL,
+        pathRewrite: { "^/user/": "/user-files/" },
+        changeOrigin: true,
+    } ) ) ;
 }

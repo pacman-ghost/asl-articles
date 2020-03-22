@@ -7,13 +7,14 @@ function print_help {
     echo "`basename "$0"` {options}"
     echo "  Build and launch the \"asl-articles\" containers."
     echo
-    echo "    -t  --tag      Docker container tag e.g. \"testing\" or \"latest\"."
-    echo "    -d  --dbconn   Database connection string e.g."
-    echo "                     ~/asl-articles.db (path to a SQLite database)"
-    echo "                     postgresql://USER:PASS@host/dbname (database connection string)"
-    echo "                   Note that the database server address is relative to the container i.e. NOT \"localhost\"."
-    echo "    -e  --extdocs  Base directory for external documents (to allow articles to link to them)."
-    echo "    -r  --aslrb    Base URL for an eASLRB."
+    echo "    -t  --tag         Docker container tag e.g. \"testing\" or \"latest\"."
+    echo "    -d  --dbconn      Database connection string e.g."
+    echo "                        ~/asl-articles.db (path to a SQLite database)"
+    echo "                        postgresql://USER:PASS@host/dbname (database connection string)"
+    echo "                      Note that the database server address is relative to the container i.e. NOT \"localhost\"."
+    echo "    -e  --extdocs     Base directory for external documents (to allow articles to link to them)."
+    echo "    -u  --user-files  Base directory for user files."
+    echo "    -r  --aslrb       Base URL for an eASLRB."
     echo "    -a  --author-aliases  Author aliases config file (see config/author-aliases.cfg.example)."
     echo
     echo "  The TAG env variable can also be set to specify which containers to run e.g."
@@ -28,6 +29,7 @@ export TAG=
 export DBCONN=
 export SQLITE=
 export EXTERNAL_DOCS_BASEDIR=
+export USER_FILES_BASEDIR=
 export ASLRB_BASE_URL=
 export AUTHOR_ALIASES=
 export ENABLE_TESTS=
@@ -37,7 +39,7 @@ if [ $# -eq 0 ]; then
     print_help
     exit 0
 fi
-params="$(getopt -o t:d:e:r:a:h -l tag:,dbconn:,extdocs:,aslrb:,author-aliases:,help --name "$0" -- "$@")"
+params="$(getopt -o t:d:e:u:r:a:h -l tag:,dbconn:,extdocs:,user-files:,aslrb:,author-aliases:,help --name "$0" -- "$@")"
 if [ $? -ne 0 ]; then exit 1; fi
 eval set -- "$params"
 while true; do
@@ -50,6 +52,9 @@ while true; do
             shift 2 ;;
         -e | --extdocs )
             EXTERNAL_DOCS_BASEDIR=$2
+            shift 2 ;;
+        -u | --user-files )
+            USER_FILES_BASEDIR=$2
             shift 2 ;;
         -r | --aslrb )
             ASLRB_BASE_URL=$2
@@ -95,12 +100,23 @@ fi
 # check the external documents directory
 if [ -n "$EXTERNAL_DOCS_BASEDIR" ]; then
     if [ ! -d "$EXTERNAL_DOCS_BASEDIR" ]; then
-        echo "Can't find the document base directory: $EXTERNAL_DOCS_BASEDIR"
+        echo "Can't find the external documents base directory: $EXTERNAL_DOCS_BASEDIR"
         exit 1
     fi
 else
     # FUDGE! This needs to be set, even if it's not being used :-/
     EXTERNAL_DOCS_BASEDIR=/dev/null
+fi
+
+# check the user files directory
+if [ -n "$USER_FILES_BASEDIR" ]; then
+    if [ ! -d "$USER_FILES_BASEDIR" ]; then
+        echo "Can't find the user files base directory: $USER_FILES_BASEDIR"
+        exit 1
+    fi
+else
+    # FUDGE! This needs to be set, even if it's not being used :-/
+    USER_FILES_BASEDIR=/dev/null
 fi
 
 # check the author aliases
