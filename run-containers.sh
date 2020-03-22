@@ -1,55 +1,101 @@
 #!/usr/bin/env bash
 # Helper script that builds and launches the Docker containers.
 
-# parse the command-line arguments
-if [ -z "$1" ]; then
-    echo "Usage: `basename "$0"` <db-conn> <external-docs> <aslrb-url>"
-    echo "  Build and launch the \"asl-articles\" containers, using the specified database e.g."
-    echo "    ~/asl-articles.db (path to a SQLite database)"
-    echo "    postgresql://USER:PASS@host/dbname (database connection string)"
-    echo "  Note that the database server address is relative to the container i.e. NOT \"localhost\"."
+# ---------------------------------------------------------------------
+
+function print_help {
+    echo "`basename "$0"` {options}"
+    echo "  Build and launch the \"asl-articles\" containers."
     echo
-    echo "  If you want link articles to their original documents, specify a base directory for the documents."
-    echo
-    echo "  If you want to have links to an eASLRB, specify its base URL."
+    echo "    -t  --tag      Docker container tag e.g. \"testing\" or \"latest\"."
+    echo "    -d  --dbconn   Database connection string e.g."
+    echo "                     ~/asl-articles.db (path to a SQLite database)"
+    echo "                     postgresql://USER:PASS@host/dbname (database connection string)"
+    echo "                   Note that the database server address is relative to the container i.e. NOT \"localhost\"."
+    echo "    -e  --extdocs  Base directory for external documents (to allow articles to link to them)."
+    echo "    -r  --aslrb    Base URL for an eASLRB."
     echo
     echo "  The TAG env variable can also be set to specify which containers to run e.g."
-    echo "    TAG=testing ./run.sh /tmp/asl-articles.db"
+    echo "    TAG=testing `basename "$0"` /tmp/asl-articles.db"
+}
+
+# ---------------------------------------------------------------------
+
+# initialize
+cd `dirname "$0"`
+export TAG=
+export DBCONN=
+export SQLITE=
+export EXTERNAL_DOCS_BASEDIR=
+export ASLRB_BASE_URL=
+export ENABLE_TESTS=
+
+# parse the command-line arguments
+if [ $# -eq 0 ]; then
+    print_help
     exit 0
 fi
-if [ -f "$1" ]; then
-    # connect to a SQLite database
-    export SQLITE=$1
-    export DBCONN=sqlite:////data/sqlite.db
-else
-    # pass the database connection string through to the container
-    export SQLITE=/dev/null
-    export DBCONN=$1
+params="$(getopt -o t:d:e:r:h -l tag:,dbconn:,extdocs:,aslrb:,help --name "$0" -- "$@")"
+if [ $? -ne 0 ]; then exit 1; fi
+eval set -- "$params"
+while true; do
+    case "$1" in
+        -t | --tag )
+            TAG=$2
+            shift 2 ;;
+        -d | --dbconn )
+            DBCONN=$2
+            shift 2 ;;
+        -e | --extdocs )
+            EXTERNAL_DOCS_BASEDIR=$2
+            shift 2 ;;
+        -r | --aslrb )
+            ASLRB_BASE_URL=$2
+            shift 2 ;;
+        -h | --help )
+            print_help
+            exit 0 ;;
+        -- ) shift ; break ;;
+        * )
+            echo "Unknown option: $1" >&2
+            exit 1 ;;
+    esac
+done
+
+# prepare the database connection string
+if [ -z "$DBCONN" ]; then
+    echo "No database was specified."
+    exit 3
 fi
-if [ ! -z "$2" ]; then
-    # set the base directory for external documents
-    export EXTERNAL_DOCS_BASEDIR=$2
+if [ -f "$DBCONN" ]; then
+    # connect to a SQLite database
+    SQLITE=$DBCONN
+    DBCONN=sqlite:////data/sqlite.db
+else
+    # FUDGE! We pass the database connection string (DBCONN) through to the container,
+    # but this needs to be set, even if it's not being used :-/
+    SQLITE=/dev/null
+fi
+
+# initialize for testing
+if [ "$TAG" == "testing" ]; then
+    echo -e "*** WARNING! Test mode is enabled! ***\n"
+    ENABLE_TESTS=1
+else
+    if [ -z "$TAG" ]; then
+        TAG=latest
+    fi
+fi
+
+# check the external documents directory
+if [ -n "$EXTERNAL_DOCS_BASEDIR" ]; then
     if [ ! -d "$EXTERNAL_DOCS_BASEDIR" ]; then
         echo "Invalid document base directory: $EXTERNAL_DOCS_BASEDIR"
         exit 1
     fi
 else
     # FUDGE! This needs to be set, even if it's not being used :-/
-    export EXTERNAL_DOCS_BASEDIR=/dev/null
-fi
-if [ ! -z "$3" ]; then
-    export ASLRB_BASE_URL=$3
-fi
-
-# initialize
-if [ "$TAG" == "testing" ]; then
-    echo "*** WARNING! Special test functionality is enabled."
-    export ENABLE_TESTS=1
-elif [ "$TAG" == "prod" ]; then
-    export ENABLE_TESTS=
-else
-    export ENABLE_TESTS=
-    export TAG=latest
+    EXTERNAL_DOCS_BASEDIR=/dev/null
 fi
 
 # build the containers
@@ -61,5 +107,8 @@ echo
 
 # launch the containers
 echo Launching the \"$TAG\" containers...
+if [ -n "$ENABLE_TESTS" ]; then
+    echo "  *** TEST MODE ***"
+fi
 docker-compose up --detach 2>&1 \
     | sed -e 's/^/  /'
