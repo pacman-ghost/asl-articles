@@ -542,34 +542,35 @@ def init_search( session, logger ):
         for article in session.query( Article ).order_by( Article.time_created.desc() ):
             add_or_update_article( dbconn, article, session )
 
-    # load the search aliases
-    fname = os.path.join( asl_articles.config_dir, "app.cfg" )
-    _logger.debug( "Loading search aliases: %s", fname )
-    cfg = AppConfigParser( fname )
-    global _search_aliases
-    _search_aliases = _load_search_aliases(
-        cfg.get_section( "Search aliases" ),
-        cfg.get_section( "Search aliases 2" )
-    )
-
-    # load the search weights
-    _logger.debug( "Loading search weights:" )
-    global _search_weights
-    for row in cfg.get_section( "Search weights" ):
-        if row[0] not in _SEARCHABLE_COL_NAMES:
-            asl_articles.startup.log_startup_msg( "warning",
-                "Unknown search weight field: {}", row[0],
-                logger = _logger
-            )
-            continue
-        try:
-            _search_weights[ row[0] ] = float( row[1] )
-            _logger.debug( "- %s = %s", row[0], row[1] )
-        except ValueError:
-            asl_articles.startup.log_startup_msg( "warning",
-                "Invalid search weight for \"{}\": {}", row[0], row[1],
-                logger = _logger
-            )
+    # configure the searcg engine
+    fname = os.path.join( asl_articles.config_dir, "search.cfg" )
+    if os.path.isfile( fname ):
+        # load the search aliases
+        _logger.debug( "Loading search aliases: %s", fname )
+        cfg = AppConfigParser( fname )
+        global _search_aliases
+        _search_aliases = _load_search_aliases(
+            cfg.get_section( "Search aliases" ),
+            cfg.get_section( "Search aliases 2" )
+        )
+        # load the search weights
+        _logger.debug( "Loading search weights:" )
+        global _search_weights
+        for row in cfg.get_section( "Search weights" ):
+            if row[0] not in _SEARCHABLE_COL_NAMES:
+                asl_articles.startup.log_startup_msg( "warning",
+                    "Unknown search weight field: {}", row[0],
+                    logger = _logger
+                )
+                continue
+            try:
+                _search_weights[ row[0] ] = float( row[1] )
+                _logger.debug( "- %s = %s", row[0], row[1] )
+            except ValueError:
+                asl_articles.startup.log_startup_msg( "warning",
+                    "Invalid search weight for \"{}\": {}", row[0], row[1],
+                    logger = _logger
+                )
 
     # load the author aliases
     # NOTE: These should really be stored in the database, but the UI would be so insanely hairy,
@@ -602,7 +603,7 @@ def _load_search_aliases( aliases, aliases2 ):
                 "Found duplicate search alias: {}", key,
                 logger = _logger
             )
-        search_aliases[ key ] =vals
+        search_aliases[ key ] = vals
 
     # load the search aliases
     for row in aliases:
