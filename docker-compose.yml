@@ -35,6 +35,7 @@ services:
         volumes:
         - $SQLITE:/data/sqlite.db
         - $EXTERNAL_DOCS_BASEDIR:/data/docs/
+        - $AUTHOR_ALIASES:/app/asl_articles/config/author-aliases.cfg
         environment:
         - DBCONN
         - EXTERNAL_DOCS_BASEDIR

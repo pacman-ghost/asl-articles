@@ -14,6 +14,7 @@ function print_help {
     echo "                   Note that the database server address is relative to the container i.e. NOT \"localhost\"."
     echo "    -e  --extdocs  Base directory for external documents (to allow articles to link to them)."
     echo "    -r  --aslrb    Base URL for an eASLRB."
+    echo "    -a  --author-aliases  Author aliases config file (see config/author-aliases.cfg.example)."
     echo
     echo "  The TAG env variable can also be set to specify which containers to run e.g."
     echo "    TAG=testing `basename "$0"` /tmp/asl-articles.db"
@@ -28,6 +29,7 @@ export DBCONN=
 export SQLITE=
 export EXTERNAL_DOCS_BASEDIR=
 export ASLRB_BASE_URL=
+export AUTHOR_ALIASES=
 export ENABLE_TESTS=
 
 # parse the command-line arguments
@@ -35,7 +37,7 @@ if [ $# -eq 0 ]; then
     print_help
     exit 0
 fi
-params="$(getopt -o t:d:e:r:h -l tag:,dbconn:,extdocs:,aslrb:,help --name "$0" -- "$@")"
+params="$(getopt -o t:d:e:r:a:h -l tag:,dbconn:,extdocs:,aslrb:,author-aliases:,help --name "$0" -- "$@")"
 if [ $? -ne 0 ]; then exit 1; fi
 eval set -- "$params"
 while true; do
@@ -51,6 +53,9 @@ while true; do
             shift 2 ;;
         -r | --aslrb )
             ASLRB_BASE_URL=$2
+            shift 2 ;;
+        -a | --author-aliases )
+            AUTHOR_ALIASES=$2
             shift 2 ;;
         -h | --help )
             print_help
@@ -90,12 +95,23 @@ fi
 # check the external documents directory
 if [ -n "$EXTERNAL_DOCS_BASEDIR" ]; then
     if [ ! -d "$EXTERNAL_DOCS_BASEDIR" ]; then
-        echo "Invalid document base directory: $EXTERNAL_DOCS_BASEDIR"
+        echo "Can't find the document base directory: $EXTERNAL_DOCS_BASEDIR"
         exit 1
     fi
 else
     # FUDGE! This needs to be set, even if it's not being used :-/
     EXTERNAL_DOCS_BASEDIR=/dev/null
+fi
+
+# check the author aliases
+if [ -n "$AUTHOR_ALIASES" ]; then
+    if [ ! -f "$AUTHOR_ALIASES" ]; then
+        echo "Can't find the author aliases config file: $AUTHOR_ALIASES"
+        exit 1
+    fi
+else
+    # FUDGE! This needs to be set, even if it's not being used :-/
+    AUTHOR_ALIASES=/dev/null
 fi
 
 # build the containers

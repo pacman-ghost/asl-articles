@@ -506,6 +506,40 @@ def test_special_searches( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
+def test_author_aliases( webdriver, flask_app, dbconn ):
+    """Test author aliases."""
+
+    # initialize
+    # NOTE: We can't monkeypatch the author aliases table, since we might be talking to
+    # a remote Flask server not under our control (e.g. in a Docker container). Instead,
+    # we define the aliases we need in a test config file, which is always loaded.
+    init_tests( webdriver, flask_app, dbconn, fixtures="author-aliases.json" )
+
+    def do_test( author_names ):
+
+        # test each author in the alias group
+        expected = set( "By {}".format(a) for a in author_names )
+        for author_name in author_names:
+
+            # find the author's article
+            results = do_search( '"{}"'.format( author_name ) )
+            assert len(results) == 1
+
+            # click on the author's name
+            authors = find_children( ".author", results[0] )
+            assert len(authors) == 1
+            authors[0].click()
+
+            # check that we found all the articles by the aliased names
+            wait_for( 2, lambda: set( get_search_result_names() ) == expected )
+
+    # test author aliases
+    do_test( [ "Charles M. Jones", "Chuck Jones", "Charles Martin Jones" ] )
+    do_test( [ "Joseph Blow", "Joe Blow" ] )
+    do_test( [ "John Doe" ] )
+
+# ---------------------------------------------------------------------
+
 def test_make_fts_query_string():
     """Test generating FTS query strings."""
 

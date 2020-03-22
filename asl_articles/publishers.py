@@ -85,7 +85,7 @@ def create_publisher():
     _save_image( publ, updated )
     db.session.commit()
     _logger.debug( "- New ID: %d", publ.publ_id )
-    search.add_or_update_publisher( None, publ )
+    search.add_or_update_publisher( None, publ, None )
 
     # generate the response
     extras = { "publ_id": publ.publ_id }
@@ -139,7 +139,7 @@ def update_publisher():
     vals[ "time_updated" ] = datetime.datetime.now()
     apply_attrs( publ, vals )
     db.session.commit()
-    search.add_or_update_publisher( None, publ )
+    search.add_or_update_publisher( None, publ, None )
 
     # generate the response
     extras = {}

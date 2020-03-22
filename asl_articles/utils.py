@@ -1,6 +1,7 @@
 """ Helper utilities. """
 
 import re
+import configparser
 import typing
 import itertools
 import logging
@@ -193,6 +194,21 @@ def decode_tags( tags ):
     if not tags:
         return None
     return tags.split( "\n" )
+
+# ---------------------------------------------------------------------
+
+class AppConfigParser():
+    """Wrapper around the standard ConfigParser."""
+    def __init__( self, fname ):
+        self._configparser = configparser.ConfigParser()
+        self._configparser.optionxform = str # preserve case for the keys :-/
+        self._configparser.read( fname )
+    def get_section( self, section_name ):
+        """Read a section from the config."""
+        try:
+            return self._configparser.items( section_name )
+        except configparser.NoSectionError:
+            return []
 
 # ---------------------------------------------------------------------
 

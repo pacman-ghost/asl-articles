@@ -112,7 +112,7 @@ def create_publication():
     _save_image( pub, updated )
     db.session.commit()
     _logger.debug( "- New ID: %d", pub.pub_id )
-    search.add_or_update_publication( None, pub )
+    search.add_or_update_publication( None, pub, None )
 
     # generate the response
     extras = { "pub_id": pub.pub_id }
@@ -209,7 +209,7 @@ def update_publication():
                 pub_id, ", ".join(str(k) for k in articles)
             )
     db.session.commit()
-    search.add_or_update_publication( None, pub )
+    search.add_or_update_publication( None, pub, None )
 
     # generate the response
     extras = {}

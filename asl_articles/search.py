@@ -2,7 +2,6 @@
 
 import os
 import sqlite3
-import configparser
 import itertools
 import random
 import tempfile
@@ -18,11 +17,12 @@ from asl_articles.models import Publisher, Publication, Article, Author, Scenari
 from asl_articles.publishers import get_publisher_vals
 from asl_articles.publications import get_publication_vals, get_publication_sort_key
 from asl_articles.articles import get_article_vals, get_article_sort_key
-from asl_articles.utils import decode_tags, to_bool
+from asl_articles.utils import AppConfigParser, decode_tags, to_bool
 
 _search_index_path = None
 _search_aliases = {}
 _search_weights = {}
+_author_aliases = {}
 _logger = logging.getLogger( "search" )
 
 _SQLITE_FTS_SPECIAL_CHARS = "+-#':/.@$"
@@ -67,17 +67,17 @@ class SearchDbConn:
 
 # ---------------------------------------------------------------------
 
-def _get_authors( article ):
+def _get_authors( article, session ):
     """Return the searchable authors for an article."""
-    query = db.session.query( Author, ArticleAuthor ) \
+    query = (session or db.session).query( Author, ArticleAuthor ) \
         .filter( ArticleAuthor.article_id == article.article_id ) \
         .join( Author, ArticleAuthor.author_id == Author.author_id ) \
         .order_by( ArticleAuthor.seq_no )
     return "\n".join( a[0].author_name for a in query )
 
-def _get_scenarios( article ):
+def _get_scenarios( article, session ):
     """Return the searchable scenarios for an article."""
-    query = db.session.query( Scenario, ArticleScenario ) \
+    query = (session or db.session).query( Scenario, ArticleScenario ) \
         .filter( ArticleScenario.article_id == article.article_id ) \
         .join( Scenario, ArticleScenario.scenario_id == Scenario.scenario_id ) \
         .order_by( ArticleScenario.seq_no )
@@ -97,11 +97,11 @@ def _get_tags( tags ):
 _FIELD_MAPPINGS = {
     "publisher": { "name": "publ_name", "description": "publ_description" },
     "publication": { "name": "pub_name", "description": "pub_description",
-        "tags": lambda pub: _get_tags( pub.pub_tags )
+        "tags": lambda pub,_: _get_tags( pub.pub_tags )
     },
     "article": { "name": "article_title", "name2": "article_subtitle", "description": "article_snippet",
         "authors": _get_authors, "scenarios": _get_scenarios,
-        "tags": lambda article: _get_tags( article.article_tags ),
+        "tags": lambda article,_: _get_tags( article.article_tags ),
         "rating": "article_rating"
     }
 }
@@ -175,11 +175,19 @@ def search_article( article_id ):
 @app.route( "/search/author/<author_id>", methods=["POST","GET"] )
 def search_author( author_id ):
     """Search for an author."""
-    author = Author.query.get( author_id )
-    if not author:
+    try:
+        author_id = int( author_id )
+    except ValueError:
         return jsonify( [] )
-    author_name = '"{}"'.format( author.author_name.replace( '"', '""' ) )
-    return _do_search( author_name, [ "authors" ] )
+    author_ids = _author_aliases.get( author_id, [author_id] )
+    authors = Author.query.filter( Author.author_id.in_( author_ids ) ).all()
+    if not authors:
+        return jsonify( [] )
+    author_names = [
+        '"{}"'.format( a.author_name.replace( '"', '""' ) )
+        for a in authors
+    ]
+    return _do_search( " OR ".join(author_names), [ "authors" ] )
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -402,6 +410,8 @@ def _create_aslrb_links( article ):
         snippet = article[ "article_snippet!" ]
     else:
         snippet = article[ "article_snippet" ]
+    if not snippet:
+        return
 
     def make_link( startpos, endpos, ruleid, caption ):
         nonlocal snippet
@@ -524,31 +534,28 @@ def init_search( session, logger ):
         logger.debug( "Loading the search index..." )
         logger.debug( "- Loading publishers." )
         for publ in session.query( Publisher ).order_by( Publisher.time_created.desc() ):
-            add_or_update_publisher( dbconn, publ )
+            add_or_update_publisher( dbconn, publ, session )
         logger.debug( "- Loading publications." )
         for pub in session.query( Publication ).order_by( Publication.time_created.desc() ):
-            add_or_update_publication( dbconn, pub )
+            add_or_update_publication( dbconn, pub, session )
         logger.debug( "- Loading articles." )
         for article in session.query( Article ).order_by( Article.time_created.desc() ):
-            add_or_update_article( dbconn, article )
+            add_or_update_article( dbconn, article, session )
 
     # load the search aliases
-    cfg = configparser.ConfigParser()
     fname = os.path.join( asl_articles.config_dir, "app.cfg" )
     _logger.debug( "Loading search aliases: %s", fname )
-    cfg.read( fname )
+    cfg = AppConfigParser( fname )
     global _search_aliases
-    def get_section( section_name ):
-        try:
-            return cfg.items( section_name )
-        except configparser.NoSectionError:
-            return []
-    _search_aliases = _load_search_aliases( get_section("Search aliases"), get_section("Search aliases 2") )
+    _search_aliases = _load_search_aliases(
+        cfg.get_section( "Search aliases" ),
+        cfg.get_section( "Search aliases 2" )
+    )
 
     # load the search weights
     _logger.debug( "Loading search weights:" )
     global _search_weights
-    for row in get_section( "Search weights" ):
+    for row in cfg.get_section( "Search weights" ):
         if row[0] not in _SEARCHABLE_COL_NAMES:
             asl_articles.startup.log_startup_msg( "warning",
                 "Unknown search weight field: {}", row[0],
@@ -563,6 +570,25 @@ def init_search( session, logger ):
                 "Invalid search weight for \"{}\": {}", row[0], row[1],
                 logger = _logger
             )
+
+    # load the author aliases
+    # NOTE: These should really be stored in the database, but the UI would be so insanely hairy,
+    # we just keep them in a text file and let the user manage them manually :-/
+    global _author_aliases
+    fname = os.path.join( asl_articles.config_dir, "author-aliases.cfg" )
+    if os.path.isfile( fname ):
+        _logger.debug( "Loading author aliases: %s", fname )
+        cfg = AppConfigParser( fname )
+        _author_aliases = _load_author_aliases( cfg.get_section("Author aliases"), session, False )
+    # NOTE: We load the test aliases here as well (the test suite can't mock them because
+    # they might be running in a different process).
+    fname = os.path.join( os.path.split(__file__)[0], "tests/fixtures/author-aliases.cfg" )
+    if os.path.isfile( fname ):
+        _logger.debug( "Loading test author aliases: %s", fname )
+        cfg = AppConfigParser( fname )
+        _author_aliases.update(
+            _load_author_aliases( cfg.get_section("Author aliases"), session, True )
+        )
 
 def _load_search_aliases( aliases, aliases2 ):
     """Load the search aliases."""
@@ -595,33 +621,70 @@ def _load_search_aliases( aliases, aliases2 ):
 
     return search_aliases
 
+def _load_author_aliases( aliases, session, silent ):
+    """Load the author aliases."""
+
+    # initialize
+    if not session:
+        session = db.session
+
+    # load the author aliases
+    author_aliases = {}
+    for row in aliases:
+        vals = itertools.chain( [row[0]], row[1].split("=") )
+        vals = [ v.strip() for v in vals ]
+        authors = []
+        for author_name in vals:
+            author = session.query( Author ).filter(
+                Author.author_name == author_name
+            ).one_or_none()
+            if author:
+                authors.append( author )
+            else:
+                if not silent:
+                    asl_articles.startup.log_startup_msg( "warning",
+                        "Unknown author for alias: {}", author_name,
+                        logger = _logger
+                    )
+        if len(authors) <= 1:
+            continue
+        _logger.debug( "- %s", " ; ".join( str(a) for a in authors ) )
+        authors = [ a.author_id for a in authors ]
+        for author_id in authors:
+            author_aliases[ author_id ] = authors
+
+    return author_aliases
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-def add_or_update_publisher( dbconn, publ ):
+def add_or_update_publisher( dbconn, publ, session ):
     """Add/update a publisher in the search index."""
     _do_add_or_update_searchable( dbconn, "publisher",
-        _make_publisher_key(publ), publ
+        _make_publisher_key(publ), publ,
+        session
     )
 
-def add_or_update_publication( dbconn, pub ):
+def add_or_update_publication( dbconn, pub, session ):
     """Add/update a publication in the search index."""
     _do_add_or_update_searchable( dbconn, "publication",
-        _make_publication_key(pub.pub_id), pub
+        _make_publication_key(pub.pub_id), pub,
+        session
     )
 
-def add_or_update_article( dbconn, article ):
+def add_or_update_article( dbconn, article, session ):
     """Add/update an article in the search index."""
     _do_add_or_update_searchable( dbconn, "article",
-        _make_article_key(article.article_id), article
+        _make_article_key(article.article_id), article,
+        session
     )
 
-def _do_add_or_update_searchable( dbconn, owner_type, owner, obj ):
+def _do_add_or_update_searchable( dbconn, owner_type, owner, obj, session ):
     """Add or update a record in the search index."""
 
     # prepare the fields
     fields = _FIELD_MAPPINGS[ owner_type ]
     vals = {
-        f: getattr( obj,fields[f] ) if isinstance( fields[f], str ) else fields[f]( obj )
+        f: getattr( obj, fields[f] ) if isinstance( fields[f], str ) else fields[f]( obj, session )
         for f in fields
     }
     # NOTE: We used to strip HTML here, but we prefer to see formatted content

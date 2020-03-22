@@ -99,7 +99,7 @@ def create_article():
     _save_image( article, updated )
     db.session.commit()
     _logger.debug( "- New ID: %d", new_article_id )
-    search.add_or_update_article( None, article )
+    search.add_or_update_article( None, article, None )
 
     # generate the response
     extras = { "article_id": new_article_id }
@@ -251,7 +251,7 @@ def update_article():
     _save_scenarios( article, updated )
     _save_image( article, updated )
     db.session.commit()
-    search.add_or_update_article( None, article )
+    search.add_or_update_article( None, article, None )
 
     # generate the response
     extras = {}
@@ -287,7 +287,7 @@ def update_article_rating():
         abort( 404 )
     article.article_rating = new_rating
     db.session.commit()
-    search.add_or_update_article( None, article )
+    search.add_or_update_article( None, article, None )
 
     return "OK"
 

@@ -1,0 +1,31 @@
+{
+
+"article": [
+    { "article_id": 101, "article_title": "By Charles M. Jones" },
+    { "article_id": 102, "article_title": "By Chuck Jones" },
+    { "article_id": 103, "article_title": "By Charles Martin Jones" },
+    { "article_id": 104, "article_title": "By Joseph Blow" },
+    { "article_id": 105, "article_title": "By Joe Blow" },
+    { "article_id": 106, "article_title": "By John Doe" }
+],
+
+"author": [
+    { "author_id": 1, "author_name": "Charles M. Jones" },
+    { "author_id": 2, "author_name": "Joseph Blow" },
+    { "author_id": 3, "author_name": "Chuck Jones" },
+    { "author_id": 4, "author_name": "Joe Blow" },
+    { "author_id": 5, "author_name": "Charles Martin Jones" },
+    { "author_id": 6, "author_name": "John Doe" }
+],
+
+"article_author": [
+    { "seq_no": 1, "article_id": 101, "author_id": 1 },
+    { "seq_no": 1, "article_id": 102, "author_id": 3 },
+    { "seq_no": 1, "article_id": 103, "author_id": 5 },
+    { "seq_no": 1, "article_id": 104, "author_id": 2 },
+    { "seq_no": 1, "article_id": 105, "author_id": 4 },
+    { "seq_no": 1, "article_id": 106, "author_id": 6 }
+]
+
+}
+
