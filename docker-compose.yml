@@ -7,7 +7,7 @@ services:
         image: asl-articles-web:$TAG
         build: web
         ports:
-        - "3002:80"
+        - "$WEB_PORTNO:80"
     flask:
         image: asl-articles-flask:$TAG
         build:
@@ -15,7 +15,7 @@ services:
             args:
               ENABLE_TESTS: $ENABLE_TESTS
         ports:
-        - "5002:5000"
+        - "$FLASK_PORTNO:5000"
         volumes:
         - $SQLITE:/data/sqlite.db
         - $EXTERNAL_DOCS_BASEDIR:/data/docs/

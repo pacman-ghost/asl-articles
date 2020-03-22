@@ -28,6 +28,8 @@ cd `dirname "$0"`
 export TAG=
 export DBCONN=
 export SQLITE=
+export WEB_PORTNO=3002
+export FLASK_PORTNO=5002
 export EXTERNAL_DOCS_BASEDIR=
 export USER_FILES_BASEDIR=
 export ASLRB_BASE_URL=
@@ -39,7 +41,7 @@ if [ $# -eq 0 ]; then
     print_help
     exit 0
 fi
-params="$(getopt -o t:d:e:u:r:a:h -l tag:,dbconn:,extdocs:,user-files:,aslrb:,author-aliases:,help --name "$0" -- "$@")"
+params="$(getopt -o t:d:e:u:r:a:h -l tag:,dbconn:,web-portno:,flask-portno:,extdocs:,user-files:,aslrb:,author-aliases:,help --name "$0" -- "$@")"
 if [ $? -ne 0 ]; then exit 1; fi
 eval set -- "$params"
 while true; do
@@ -49,6 +51,12 @@ while true; do
             shift 2 ;;
         -d | --dbconn )
             DBCONN=$2
+            shift 2 ;;
+        --web-portno )
+            WEB_PORTNO=$2
+            shift 2 ;;
+        --flask-portno )
+            FLASK_PORTNO=$2
             shift 2 ;;
         -e | --extdocs )
             EXTERNAL_DOCS_BASEDIR=$2
