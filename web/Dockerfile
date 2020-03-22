@@ -9,6 +9,7 @@ COPY package.json /app/package.json
 RUN npm install
 COPY . /app/
 ARG ENABLE_TESTS
+COPY docker/env /app/.env
 RUN if [ -n "$ENABLE_TESTS" ]; then echo -e "\nREACT_APP_TEST_MODE=1" >>/app/.env ; fi
 RUN npm run build
 
