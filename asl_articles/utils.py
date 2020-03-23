@@ -129,6 +129,8 @@ def clean_html( val, allow_tags=None, safe_attrs=None ): #pylint: disable=too-ma
         args[ "remove_unknown_tags" ] = None
     if safe_attrs is None:
         safe_attrs = _html_whitelists.get( "attrs" )
+        if safe_attrs:
+            safe_attrs.extend( lxml.html.defs.safe_attrs )
     elif safe_attrs == []:
         safe_attrs = [ "" ] # nb: this is how we remove everything :-/
     if safe_attrs:

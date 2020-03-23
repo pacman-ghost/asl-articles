@@ -352,7 +352,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
 
     # create a publisher with HTML content
     create_publisher( {
-        "name": "name: <span style='boo!'> <b>bold</b> <xxx>xxx</xxx> <i>italic</i> {}".format( replace[0] ),
+        "name": "name: <span onclick='boo!'> <b>bold</b> <xxx>xxx</xxx> <i>italic</i> {}".format( replace[0] ),
         "description": "bad stuff here: <script>HCF</script> {}".format( replace[0] )
     }, toast_type="warning" )
 
@@ -368,7 +368,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
 
     # update the publisher with new HTML content
     edit_publisher( sr, {
-        "name": "<div style='...'>updated</div>"
+        "name": "<div onclick='...'>updated</div>"
     }, toast_type="warning" )
     results = get_search_results()
     assert len(results) == 1

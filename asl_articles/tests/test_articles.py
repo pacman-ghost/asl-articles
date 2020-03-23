@@ -429,7 +429,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
 
     # create a article with HTML content
     create_article( {
-        "title": "title: <span style='boo!'> <b>bold</b> <xxx>xxx</xxx> <i>italic</i> {}".format( replace[0] ),
+        "title": "title: <span onclick='boo!'> <b>bold</b> <xxx>xxx</xxx> <i>italic</i> {}".format( replace[0] ),
         "subtitle": "<i>italicized subtitle</i> {}".format( replace[0] ),
         "snippet": "bad stuff here: <script>HCF</script> {}".format( replace[0] )
     }, toast_type="warning" )
@@ -449,7 +449,7 @@ def test_clean_html( webdriver, flask_app, dbconn ):
 
     # update the article with new HTML content
     edit_article( sr, {
-        "title": "<div style='...'>updated</div>"
+        "title": "<div onclick='...'>updated</div>"
     }, toast_type="warning" )
     wait_for( 2, lambda: get_search_result_names() == ["updated"] )
     assert check_toast( "warning", "Some values had HTML cleaned up.", contains=True )
