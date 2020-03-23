@@ -227,3 +227,7 @@ def to_bool( val ):
     if val in ["no","false","disabled","0"]:
         return False
     return None
+
+def squash_spaces( val ):
+    """Squash multiple spaces down into a single space."""
+    return " ".join( val.split() )

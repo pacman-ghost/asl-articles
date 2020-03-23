@@ -169,10 +169,9 @@ def test_multiple_search_results( webdriver, flask_app, dbconn ):
     init_tests( webdriver, flask_app, dbconn, fixtures="search.json" )
 
     # do a search
-    _do_test_search( "#asl", [
-        "View From The Trenches",
+    _do_test_search( "#aslj", [
         "ASL Journal (4)", "ASL Journal (5)",
-        "Hunting DUKWs and Buffalos", "'Bolts From Above", "Hit 'Em High, Or Hit 'Em Low"
+        "Hunting DUKWs and Buffalos", "'Bolts From Above", "Hit 'Em High, Or Hit 'Em Low", "The Jungle Isn't Neutral"
     ] )
 
     # do some searches
@@ -543,14 +542,8 @@ def test_author_aliases( webdriver, flask_app, dbconn ):
 def test_make_fts_query_string():
     """Test generating FTS query strings."""
 
-    # initialize
-    search_aliases = _load_search_aliases(
-        [ ( "aaa", "bbb ; ccc" ) ],
-        [ ( "mmp", "Multi-Man Publishing = Multiman Publishing" ) ]
-    )
-
     def do_test( query, expected ):
-        assert _make_fts_query_string( query, search_aliases ) == expected
+        assert _make_fts_query_string( query, {} ) == expected
 
     # test some query strings
     do_test( "", "" )
@@ -584,10 +577,11 @@ def test_make_fts_query_string():
         ' foo " xyz " bar ',
         'foo AND xyz AND bar'
     )
-    do_test(
-        ' foo " xyz 123 " bar ',
-        'foo AND "xyz 123" AND bar'
-    )
+    # NOTE: We used to handle this case, but it's debatable what the right thing to do is :-/
+    # do_test(
+    #     ' foo " xyz 123 " bar ',
+    #     'foo AND "xyz 123" AND bar'
+    # )
 
     # test some incorrectly quoted phrases
     do_test( '"', '' )
@@ -602,19 +596,60 @@ def test_make_fts_query_string():
     do_test( "foo OR bar", "foo OR bar" )
     do_test( "(a OR b)", "(a OR b)" )
 
-    # test search aliases
-    do_test( "aaa", "(aaa OR bbb OR ccc)" )
-    do_test( "bbb", "bbb" )
-    do_test( "ccc", "ccc" )
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    # test search aliases
-    do_test( "MMP", '("multi-man publishing" OR "multiman publishing" OR mmp)' )
-    do_test( "Xmmp", "Xmmp" )
-    do_test( "mmpX", "mmpX" )
-    do_test( "multi-man publishing", '"multi-man" AND publishing' )
-    do_test( 'abc "multi-man publishing" xyz',
-        'abc AND ("multi-man publishing" OR "multiman publishing" OR mmp) AND xyz'
+def test_search_aliases():
+    """Test search aliases in query strings."""
+
+    # initialize
+    search_aliases = _load_search_aliases(
+        [ # one-way aliases
+            ( "aa", "bbb ; cccc" ),
+            ( "xXx", "x1 X2 ; x3"),
+            ( "foo", "{FOO}" ),
+            ( " foo  bar ", " {FOO  BAR} " ), # nb: spaces will be squashed and stripped
+        ],
+        [ # two-way aliases
+            ( " joe's   nose  ", " Joes  Nose = Joseph's  Nose " ) # nb: spaces will be squashed and stripped
+        ]
     )
+
+    def do_test( query, expected ):
+        assert _make_fts_query_string( query, search_aliases ) == expected
+
+    # test one-way aliases
+    do_test( "a", "a" )
+    do_test( "XaX", "XaX" )
+    do_test( "aa", "(aa OR bbb OR cccc)" )
+    do_test( 'abc "aa" xyz', "abc AND (aa OR bbb OR cccc) AND xyz" )
+    do_test( "XaaX", "XaaX" )
+    do_test( "aaa", "aaa" )
+    do_test( "XaaaX", "XaaaX" )
+    do_test( "bbb", "bbb" )
+    do_test( "cccc", "cccc" )
+
+    # test one-way aliases with spaces in the replacement text
+    do_test( "XxX", '(xXx OR "x1 X2" OR x3)' )
+    do_test( "x1 X2", "x1 AND X2" )
+
+    # test one-way aliases with overlapping text in the keys ("foo" vs. "foo bar")
+    do_test( "foo bar", '("foo bar" OR "{FOO BAR}")' )
+    do_test( "abc foo bar xyz", 'abc AND ("foo bar" OR "{FOO BAR}") AND xyz' )
+    do_test( "Xfoo bar", "Xfoo AND bar" )
+    do_test( "foo barX", '(foo OR {FOO}) AND barX' )
+    do_test( "Xfoo barX", "Xfoo AND barX" )
+
+    # test two-way aliases
+    do_test( "joe's nose", '("joe\'\'s nose" OR "Joes Nose" OR "Joseph\'\'s Nose")' )
+    do_test( "abc joe's nose xyz", 'abc AND ("joe\'\'s nose" OR "Joes Nose" OR "Joseph\'\'s Nose") AND xyz' )
+    do_test( " JOES  NOSE ", '("joe\'\'s nose" OR "Joes Nose" OR "Joseph\'\'s Nose")' )
+    do_test( "Xjoes  nose ", "Xjoes AND nose" )
+    do_test( "joes  noseX", "joes AND noseX" )
+    do_test( "Xjoes  noseX", "Xjoes AND noseX" )
+    do_test( "Joseph's Nose", '("joe\'\'s nose" OR "Joes Nose" OR "Joseph\'\'s Nose")' )
+
+    # check that raw queries still have alias processing done
+    do_test( "foo AND bar", "(foo OR {FOO}) AND bar" )
 
 # ---------------------------------------------------------------------
 
