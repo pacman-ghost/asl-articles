@@ -66,6 +66,14 @@ export class App extends React.Component
             // This also has the nice side-effect of removing CORS issues :-/
             this._flaskBaseUrl = "/api" ;
         }
+
+        // NOTE: Managing publisher/publication/article images is a bit tricky, since they are accessed via a URL
+        // such as "/articles/images/123", so if the user uploads a new image, the browser has no way of knowing
+        // that it can't use what's in its cache and must get a new one. We can add something to the URL to force
+        // a reload (e.g. "?foo=" + Math.random()), but this forces the image to be reloaded *every* time, which is
+        // pretty inefficient.
+        // Instead, we track a unique cache-busting value for each image URL, and change it when necessary.
+        this._flaskImageUrlVersions = {} ;
     }
 
     render() {
@@ -465,21 +473,38 @@ export class App extends React.Component
         }
         return url ;
     }
-    makeFlaskImageUrl( type, imageId, force ) {
-        // generate an image URL for the Flask backend server
-        if ( ! imageId )
-            return null ;
-        let url = this.makeFlaskUrl( "/images/" + type + "/" + imageId ) ;
-        if ( force )
-            url += "?foo=" + Math.random() ; // FUDGE! To bypass the cache :-/
-        return url ;
-    }
     makeExternalDocUrl( url ) {
         // generate a URL for an external document
         if ( url.substr( 0, 2 ) === "$/" )
             url = url.substr( 2 ) ;
         return this.makeFlaskUrl( "/docs/" + encodeURIComponent(url) ) ;
     }
+
+    makeFlaskImageUrl( type, imageId ) {
+        // generate an image URL for the Flask backend server
+        if ( ! imageId )
+            return null ;
+        let url = this.makeFlaskUrl( "/images/" + type + "/" + imageId ) ;
+        const key = this._makeFlaskImageKey( type, imageId ) ;
+        if ( ! this._flaskImageUrlVersions[ key ] ) {
+            // NOTE: It would be nice to only add this if necessary (i.e. the user has changed
+            // the image, thus requiring us to fetch the new image), but not doing so causes problems
+            // in a dev environment, since we are constantly changing things in the database
+            // outside the app (e.g. in tests) and the browser cache will get out of sync.
+            this.forceFlaskImageReload( type, imageId ) ;
+        }
+        url += "?v=" + this._flaskImageUrlVersions[key] ;
+        return url ;
+    }
+    forceFlaskImageReload( type, imageId ) {
+        // bump the image's version#, which will force a new URL the next time makeFlaskImageUrl() is called
+        const key = this._makeFlaskImageKey( type, imageId ) ;
+        const version = this._flaskImageUrlVersions[ key ] ;
+        // NOTE: It would be nice to start at 1, but this causes problems in a dev environment, since
+        // we are constantly changing things in the database, and the browser cache will get out of sync.
+        this._flaskImageUrlVersions[ key ] = version ? version+1 : Math.floor(Date.now()/1000) ;
+    }
+    _makeFlaskImageKey( type, imageId ) { return type + ":" + imageId ; }
 
     _onStartupTask( taskId ) {
         // flag that the specified startup task has completed

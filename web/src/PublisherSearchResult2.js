@@ -23,8 +23,7 @@ export class PublisherSearchResult2
         // initialize the image
         let imageFilename=null, imageData=null ;
         let imageRef=null, uploadImageRef=null, removeImageRef=null ;
-        let imageUrl = gAppRef.makeFlaskUrl( "/images/publisher/" + vals.publ_id ) ;
-        imageUrl += "?foo=" + Math.random() ; // FUDGE! To bypass the cache :-/
+        let imageUrl = gAppRef.makeFlaskImageUrl( "publisher", vals.publ_id ) || "/force-404" ;
         function onImageLoaded() { onReady() ; }
         function onMissingImage() {
             imageRef.src = "/images/placeholder.png" ;

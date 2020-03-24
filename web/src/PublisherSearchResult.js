@@ -20,7 +20,7 @@ export class PublisherSearchResult extends React.Component
         // prepare the basic details
         const display_name = this.props.data[ "publ_name!" ] || this.props.data.publ_name ;
         const display_description = this.props.data[ "publ_description!" ] || this.props.data.publ_description ;
-        const image_url = gAppRef.makeFlaskImageUrl( "publisher", this.props.data.publ_image_id, true ) ;
+        const image_url = gAppRef.makeFlaskImageUrl( "publisher", this.props.data.publ_image_id ) ;
 
         // prepare the publications
         let pubs = [] ;
@@ -112,6 +112,8 @@ export class PublisherSearchResult extends React.Component
                 // update the UI with the new details
                 applyUpdatedVals( this.props.data, newVals, resp.data.updated, refs ) ;
                 removeSpecialFields( this.props.data ) ;
+                if ( newVals.imageData )
+                    gAppRef.forceFlaskImageReload( "publisher", newVals.publ_id ) ;
                 this.forceUpdate() ;
                 if ( resp.data.warnings )
                     gAppRef.showWarnings( "The publisher was updated OK.", resp.data.warnings ) ;

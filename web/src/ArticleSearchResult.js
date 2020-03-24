@@ -22,7 +22,7 @@ export class ArticleSearchResult extends React.Component
         const display_subtitle = this.props.data[ "article_subtitle!" ] || this.props.data.article_subtitle ;
         const display_snippet = this.props.data[ "article_snippet!" ] || this.props.data.article_snippet ;
         const pub = gAppRef.caches.publications[ this.props.data.pub_id ] ;
-        const image_url = gAppRef.makeFlaskImageUrl( "article", this.props.data.article_image_id, true ) ;
+        const image_url = gAppRef.makeFlaskImageUrl( "article", this.props.data.article_image_id ) ;
 
         // prepare the article's URL
         let article_url = this.props.data.article_url ;
@@ -202,6 +202,8 @@ export class ArticleSearchResult extends React.Component
                 // update the UI with the new details
                 applyUpdatedVals( this.props.data, newVals, resp.data.updated, refs ) ;
                 removeSpecialFields( this.props.data ) ;
+                if ( newVals.imageData )
+                    gAppRef.forceFlaskImageReload( "article", newVals.article_id ) ;
                 this.forceUpdate() ;
                 if ( resp.data.warnings )
                     gAppRef.showWarnings( "The article was updated OK.", resp.data.warnings ) ;

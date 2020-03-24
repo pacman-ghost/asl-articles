@@ -33,10 +33,8 @@ export class PublicationSearchResult2
             let imageUrl ;
             if ( initialVals )
                 imageUrl = imageRef.src ; // nb: leave whatever's there already
-            else {
-                imageUrl = gAppRef.makeFlaskUrl( "/images/publication/" + vals.pub_id ) ;
-                imageUrl += "?foo=" + Math.random() ; // FUDGE! To bypass the cache :-/
-            }
+            else
+                imageUrl = gAppRef.makeFlaskImageUrl( "publication", vals.pub_id ) || "/force-404" ;
             function onImageLoaded() { onReady() ; }
             function onMissingImage() {
                 imageRef.src = "/images/placeholder.png" ;

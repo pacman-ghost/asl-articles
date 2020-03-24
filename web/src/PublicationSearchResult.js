@@ -160,6 +160,8 @@ export class PublicationSearchResult extends React.Component
                 // update the UI with the new details
                 applyUpdatedVals( this.props.data, newVals, resp.data.updated, refs ) ;
                 removeSpecialFields( this.props.data ) ;
+                if ( newVals.imageData )
+                    gAppRef.forceFlaskImageReload( "publication", newVals.pub_id ) ;
                 this.forceUpdate() ;
                 if ( resp.data.warnings )
                     gAppRef.showWarnings( "The publication was updated OK.", resp.data.warnings ) ;
@@ -244,7 +246,7 @@ export class PublicationSearchResult extends React.Component
     _makeDisplayName( allowAlternateContent ) { return PublicationSearchResult.makeDisplayName( this.props.data, allowAlternateContent ) ; }
 
     static makeImageUrl( vals ) {
-        let image_url = gAppRef.makeFlaskImageUrl( "publication", vals.pub_image_id, true ) ;
+        let image_url = gAppRef.makeFlaskImageUrl( "publication", vals.pub_image_id ) ;
         if ( ! image_url ) {
             // check if the parent publisher has an image
             if ( vals.publ_id ) {
