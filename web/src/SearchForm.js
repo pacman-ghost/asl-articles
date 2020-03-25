@@ -24,6 +24,7 @@ export default class SearchForm extends React.Component
             <input type="text" className="query"
                 value = {this.state.queryString}
                 onChange = { e => this.setState( { queryString: e.target.value } ) }
+                onKeyDown = { this.onKeyDown.bind( this ) }
                 ref = {this.queryStringRef}
                 autoFocus
             />
@@ -35,6 +36,17 @@ export default class SearchForm extends React.Component
     onSearch( evt ) {
         evt.preventDefault() ;
         this.props.onSearch( this.state.queryString ) ;
+    }
+
+    onKeyDown( evt ) {
+        // forward up/down/PgUp/PgDown to the search results pane
+        if ( evt.keyCode === 38 || evt.keyCode === 40 || evt.keyCode === 33 || evt.keyCode === 34 ) {
+            let elem = document.getElementById( "search-results" ) ;
+            elem.focus() ;
+            elem.dispatchEvent(
+                new KeyboardEvent( "keypress", { key: evt.key, code: evt.code } )
+            ) ;
+        }
     }
 
 }
