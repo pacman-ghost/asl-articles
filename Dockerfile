@@ -1,7 +1,8 @@
-# NOTE: psycopg2-binary won't install into Alpine because pg_config is missing, and to install that,
-# we need a full development environment :-/
 # We do a multi-stage build (requires Docker >= 17.05) to install everything, then copy it all
 # to the final target image.
+
+# NOTE: psycopg2-binary won't install into Alpine because pg_config is missing, and to install that,
+# we need a full development environment :-/
 #   https://github.com/psycopg/psycopg2/issues/684
 
 FROM python:alpine3.7 AS base

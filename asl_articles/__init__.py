@@ -86,9 +86,7 @@ base_dir = os.path.join( BASE_DIR, ".." )
 app = Flask( __name__ )
 app.config.update( _cfg )
 
-# connect to the database
-# NOTE: We assume that this web server will only be handling a single user. If we ever have
-# multiple concurrent users, we will need to change to per-session database connections.
+# initialize the database connection
 app.config[ "_IS_CONTAINER" ] = _cfg.get( "IS_CONTAINER" )
 if _cfg.get( "IS_CONTAINER" ):
     # if we are running in a container, the database must be specified in an env variable e.g.

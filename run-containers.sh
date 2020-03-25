@@ -7,19 +7,18 @@ function print_help {
     echo "`basename "$0"` {options}"
     echo "  Build and launch the \"asl-articles\" containers."
     echo
-    echo "    -t  --tag         Docker container tag e.g. \"testing\" or \"latest\"."
-    echo "    -d  --dbconn      Database connection string e.g."
-    echo "                        ~/asl-articles.db (path to a SQLite database)"
-    echo "                        postgresql://USER:PASS@host/dbname (database connection string)"
-    echo "                      Note that the database server address is relative to the container i.e. NOT \"localhost\"."
-    echo "    -e  --extdocs     Base directory for external documents (to allow articles to link to them)."
-    echo "    -u  --user-files  Base directory for user files."
-    echo "    -r  --aslrb       Base URL for an eASLRB."
+    echo "    -t  --tag             Docker container tag e.g. \"testing\" or \"latest\"."
+    echo "    -d  --dbconn          Database connection string e.g."
+    echo "                            ~/asl-articles.db (path to a SQLite database)"
+    echo "                            postgresql://USER:PASS@host/dbname (database connection string)"
+    echo "                          Note that the database server address is relative to the container i.e. NOT \"localhost\"."
+    echo "        --web-portno      Webapp port number."
+    echo "        --flask-portno    Flask backend server port number."
+    echo "    -e  --extdocs         Base directory for external documents (to allow articles to link to them)."
+    echo "    -u  --user-files      Base directory for user files."
+    echo "    -r  --aslrb           Base URL for an eASLRB."
     echo "    -a  --author-aliases  Author aliases config file (see config/author-aliases.cfg.example)."
-    echo "        --no-build    Launch the containers as they are (i.e. without rebuilding them first)."
-    echo
-    echo "  The TAG env variable can also be set to specify which containers to run e.g."
-    echo "    TAG=testing `basename "$0"` /tmp/asl-articles.db"
+    echo "        --no-build        Launch the containers as they are (i.e. without rebuilding them first)."
 }
 
 # ---------------------------------------------------------------------
