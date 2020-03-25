@@ -16,6 +16,7 @@ function print_help {
     echo "    -u  --user-files  Base directory for user files."
     echo "    -r  --aslrb       Base URL for an eASLRB."
     echo "    -a  --author-aliases  Author aliases config file (see config/author-aliases.cfg.example)."
+    echo "        --no-build    Launch the containers as they are (i.e. without rebuilding them first)."
     echo
     echo "  The TAG env variable can also be set to specify which containers to run e.g."
     echo "    TAG=testing `basename "$0"` /tmp/asl-articles.db"
@@ -35,13 +36,14 @@ export USER_FILES_BASEDIR=
 export ASLRB_BASE_URL=
 export AUTHOR_ALIASES=
 export ENABLE_TESTS=
+NO_BUILD=
 
 # parse the command-line arguments
 if [ $# -eq 0 ]; then
     print_help
     exit 0
 fi
-params="$(getopt -o t:d:e:u:r:a:h -l tag:,dbconn:,web-portno:,flask-portno:,extdocs:,user-files:,aslrb:,author-aliases:,help --name "$0" -- "$@")"
+params="$(getopt -o t:d:e:u:r:a:h -l tag:,dbconn:,web-portno:,flask-portno:,extdocs:,user-files:,aslrb:,author-aliases:,no-build,help --name "$0" -- "$@")"
 if [ $? -ne 0 ]; then exit 1; fi
 eval set -- "$params"
 while true; do
@@ -70,6 +72,9 @@ while true; do
         -a | --author-aliases )
             AUTHOR_ALIASES=$2
             shift 2 ;;
+        --no-build )
+            NO_BUILD=1
+            shift 1 ;;
         -h | --help )
             print_help
             exit 0 ;;
@@ -139,11 +144,13 @@ else
 fi
 
 # build the containers
-echo Building the \"$TAG\" containers...
-docker-compose build --build-arg ENABLE_TESTS=$ENABLE_TESTS 2>&1 \
-    | sed -e 's/^/  /'
-if [ $? -ne 0 ]; then exit 10 ; fi
-echo
+if [ -z "$NO_BUILD" ]; then
+    echo Building the \"$TAG\" containers...
+    docker-compose build --build-arg ENABLE_TESTS=$ENABLE_TESTS 2>&1 \
+        | sed -e 's/^/  /'
+    if [ $? -ne 0 ]; then exit 10 ; fi
+    echo
+fi
 
 # launch the containers
 echo Launching the \"$TAG\" containers...
