@@ -12,12 +12,14 @@ import { PublicationSearchResult } from "./PublicationSearchResult" ;
 import { ArticleSearchResult } from "./ArticleSearchResult" ;
 import ModalForm from "./ModalForm";
 import AskDialog from "./AskDialog" ;
+import { PreviewableImage } from "./PreviewableImage" ;
 import { makeSmartBulletList } from "./utils.js" ;
 import { APP_NAME } from "./constants.js" ;
 import "./App.css" ;
 
 const axios = require( "axios" ) ;
 const queryString = require( "query-string" ) ;
+window.$ = window.jQuery = require( "jquery" ) ;
 
 export let gAppRef = null ;
 
@@ -147,7 +149,9 @@ export class App extends React.Component
     }
 
     componentDidMount() {
-        // install our key handler
+
+        // initialize
+        PreviewableImage.initPreviewableImages() ;
         window.addEventListener( "keydown", this.onKeyDown.bind( this ) ) ;
 
         // check if the server started up OK

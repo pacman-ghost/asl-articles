@@ -4,6 +4,7 @@ import { Menu, MenuList, MenuButton, MenuItem } from "@reach/menu-button" ;
 import { PublisherSearchResult2 } from "./PublisherSearchResult2.js"
 import "./PublisherSearchResult.css" ;
 import { PublicationSearchResult } from "./PublicationSearchResult.js"
+import { PreviewableImage } from "./PreviewableImage.js" ;
 import { PUBLISHER_EXCESS_PUBLICATION_THRESHOLD } from "./constants.js" ;
 import { gAppRef } from "./App.js" ;
 import { makeCollapsibleList, pluralString, applyUpdatedVals, removeSpecialFields } from "./utils.js" ;
@@ -19,7 +20,9 @@ export class PublisherSearchResult extends React.Component
 
         // prepare the basic details
         const display_name = this.props.data[ "publ_name!" ] || this.props.data.publ_name ;
-        const display_description = this.props.data[ "publ_description!" ] || this.props.data.publ_description ;
+        const display_description = PreviewableImage.adjustHtmlForPreviewableImages(
+            this.props.data[ "publ_description!" ] || this.props.data.publ_description
+        ) ;
         const image_url = gAppRef.makeFlaskImageUrl( "publisher", this.props.data.publ_image_id ) ;
 
         // prepare the publications
@@ -72,11 +75,15 @@ export class PublisherSearchResult extends React.Component
                 }
             </div>
             <div className="content">
-                { image_url && <img src={image_url} className="image" alt="Publisher." /> }
+                { image_url && <PreviewableImage url={image_url} className="image" alt="Publisher." /> }
                 <div className="description" dangerouslySetInnerHTML={{__html: display_description}} />
                 { makeCollapsibleList( "Publications", pubs, PUBLISHER_EXCESS_PUBLICATION_THRESHOLD, {float:"left",marginBottom:"0.25em"} ) }
             </div>
         </div> ) ;
+    }
+
+    componentDidMount() {
+        PreviewableImage.activatePreviewableImages( this ) ;
     }
 
     static onNewPublisher( notify ) {
@@ -115,6 +122,7 @@ export class PublisherSearchResult extends React.Component
                 if ( newVals.imageData )
                     gAppRef.forceFlaskImageReload( "publisher", newVals.publ_id ) ;
                 this.forceUpdate() ;
+                PreviewableImage.activatePreviewableImages( this ) ;
                 if ( resp.data.warnings )
                     gAppRef.showWarnings( "The publisher was updated OK.", resp.data.warnings ) ;
                 else

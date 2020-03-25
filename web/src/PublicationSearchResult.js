@@ -3,6 +3,7 @@ import { Link } from "react-router-dom" ;
 import { Menu, MenuList, MenuButton, MenuItem } from "@reach/menu-button" ;
 import "./PublicationSearchResult.css" ;
 import { PublicationSearchResult2 } from "./PublicationSearchResult2.js" ;
+import { PreviewableImage } from "./PreviewableImage.js" ;
 import { PUBLICATION_EXCESS_ARTICLE_THRESHOLD } from "./constants.js" ;
 import { gAppRef } from "./App.js" ;
 import { makeCollapsibleList, pluralString, applyUpdatedVals, removeSpecialFields, isLink } from "./utils.js" ;
@@ -17,7 +18,9 @@ export class PublicationSearchResult extends React.Component
     render() {
 
         // prepare the basic details
-        const display_description = this.props.data[ "pub_description!" ] || this.props.data.pub_description ;
+        const display_description = PreviewableImage.adjustHtmlForPreviewableImages(
+            this.props.data[ "pub_description!" ] || this.props.data.pub_description
+        ) ;
         const publ = gAppRef.caches.publishers[ this.props.data.publ_id ] ;
         const image_url = PublicationSearchResult.makeImageUrl( this.props.data ) ;
 
@@ -108,7 +111,7 @@ export class PublicationSearchResult extends React.Component
                 }
             </div>
             <div className="content">
-                { image_url && <img src={image_url} className="image" alt="Publication." /> }
+                { image_url && <PreviewableImage url={image_url} className="image" alt="Publication." /> }
                 <div className="description" dangerouslySetInnerHTML={{__html: display_description}} />
                 { makeCollapsibleList( "Articles", articles, PUBLICATION_EXCESS_ARTICLE_THRESHOLD, {float:"left",marginBottom:"0.25em"} ) }
             </div>
@@ -117,6 +120,10 @@ export class PublicationSearchResult extends React.Component
                 { tags.length > 0 && <div className="tags"> <label>Tags:</label> {tags} </div> }
             </div>
         </div> ) ;
+    }
+
+    componentDidMount() {
+        PreviewableImage.activatePreviewableImages( this ) ;
     }
 
     static onNewPublication( notify ) {
@@ -163,6 +170,7 @@ export class PublicationSearchResult extends React.Component
                 if ( newVals.imageData )
                     gAppRef.forceFlaskImageReload( "publication", newVals.pub_id ) ;
                 this.forceUpdate() ;
+                PreviewableImage.activatePreviewableImages( this ) ;
                 if ( resp.data.warnings )
                     gAppRef.showWarnings( "The publication was updated OK.", resp.data.warnings ) ;
                 else

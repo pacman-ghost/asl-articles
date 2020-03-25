@@ -2,6 +2,7 @@
 
 import os
 import json
+import time
 import itertools
 import uuid
 import base64
@@ -468,6 +469,18 @@ def get_article_row( dbconn, article_id, fields ):
     ).fetchone()
 
 # ---------------------------------------------------------------------
+
+def call_with_retry( func, expected_exceptions, max_retries=10, delay=0.1 ):
+    """Try to call a function, with retries if it fails."""
+    for _ in range(0,max_retries):
+        try:
+            return func()
+        except Exception as exc: #pylint: disable=broad-except
+            if type(exc) not in expected_exceptions: #pylint: disable=unidiomatic-typecheck
+                raise
+            time.sleep( delay )
+            continue
+    assert False
 
 def change_image( dlg, fname ):
     """Click on an image to change it."""

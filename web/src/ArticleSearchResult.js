@@ -4,6 +4,7 @@ import { Menu, MenuList, MenuButton, MenuItem } from "@reach/menu-button" ;
 import { ArticleSearchResult2 } from "./ArticleSearchResult2.js" ;
 import "./ArticleSearchResult.css" ;
 import { PublicationSearchResult } from "./PublicationSearchResult.js" ;
+import { PreviewableImage } from "./PreviewableImage.js" ;
 import { RatingStars } from "./RatingStars.js" ;
 import { gAppRef } from "./App.js" ;
 import { makeScenarioDisplayName, applyUpdatedVals, removeSpecialFields, makeCommaList, isLink } from "./utils.js" ;
@@ -20,7 +21,9 @@ export class ArticleSearchResult extends React.Component
         // prepare the basic details
         const display_title = this.props.data[ "article_title!" ] || this.props.data.article_title ;
         const display_subtitle = this.props.data[ "article_subtitle!" ] || this.props.data.article_subtitle ;
-        const display_snippet = this.props.data[ "article_snippet!" ] || this.props.data.article_snippet ;
+        const display_snippet = PreviewableImage.adjustHtmlForPreviewableImages(
+            this.props.data[ "article_snippet!" ] || this.props.data.article_snippet
+        ) ;
         const pub = gAppRef.caches.publications[ this.props.data.pub_id ] ;
         const image_url = gAppRef.makeFlaskImageUrl( "article", this.props.data.article_image_id ) ;
 
@@ -141,7 +144,7 @@ export class ArticleSearchResult extends React.Component
                 { display_subtitle && <div className="subtitle" dangerouslySetInnerHTML={{ __html: display_subtitle }} /> }
             </div>
             <div className="content">
-                { image_url && <img src={image_url} className="image" alt="Article." /> }
+                { image_url && <PreviewableImage url={image_url} className="image" alt="Article." /> }
                 <div className="snippet" dangerouslySetInnerHTML={{__html: display_snippet}} />
             </div>
             <div className="footer">
@@ -150,6 +153,10 @@ export class ArticleSearchResult extends React.Component
                 { tags.length > 0 && <div className="tags"> Tags: {tags} </div> }
             </div>
         </div> ) ;
+    }
+
+    componentDidMount() {
+        PreviewableImage.activatePreviewableImages( this ) ;
     }
 
     onRatingChange( newRating, onFailed ) {
@@ -205,6 +212,7 @@ export class ArticleSearchResult extends React.Component
                 if ( newVals.imageData )
                     gAppRef.forceFlaskImageReload( "article", newVals.article_id ) ;
                 this.forceUpdate() ;
+                PreviewableImage.activatePreviewableImages( this ) ;
                 if ( resp.data.warnings )
                     gAppRef.showWarnings( "The article was updated OK.", resp.data.warnings ) ;
                 else
