@@ -7,6 +7,8 @@
 
 FROM python:alpine3.7 AS base
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 # install the requirements
 FROM base AS build
 RUN mkdir /install
@@ -16,6 +18,8 @@ WORKDIR /install
 COPY requirements.txt /tmp/
 RUN pip install --upgrade pip
 RUN pip install --install-option="--prefix=/install" -r /tmp/requirements.txt
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 FROM base
 
@@ -38,6 +42,7 @@ RUN pip install -e .
 ARG ENABLE_TESTS
 COPY asl_articles/config/logging.yaml.example asl_articles/config/logging.yaml
 COPY docker/config/* asl_articles/config/
+RUN rm -f asl_articles/config/debug.cfg
 
 # copy the alembic files (so that users can upgrade their database)
 COPY alembic alembic
