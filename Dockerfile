@@ -20,6 +20,9 @@ FROM base
 
 # copy the Python requirements
 COPY --from=build /install /usr/local
+# FUDGE! It looks like pip is not honoring the install prefix for dateutil (an alembic dependency) :-/
+COPY --from=build /usr/local/lib/python3.7/site-packages/python_dateutil-2.8.1.dist-info /usr/local/lib/python3.7/site-packages/python_dateutil-2.8.1.dist-info
+COPY --from=build /usr/local/lib/python3.7/site-packages/dateutil /usr/local/lib/python3.7/site-packages/dateutil
 RUN apk --no-cache add libpq
 RUN pip install --upgrade pip
 RUN apk add libxslt
