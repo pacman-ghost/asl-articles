@@ -202,7 +202,11 @@ export class App extends React.Component
                 on_startup_ok() ;
         } )
         .catch( err => {
-            this.showErrorToast( <div> Couldn't get the startup messages: <div className="monospace"> {err.toString()} </div> </div> ) ;
+            let errorMsg = err.toString() ;
+            if ( errorMsg.indexOf( "502" ) !== -1 || errorMsg.indexOf( "504" ) !== -1 )
+                this.showErrorToast( <div> Couldn't connect to the backend Flask server. </div> ) ;
+            else
+                this.showErrorToast( <div> Couldn't get the startup messages: <div className="monospace"> {errorMsg} </div> </div> ) ;
             on_startup_failure() ;
         } ) ;
     }
