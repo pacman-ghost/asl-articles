@@ -9,28 +9,25 @@ FROM python:alpine3.7 AS base
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-# install the requirements
 FROM base AS build
-RUN mkdir /install
+
+# install the requirements
 # NOTE: psycopg2 needs postgresql-dev and build tools, lxml needs libxslt
-RUN apk update && apk add postgresql-dev gcc python3-dev musl-dev && apk add libxslt-dev
-WORKDIR /install
+RUN apk update && apk add --no-cache postgresql-dev gcc python3-dev musl-dev && apk add --no-cache libxslt-dev
+
+# install the application requirements
 COPY requirements.txt /tmp/
 RUN pip install --upgrade pip
-RUN pip install --install-option="--prefix=/install" -r /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 FROM base
 
-# copy the Python requirements
-COPY --from=build /install /usr/local
-# FUDGE! It looks like pip is not honoring the install prefix for dateutil (an alembic dependency) :-/
-COPY --from=build /usr/local/lib/python3.7/site-packages/python_dateutil-2.8.1.dist-info /usr/local/lib/python3.7/site-packages/python_dateutil-2.8.1.dist-info
-COPY --from=build /usr/local/lib/python3.7/site-packages/dateutil /usr/local/lib/python3.7/site-packages/dateutil
-RUN apk --no-cache add libpq
+# copy the application requirements
 RUN pip install --upgrade pip
 RUN apk add libxslt
+COPY --from=build /usr/local/lib/python3.7/site-packages /usr/local/lib/python3.7/site-packages
 
 # install the application
 WORKDIR /app
