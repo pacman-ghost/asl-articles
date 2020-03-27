@@ -1,1 +1,10 @@
-node_modules
+*
+
+# NOTE: docker-compose doesn't allow spaces after the !'s :-/
+
+!package.json
+
+!src/
+!public/
+
+!docker/

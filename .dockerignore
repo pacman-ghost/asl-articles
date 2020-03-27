@@ -1,1 +1,13 @@
-web
+*
+
+# NOTE: docker-compose doesn't allow spaces after the !'s :-/
+
+!setup.py
+!requirements*.txt
+
+!asl_articles/
+!run_server.py
+!LICENSE.txt
+
+!alembic/
+!docker/
