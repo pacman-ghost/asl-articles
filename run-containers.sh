@@ -147,7 +147,7 @@ if [ -z "$NO_BUILD" ]; then
     echo Building the \"$TAG\" containers...
     docker-compose build --build-arg ENABLE_TESTS=$ENABLE_TESTS 2>&1 \
         | sed -e 's/^/  /'
-    if [ $? -ne 0 ]; then exit 10 ; fi
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then exit 10 ; fi
     echo
 fi
 
@@ -158,3 +158,4 @@ if [ -n "$ENABLE_TESTS" ]; then
 fi
 docker-compose up --detach 2>&1 \
     | sed -e 's/^/  /'
+exit ${PIPESTATUS[0]}
