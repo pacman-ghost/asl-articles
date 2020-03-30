@@ -1,21 +1,24 @@
 # IMPORTANT: Use run-containers.sh to set up the necessary environment variables.
 
-version: "3"
+version: "3.4"
 
 services:
     web:
         image: asl-articles-web:$TAG
-        build: web
+        build:
+            context: web
+            network: $BUILD_NETWORK
         ports:
-        - "$WEB_PORTNO:80"
+        - $WEB_PORTNO:80
     flask:
         image: asl-articles-flask:$TAG
         build:
             context: .
+            network: $BUILD_NETWORK
             args:
               ENABLE_TESTS: $ENABLE_TESTS
         ports:
-        - "$FLASK_PORTNO:5000"
+        - $FLASK_PORTNO:5000
         volumes:
         - $SQLITE:/data/sqlite.db
         - $EXTERNAL_DOCS_BASEDIR:/data/docs/

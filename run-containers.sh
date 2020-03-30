@@ -19,6 +19,7 @@ function print_help {
     echo "    -r  --aslrb           Base URL for an eASLRB."
     echo "    -a  --author-aliases  Author aliases config file (see config/author-aliases.cfg.example)."
     echo "        --no-build        Launch the containers as they are (i.e. without rebuilding them first)."
+    echo "        --build-network   Docker network to use when building the container."
 }
 
 # ---------------------------------------------------------------------
@@ -36,13 +37,14 @@ export ASLRB_BASE_URL=
 export AUTHOR_ALIASES=
 export ENABLE_TESTS=
 NO_BUILD=
+export BUILD_NETWORK=
 
 # parse the command-line arguments
 if [ $# -eq 0 ]; then
     print_help
     exit 0
 fi
-params="$(getopt -o t:d:e:u:r:a:h -l tag:,dbconn:,web-portno:,flask-portno:,extdocs:,user-files:,aslrb:,author-aliases:,no-build,help --name "$0" -- "$@")"
+params="$(getopt -o t:d:e:u:r:a:h -l tag:,dbconn:,web-portno:,flask-portno:,extdocs:,user-files:,aslrb:,author-aliases:,no-build,build-network:,help --name "$0" -- "$@")"
 if [ $? -ne 0 ]; then exit 1; fi
 eval set -- "$params"
 while true; do
@@ -74,6 +76,11 @@ while true; do
         --no-build )
             NO_BUILD=1
             shift 1 ;;
+        --build-network )
+            # FUDGE! We sometimes can't get out to the internet from the container (DNS problems) using the default
+            # "bridge" network, so we offer the option of using an alternate network (e.g. "host").
+            BUILD_NETWORK=$2
+            shift 2 ;;
         -h | --help )
             print_help
             exit 0 ;;
