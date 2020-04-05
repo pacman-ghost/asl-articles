@@ -1,19 +1,21 @@
 # We do a multi-stage build (requires Docker >= 17.05) to install everything, then copy it all
 # to the final target image.
 
-# NOTE: psycopg2-binary won't install into Alpine because pg_config is missing, and to install that,
-# we need a full development environment :-/
-#   https://github.com/psycopg/psycopg2/issues/684
+FROM centos:8 AS base
 
-FROM python:alpine3.7 AS base
+# update packages and install Python
+RUN dnf -y upgrade-minimal && \
+    dnf install -y python36 && \
+    dnf clean all
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 FROM base AS build
 
-# install the requirements
-# NOTE: psycopg2 needs postgresql-dev and build tools, lxml needs libxslt
-RUN apk update && apk add --no-cache postgresql-dev gcc python3-dev musl-dev && apk add --no-cache libxslt-dev
+# set up a virtualenv
+RUN python3.6 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --upgrade pip
 
 # install the application requirements
 COPY requirements.txt /tmp/
@@ -24,10 +26,9 @@ RUN pip install -r /tmp/requirements.txt
 
 FROM base
 
-# copy the application requirements
-RUN pip install --upgrade pip
-RUN apk add libxslt
-COPY --from=build /usr/local/lib/python3.7/site-packages /usr/local/lib/python3.7/site-packages
+# copy the virtualenv from the build image
+COPY --from=build /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 # install the application
 WORKDIR /app
