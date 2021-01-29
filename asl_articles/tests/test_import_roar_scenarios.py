@@ -8,7 +8,7 @@ from asl_articles.models import Scenario
 from asl_articles.tests.utils import init_tests
 
 sys.path.append( os.path.join( os.path.split(__file__)[0], "../../tools/" ) )
-from import_roar_scenarios import import_roar_scenarios
+from import_roar_scenarios import import_roar_scenarios #pylint: disable=import-error,wrong-import-order
 
 # ---------------------------------------------------------------------
 

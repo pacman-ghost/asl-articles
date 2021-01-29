@@ -5,7 +5,7 @@ FROM centos:8 AS base
 
 # update packages and install Python
 RUN dnf -y upgrade-minimal && \
-    dnf install -y python36 && \
+    dnf install -y python38 && \
     dnf clean all
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -13,13 +13,12 @@ RUN dnf -y upgrade-minimal && \
 FROM base AS build
 
 # set up a virtualenv
-RUN python3.6 -m venv /opt/venv
+RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --upgrade pip
 
 # install the application requirements
 COPY requirements.txt /tmp/
-RUN pip install --upgrade pip
 RUN pip install -r /tmp/requirements.txt
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

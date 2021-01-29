@@ -85,7 +85,9 @@ def clean_html( val, allow_tags=None, safe_attrs=None ): #pylint: disable=too-ma
     # fixup smart quotes and dashes
     def replace_chars( val, ch, targets ):
         for t in targets:
-            if isinstance( t, typing.Pattern ):
+            # FUDGE! pylint is incorrectly flagging isinstance() when checking against typing.XXX.
+            #   https://github.com/PyCQA/pylint/issues/3537
+            if isinstance( t, typing.Pattern ): #pylint: disable=isinstance-second-argument-not-valid-type
                 val = t.sub( ch, val )
             else:
                 assert isinstance( t, str )

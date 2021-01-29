@@ -139,6 +139,7 @@ def webdriver( request ):
         options = wb.ChromeOptions()
         if headless:
             options.add_argument( "--headless" ) #pylint: disable=no-member
+        options.add_argument( "--disable-gpu" )
         driver = wb.Chrome( options=options )
     else:
         raise RuntimeError( "Unknown webdriver: {}".format( driver ) )
