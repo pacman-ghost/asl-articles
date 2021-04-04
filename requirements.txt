@@ -5,4 +5,4 @@ flask-sqlalchemy==2.4.4
 psycopg2-binary==2.8.6
 alembic==1.4.3
 pyyaml==5.3.1
-lxml==4.6.2
+lxml==4.6.3
