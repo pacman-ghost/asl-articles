@@ -38,6 +38,8 @@ export AUTHOR_ALIASES=
 export ENABLE_TESTS=
 NO_BUILD=
 export BUILD_NETWORK=
+export DOCKER_UID=$(id -u)
+export DOCKER_GID=$(id -g)
 
 # parse the command-line arguments
 if [ $# -eq 0 ]; then

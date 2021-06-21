@@ -44,6 +44,10 @@ RUN rm -f asl_articles/config/debug.cfg
 # copy the alembic files (so that users can upgrade their database)
 COPY alembic alembic
 
+# NOTE: We set these so that we can update the database outside the container.
+ENV UID=$DOCKER_UID
+ENV GID=$DOCKER_GID
+
 # launch the web server
 EXPOSE 5000
 ENV DBCONN undefined
