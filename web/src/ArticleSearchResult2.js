@@ -18,6 +18,23 @@ export class ArticleSearchResult2
         let refs = {} ;
         const isNew = Object.keys( vals ).length === 0 ;
 
+        // set the parent mode
+        let parentMode = vals.publ_id ? "publisher" : "publication" ;
+        let publicationParentRowRef = null ;
+        let publisherParentRowRef = null ;
+        function onPublicationParent() {
+            parentMode = "publication" ;
+            publicationParentRowRef.style.display = "flex" ;
+            publisherParentRowRef.style.display = "none" ;
+            refs.pub_id.focus() ;
+        }
+        function onPublisherParent() {
+            parentMode = "publisher" ;
+            publicationParentRowRef.style.display = "none" ;
+            publisherParentRowRef.style.display = "flex" ;
+            refs.publ_id.focus() ;
+        }
+
         // prepare to save the initial values
         let initialVals = null ;
         function onReady() {
@@ -86,6 +103,19 @@ export class ArticleSearchResult2
             }
         }
 
+        // initialize the publishers
+        let publishers = [ { value: null, label: <i>(none)</i> } ] ;
+        let currPubl = publishers[0] ;
+        for ( let p of Object.entries(gAppRef.caches.publishers) ) {
+            publishers.push( {
+                value: p[1].publ_id,
+                label: <span dangerouslySetInnerHTML={{__html: p[1].publ_name}} />
+            } ) ;
+            if ( p[1].publ_id === vals.publ_id )
+                currPubl = publishers[ publishers.length-1 ] ;
+        }
+        sortSelectableOptions( publishers ) ;
+
         // initialize the authors
         let allAuthors = [] ;
         for ( let a of Object.entries(gAppRef.caches.authors) )
@@ -150,12 +180,26 @@ export class ArticleSearchResult2
             <div className="row subtitle"> <label className="top"> Subtitle: </label>
                 <input type="text" defaultValue={vals.article_subtitle} ref={r => refs.article_subtitle=r} />
             </div>
-            <div className="row publication"> <label className="select top"> Publication: </label>
+            <div className="row publication" style={{display:parentMode==="publication"?"flex":"none"}} ref={r => publicationParentRowRef=r} >
+                <label className="select top parent-mode"
+                    title = "Click to associate this article with a publisher."
+                    onClick = {onPublisherParent}
+                > Publication: </label>
                 <Select className="react-select" classNamePrefix="react-select" options={publications} isSearchable={true}
                     defaultValue = {currPub}
                     ref = { r => refs.pub_id=r }
                 />
                 <input className="pageno" type="text" defaultValue={vals.article_pageno} ref={r => refs.article_pageno=r} title="Page number." />
+            </div>
+            <div className="row publisher" style={{display:parentMode==="publisher"?"flex":"none"}} ref={r => publisherParentRowRef=r} >
+                <label className="select top parent-mode"
+                    title="Click to associate this article with a publication."
+                    onClick = {onPublicationParent}
+                > Publisher: </label>
+                <Select className="react-select" classNamePrefix="react-select" options={publishers} isSearchable={true}
+                    defaultValue = {currPubl}
+                    ref = { r => refs.publ_id=r }
+                />
             </div>
             <div className="row snippet"> <label> Snippet: </label>
                 <textarea defaultValue={vals.article_snippet} ref={r => refs.article_snippet=r} />
@@ -190,9 +234,13 @@ export class ArticleSearchResult2
         function unloadVals() {
             let newVals = {} ;
             for ( let r in refs ) {
-                if ( r === "pub_id" )
-                    newVals[ r ] = refs[r].state.value && refs[r].state.value.value ;
-                else if ( r === "article_authors" ) {
+                if ( r === "pub_id" ) {
+                    if ( parentMode === "publication" )
+                        newVals[ r ] = refs[r].state.value && refs[r].state.value.value ;
+                } else if ( r === "publ_id" ) {
+                    if ( parentMode === "publisher" )
+                        newVals[ r ] = refs[r].state.value && refs[r].state.value.value ;
+                } else if ( r === "article_authors" ) {
                     let vals = unloadCreatableSelect( refs[r] ) ;
                     newVals.article_authors = [] ;
                     vals.forEach( v => {
@@ -233,7 +281,8 @@ export class ArticleSearchResult2
                     [ () => newVals.article_title === "", "Please give it a title.", refs.article_title ],
                 ] ;
                 const optional = [
-                    [ () => newVals.pub_id === null, "No publication was specified.", refs.pub_id ],
+                    [ () => parentMode === "publication" && newVals.pub_id === null, "No publication was specified.", refs.pub_id ],
+                    [ () => parentMode === "publisher" && newVals.publ_id === null, "No publisher was specified.", refs.pub_id ],
                     [ () => newVals.article_pageno === "" && newVals.pub_id !== null, "No page number was specified.", refs.article_pageno ],
                     [ () => newVals.article_pageno !== "" && newVals.pub_id === null, "A page number was specified but no publication.", refs.pub_id ],
                     [ () => newVals.article_pageno !== "" && !isNumeric(newVals.article_pageno), "The page number is not numeric.", refs.article_pageno ],

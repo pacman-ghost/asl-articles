@@ -5,6 +5,7 @@ import urllib.request
 import urllib.error
 import json
 import base64
+import re
 
 from asl_articles.search import SEARCH_ALL_ARTICLES
 from asl_articles.tests.utils import init_tests, select_main_menu_option, select_sr_menu_option, \
@@ -387,6 +388,102 @@ def test_parent_publisher( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
+def test_publisher_articles( webdriver, flask_app, dbconn ): #pylint: disable=too-many-statements
+    """Test articles that are associated with a publisher (not publication)."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, fixtures="publisher-articles.json" )
+
+    def check_parent_in_sr( sr, pub, publ ):
+        """Check the article's parent publication/publisher in a search result."""
+        if pub:
+            elem = wait_for( 2, lambda: find_child( ".header a.publication", sr ) )
+            assert elem.is_displayed()
+            assert elem.text == pub
+            assert re.search( r"^http://.+?/publication/\d+", elem.get_attribute( "href" ) )
+        elif publ:
+            elem = wait_for( 2, lambda: find_child( ".header a.publisher", sr ) )
+            assert elem.is_displayed()
+            assert elem.text == publ
+            assert re.search( r"^http://.+?/publisher/\d+", elem.get_attribute( "href" ) )
+        else:
+            assert False, "At least one publication/publisher must be specified."
+
+    def check_parent_in_dlg( dlg, pub, publ ):
+        """Check the article's parent publication/publication in the edit dialog."""
+        if pub:
+            select = find_child( ".row.publication .react-select", dlg )
+            assert select.is_displayed()
+            assert select.text == pub
+        elif publ:
+            select = find_child( ".row.publisher .react-select", dlg )
+            assert select.is_displayed()
+            assert select.text == publ
+        else:
+            assert False, "At least one publication/publisher must be specified."
+
+    # create an article associated with LFT
+    create_article( {
+        "title": "test article",
+        "publisher": "Le Franc Tireur"
+    } )
+    results = wait_for( 2, get_search_results )
+    assert len(results) == 1
+    sr = results[0]
+    check_parent_in_sr( sr, None, "Le Franc Tireur" )
+
+    # open the article's dialog
+    select_sr_menu_option( sr, "edit" )
+    dlg = wait_for_elem( 2, "#article-form" )
+    check_parent_in_dlg( dlg, None, "Le Franc Tireur" )
+
+    # change the article to be associated with an MMP publication
+    find_child( ".row.publisher label.parent-mode" ).click()
+    select = wait_for_elem( 2, ".row.publication .react-select" )
+    ReactSelect( select ).select_by_name( "MMP News" )
+    find_child( "button.ok", dlg ).click()
+    results = wait_for( 2, get_search_results )
+    assert len(results) == 1
+    sr = results[0]
+    check_parent_in_sr( sr, "MMP News", None )
+
+    # open the article's dialog
+    select_sr_menu_option( sr, "edit" )
+    dlg = wait_for_elem( 2, "#article-form" )
+    check_parent_in_dlg( dlg, "MMP News", None )
+
+    # change the article to be associated with MMP (publisher)
+    find_child( ".row.publication label.parent-mode" ).click()
+    select = wait_for_elem( 2, ".row.publisher .react-select" )
+    ReactSelect( select ).select_by_name( "Multiman Publishing" )
+    find_child( "button.ok", dlg ).click()
+    results = wait_for( 2, get_search_results )
+    assert len(results) == 1
+    sr = results[0]
+    check_parent_in_sr( sr, None, "Multiman Publishing" )
+
+    # show the MMP publisher
+    results = do_search( "multiman" )
+    assert len(results) == 1
+    sr = results[0]
+    collapsibles = find_children( ".collapsible", sr )
+    assert len(collapsibles) == 2
+    items = find_children( "li a", collapsibles[1] )
+    assert len(items) == 1
+    item = items[0]
+    assert item.text == "test article"
+    assert re.search( r"^http://.+?/article/\d+", item.get_attribute( "href" ) )
+
+    # delete the MMP publisher
+    # NOTE: There are 2 MMP articles, the one that is in the "MMP News" publication,
+    # and the test article we created above that is associated with the publisher.
+    select_sr_menu_option( sr, "delete" )
+    check_ask_dialog( ( "Delete this publisher?", "2 articles will also be deleted" ), "ok" )
+    query = dbconn.execute( "SELECT count(*) FROM article" )
+    assert query.scalar() == 0
+
+# ---------------------------------------------------------------------
+
 def test_unicode( webdriver, flask_app, dbconn ):
     """Test Unicode content."""
 
@@ -612,8 +709,14 @@ def _update_values( dlg, vals ):
                 change_image( dlg, val )
             else:
                 remove_image( dlg )
-        elif key == "publication":
-            select = ReactSelect( find_child( ".row.publication .react-select", dlg ) )
+        elif key in ("publication", "publisher"):
+            row = find_child( ".row.{}".format( key ), dlg )
+            select = ReactSelect( find_child( ".react-select", row ) )
+            if not select.select.is_displayed():
+                key2 = "publisher" if key == "publication" else "publication"
+                row2 = find_child( ".row.{}".format( key2 ), dlg )
+                find_child( "label.parent-mode", row2 ).click()
+                wait_for( 2, select.select.is_displayed )
             select.select_by_name( val )
         elif key in ["authors","scenarios","tags"]:
             select = ReactSelect( find_child( ".row.{} .react-select".format(key), dlg ) )

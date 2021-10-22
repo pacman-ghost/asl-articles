@@ -30,7 +30,7 @@ _SQLITE_FTS_SPECIAL_CHARS = "+-#':/.@$"
 # NOTE: The column order defined here is important, since we have to access row results by column index.
 _SEARCHABLE_COL_NAMES = [ "name", "name2", "description", "authors", "scenarios", "tags" ]
 
-_get_publisher_vals = lambda p: get_publisher_vals( p, True )
+_get_publisher_vals = lambda p: get_publisher_vals( p, True, True )
 _get_publication_vals = lambda p: get_publication_vals( p, True, True )
 _get_article_vals = lambda a: get_article_vals( a, True )
 
@@ -120,7 +120,7 @@ def search():
 def search_publishers():
     """Return all publishers."""
     publs = sorted( Publisher.query.all(), key=lambda p: p.publ_name.lower() )
-    results = [ get_publisher_vals( p, True ) for p in publs ]
+    results = [ get_publisher_vals( p, True, True ) for p in publs ]
     return jsonify( results )
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -131,7 +131,7 @@ def search_publisher( publ_id ):
     publ = Publisher.query.get( publ_id )
     if not publ:
         return jsonify( [] )
-    results = [ get_publisher_vals( publ, True ) ]
+    results = [ get_publisher_vals( publ, True, True ) ]
     pubs = sorted( publ.publications, key=get_publication_sort_key, reverse=True )
     for pub in pubs:
         results.append( get_publication_vals( pub, True, True ) )
@@ -168,6 +168,10 @@ def search_article( article_id ):
         pub = Publication.query.get( article["pub_id"] )
         if pub:
             results.append( get_publication_vals( pub, True, True ) )
+    if article["publ_id"]:
+        publ = Publisher.query.get( article["publ_id"] )
+        if publ:
+            results.append( get_publisher_vals( publ, True, True ) )
     return jsonify( results )
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

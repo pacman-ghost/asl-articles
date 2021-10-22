@@ -3,6 +3,7 @@ export const APP_NAME = "ASL Articles" ;
 export const MAX_IMAGE_UPLOAD_SIZE = ( 1 * 1024*1024 ) ;
 
 export const PUBLISHER_EXCESS_PUBLICATION_THRESHOLD = 5 ;
+export const PUBLISHER_EXCESS_ARTICLE_THRESHOLD = 5 ;
 export const PUBLICATION_EXCESS_ARTICLE_THRESHOLD = 8 ;
 
 export const NEW_ARTICLE_PUB_PRIORITY_CUTOFF = ( 24 * 60 * 60 ) ;

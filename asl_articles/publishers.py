@@ -9,6 +9,7 @@ from flask import request, jsonify, abort
 from asl_articles import app, db
 from asl_articles.models import Publisher, PublisherImage, Publication, Article
 from asl_articles.publications import do_get_publications
+from asl_articles.articles import get_article_vals, get_article_sort_key
 from asl_articles import search
 from asl_articles.utils import get_request_args, clean_request_args, make_ok_response, apply_attrs
 
@@ -28,7 +29,7 @@ def _do_get_publishers():
     # NOTE: The front-end maintains a cache of the publishers, so as a convenience,
     # we return the current list as part of the response to a create/update/delete operation.
     results = Publisher.query.all()
-    return { r.publ_id: get_publisher_vals(r) for r in results }
+    return { r.publ_id: get_publisher_vals(r,False) for r in results }
 
 # ---------------------------------------------------------------------
 
@@ -40,7 +41,8 @@ def get_publisher( publ_id ):
     publ = Publisher.query.get( publ_id )
     if not publ:
         abort( 404 )
-    vals = get_publisher_vals( publ )
+    include_articles = request.args.get( "include_articles" )
+    vals = get_publisher_vals( publ, include_articles )
     # include the number of associated publications
     query = Publication.query.filter_by( publ_id = publ_id )
     vals[ "nPublications" ] = query.count()
@@ -48,11 +50,13 @@ def get_publisher( publ_id ):
     query = db.session.query( Article, Publication ) \
         .filter( Publication.publ_id == publ_id ) \
         .filter( Article.pub_id == Publication.pub_id )
-    vals[ "nArticles" ] = query.count()
+    nArticles = query.count()
+    nArticles2 = Article.query.filter_by( publ_id = publ_id ).count()
+    vals[ "nArticles" ] = nArticles + nArticles2
     _logger.debug( "- %s ; #publications=%d ; #articles=%d", publ, vals["nPublications"], vals["nArticles"] )
     return jsonify( vals )
 
-def get_publisher_vals( publ, add_type=False ):
+def get_publisher_vals( publ, include_articles, add_type=False ):
     """Extract public fields from a Publisher record."""
     vals = {
         "publ_id": publ.publ_id,
@@ -61,6 +65,9 @@ def get_publisher_vals( publ, add_type=False ):
         "publ_url": publ.publ_url,
         "publ_image_id": publ.publ_id if publ.publ_image else None,
     }
+    if include_articles:
+        articles = sorted( publ.articles, key=get_article_sort_key )
+        vals[ "articles" ] = [ get_article_vals( a, False ) for a in articles ]
     if add_type:
         vals[ "type" ] = "publisher"
     return vals

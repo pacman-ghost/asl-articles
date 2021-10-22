@@ -23,6 +23,7 @@ class Publisher( db.Model ):
     #
     publ_image = db.relationship( "PublisherImage", backref="parent_publ", passive_deletes=True )
     publications = db.relationship( "Publication", backref="parent_publ", passive_deletes=True )
+    articles = db.relationship( "Article", backref="parent_publ", passive_deletes=True )
 
     def __repr__( self ):
         return "<Publisher:{}|{}>".format( self.publ_id, self.publ_name )
@@ -70,6 +71,9 @@ class Article( db.Model ):
     article_rating = db.Column( db.Integer )
     pub_id = db.Column( db.Integer,
         db.ForeignKey( Publication.__table__.c.pub_id, ondelete="CASCADE" )
+    )
+    publ_id = db.Column( db.Integer,
+        db.ForeignKey( Publisher.__table__.c.publ_id, ondelete="CASCADE" )
     )
     # NOTE: time_created should be non-nullable, but getting this to work on both SQLite and Postgres
     # is more trouble than it's worth :-/

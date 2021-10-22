@@ -5,7 +5,7 @@ import { PublisherSearchResult2 } from "./PublisherSearchResult2.js"
 import "./PublisherSearchResult.css" ;
 import { PublicationSearchResult } from "./PublicationSearchResult.js"
 import { PreviewableImage } from "./PreviewableImage.js" ;
-import { PUBLISHER_EXCESS_PUBLICATION_THRESHOLD } from "./constants.js" ;
+import { PUBLISHER_EXCESS_PUBLICATION_THRESHOLD, PUBLISHER_EXCESS_ARTICLE_THRESHOLD } from "./constants.js" ;
 import { gAppRef } from "./App.js" ;
 import { makeCollapsibleList, pluralString, applyUpdatedVals, removeSpecialFields } from "./utils.js" ;
 
@@ -19,7 +19,7 @@ export class PublisherSearchResult extends React.Component
     render() {
 
         // prepare the basic details
-        const display_name = this.props.data[ "publ_name!" ] || this.props.data.publ_name ;
+        const display_name = this._makeDisplayName() ;
         const display_description = PreviewableImage.adjustHtmlForPreviewableImages(
             this.props.data[ "publ_description!" ] || this.props.data.publ_description
         ) ;
@@ -45,6 +45,16 @@ export class PublisherSearchResult extends React.Component
             to = { gAppRef.makeAppUrl( "/publication/" + p.pub_id ) }
             dangerouslySetInnerHTML = {{ __html: PublicationSearchResult.makeDisplayName(p) }}
         /> ) ;
+
+        // prepare any associated articles
+        let articles = [] ;
+        if ( this.props.data.articles ) {
+            articles = this.props.data.articles.map( a => <Link title="Show this article."
+                to = { gAppRef.makeAppUrl( "/article/" + a.article_id ) }
+                dangerouslySetInnerHTML = {{ __html: a.article_title }}
+            /> ) ;
+            articles.reverse() ;
+        }
 
         // prepare the menu
         const menu = ( <Menu>
@@ -77,8 +87,10 @@ export class PublisherSearchResult extends React.Component
             <div className="content">
                 { image_url && <PreviewableImage url={image_url} className="image" alt="Publisher." /> }
                 <div className="description" dangerouslySetInnerHTML={{__html: display_description}} />
-                { makeCollapsibleList( "Publications", pubs, PUBLISHER_EXCESS_PUBLICATION_THRESHOLD, {float:"left",marginBottom:"0.25em"} ) }
+                { makeCollapsibleList( "Publications", pubs, PUBLISHER_EXCESS_PUBLICATION_THRESHOLD, {float:"left"} ) }
+                { makeCollapsibleList( "Articles", articles, PUBLISHER_EXCESS_ARTICLE_THRESHOLD, {clear:"both",float:"left"} ) }
             </div>
+            <div className="footer" />
         </div> ) ;
     }
 
@@ -158,7 +170,7 @@ export class PublisherSearchResult extends React.Component
             }
             let content = ( <div>
                 Delete this publisher?
-                <div style={{margin:"0.5em 0 0.5em 2em",fontStyle:"italic"}} dangerouslySetInnerHTML={{__html: this.props.data.publ_name}} />
+                <div style={{margin:"0.5em 0 0.5em 2em",fontStyle:"italic"}} dangerouslySetInnerHTML={{__html: this._makeDisplayName()}} />
                 {warning}
             </div> ) ;
             gAppRef.ask( content, "ask", {
@@ -198,5 +210,11 @@ export class PublisherSearchResult extends React.Component
             doDelete( err ) ;
         } ) ;
     }
+
+    static makeDisplayName( vals ) {
+        // return the publisher's display name
+        return vals["publ_name!"] || vals.publ_name ;
+    }
+    _makeDisplayName() { return PublisherSearchResult.makeDisplayName( this.props.data ) ; }
 
 }

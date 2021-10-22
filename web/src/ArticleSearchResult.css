@@ -1,5 +1,6 @@
 #article-form .row label.top { width: 6.5em ; }
 #article-form .row label { width: 5.75em ; }
+#article-form .row label.parent-mode { cursor: pointer ; }
 
 #article-form .row.snippet { flex-direction: column ; align-items: initial ; margin-top: -0.5em ; }
 #article-form .row.snippet textarea { min-height: 6em ; }

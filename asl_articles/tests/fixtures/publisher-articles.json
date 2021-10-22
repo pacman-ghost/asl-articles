@@ -1,0 +1,17 @@
+{
+
+"publisher": [
+    { "publ_id": 1, "publ_name": "Avalon Hill" },
+    { "publ_id": 2, "publ_name": "Multiman Publishing" },
+    { "publ_id": 3, "publ_name": "Le Franc Tireur" }
+],
+
+"publication": [
+    { "pub_id": 20, "pub_name": "MMP News", "publ_id": 2 }
+],
+
+"article": [
+    { "article_id": 200, "article_title": "MMP Today", "pub_id": 20 }
+]
+
+}

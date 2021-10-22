@@ -3,6 +3,7 @@ import { Link } from "react-router-dom" ;
 import { Menu, MenuList, MenuButton, MenuItem } from "@reach/menu-button" ;
 import { ArticleSearchResult2 } from "./ArticleSearchResult2.js" ;
 import "./ArticleSearchResult.css" ;
+import { PublisherSearchResult } from "./PublisherSearchResult.js" ;
 import { PublicationSearchResult } from "./PublicationSearchResult.js" ;
 import { PreviewableImage } from "./PreviewableImage.js" ;
 import { RatingStars } from "./RatingStars.js" ;
@@ -25,6 +26,7 @@ export class ArticleSearchResult extends React.Component
             this.props.data[ "article_snippet!" ] || this.props.data.article_snippet
         ) ;
         const pub = gAppRef.caches.publications[ this.props.data.pub_id ] ;
+        const publ = gAppRef.caches.publishers[ this.props.data.publ_id ] ;
         const image_url = gAppRef.makeFlaskImageUrl( "article", this.props.data.article_image_id ) ;
 
         // prepare the article's URL
@@ -118,6 +120,7 @@ export class ArticleSearchResult extends React.Component
         // NOTE: The "title" field is also given the CSS class "name" so that the normal CSS will apply to it.
         // Some tests also look for a generic ".name" class name when checking search results.
         const pub_display_name = pub ? PublicationSearchResult.makeDisplayName( pub ) : null ;
+        const publ_display_name = publ ? PublisherSearchResult.makeDisplayName( publ ) : null ;
         return ( <div className="search-result article"
                     ref = { r => gAppRef.setTestAttribute( r, "article_id", this.props.data.article_id ) }
             >
@@ -127,6 +130,12 @@ export class ArticleSearchResult extends React.Component
                     <Link className="publication" title="Show this publication."
                         to = { gAppRef.makeAppUrl( "/publication/" + this.props.data.pub_id ) }
                         dangerouslySetInnerHTML = {{ __html: pub_display_name }}
+                    />
+                }
+                { publ_display_name &&
+                    <Link className="publisher" title="Show this publisher."
+                        to = { gAppRef.makeAppUrl( "/publisher/" + this.props.data.publ_id ) }
+                        dangerouslySetInnerHTML = {{ __html: publ_display_name }}
                     />
                 }
                 <RatingStars rating={this.props.data.article_rating} title="Rate this article."

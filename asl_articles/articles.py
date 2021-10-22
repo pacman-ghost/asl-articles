@@ -21,7 +21,7 @@ from asl_articles.utils import get_request_args, clean_request_args, clean_tags,
 _logger = logging.getLogger( "db" )
 
 _FIELD_NAMES = [ "*article_title", "article_subtitle", "article_snippet", "article_pageno",
-    "article_url", "article_tags", "pub_id"
+    "article_url", "article_tags", "pub_id", "publ_id"
 ]
 
 # ---------------------------------------------------------------------
@@ -57,6 +57,7 @@ def get_article_vals( article, add_type=False ):
         "article_tags": decode_tags( article.article_tags ),
         "article_rating": article.article_rating,
         "pub_id": article.pub_id,
+        "publ_id": article.publ_id,
     }
     if add_type:
         vals[ "type" ] = "article"
