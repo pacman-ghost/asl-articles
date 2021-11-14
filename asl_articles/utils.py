@@ -39,19 +39,17 @@ def get_request_args( vals, arg_names, log=None ):
 
 def clean_request_args( vals, fields, warnings, logger ):
     """Clean incoming data."""
-    cleaned = {}
     for f in fields:
         if f.endswith( "_url" ):
             continue # nb: don't clean URL's
         f = _parse_arg_name( f )[ 0 ]
-        if isinstance( vals[f], str ):
-            val2 = clean_html( vals[f] )
-            if val2 != vals[f]:
-                vals[f] = val2
-                cleaned[f] = val2
-                logger.debug( "Cleaned HTML: %s => %s", f, val2 )
-                warnings.append( "Some values had HTML cleaned up." )
-    return cleaned
+        if not isinstance( vals[f], str ):
+            continue
+        val2 = clean_html( vals[f] )
+        if val2 != vals[f]:
+            vals[f] = val2
+            logger.debug( "Cleaned HTML: %s => %s", f, val2 )
+            warnings.append( "Some values had HTML cleaned up." )
 
 def _parse_arg_name( arg_name ):
     """Parse a request argument name."""
@@ -59,15 +57,15 @@ def _parse_arg_name( arg_name ):
         return ( arg_name[1:], True ) # required argument
     return ( arg_name, False ) # optional argument
 
-def make_ok_response( extras=None, updated=None, warnings=None ):
+def make_ok_response( extras=None, record=None, warnings=None ):
     """Generate a Flask 'success' response."""
     resp = { "status": "OK" }
     if extras:
         resp.update( extras )
-    if updated:
-        resp[ "updated" ] = updated
+    if record:
+        resp["record"] = record
     if warnings:
-        resp[ "warnings" ] = list( set( warnings ) ) # nb: remove duplicate messages
+        resp["warnings"] = list( set( warnings ) ) # nb: remove duplicate messages
     return jsonify( resp )
 
 # ---------------------------------------------------------------------

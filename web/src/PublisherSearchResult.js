@@ -7,7 +7,7 @@ import { PublicationSearchResult } from "./PublicationSearchResult.js"
 import { PreviewableImage } from "./PreviewableImage.js" ;
 import { PUBLISHER_EXCESS_PUBLICATION_THRESHOLD, PUBLISHER_EXCESS_ARTICLE_THRESHOLD } from "./constants.js" ;
 import { gAppRef } from "./App.js" ;
-import { makeCollapsibleList, pluralString, applyUpdatedVals, removeSpecialFields } from "./utils.js" ;
+import { makeCollapsibleList, pluralString, updateRecord } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -26,11 +26,7 @@ export class PublisherSearchResult extends React.Component
         const image_url = gAppRef.makeFlaskImageUrl( "publisher", this.props.data.publ_image_id ) ;
 
         // prepare the publications
-        let pubs = [] ;
-        for ( let pub of Object.entries(gAppRef.caches.publications) ) {
-            if ( pub[1].publ_id === this.props.data.publ_id )
-                pubs.push( pub[1] ) ;
-        }
+        let pubs = this.props.data.publications ;
         pubs.sort( (lhs,rhs) => {
             if ( lhs.pub_seqno && rhs.pub_seqno )
                 return rhs.pub_seqno - lhs.pub_seqno ;
@@ -98,53 +94,60 @@ export class PublisherSearchResult extends React.Component
         PreviewableImage.activatePreviewableImages( this ) ;
     }
 
-    static onNewPublisher( notify ) {
-        PublisherSearchResult2._doEditPublisher( {}, (newVals,refs) => {
-            axios.post( gAppRef.makeFlaskUrl( "/publisher/create", {list:1} ), newVals )
-            .then( resp => {
-                // update the cached publishers
-                gAppRef.caches.publishers = resp.data.publishers ;
-                // unload any updated values
-                applyUpdatedVals( newVals, newVals, resp.data.updated, refs ) ;
-                // update the UI with the new details
-                notify( resp.data.publ_id, newVals ) ;
-                if ( resp.data.warnings )
-                    gAppRef.showWarnings( "The new publisher was created OK.", resp.data.warnings ) ;
-                else
-                    gAppRef.showInfoToast( <div> The new publisher was created OK. </div> ) ;
-                gAppRef.closeModalForm() ;
-            } )
-            .catch( err => {
-                gAppRef.showErrorMsg( <div> Couldn't create the publisher: <div className="monospace"> {err.toString()} </div> </div> ) ;
+    static onNewPublisher() {
+        gAppRef.dataCache.get( [ "publishers", "publications" ], () => {
+            PublisherSearchResult2._doEditPublisher( {}, (newVals,refs) => {
+                axios.post(
+                    gAppRef.makeFlaskUrl( "/publisher/create" ), newVals
+                ).then( resp => {
+                    gAppRef.dataCache.refresh( [ "publishers" ] ) ;
+                    // update the UI
+                    const newPubl = resp.data.record ;
+                    gAppRef.prependSearchResult( newPubl ) ;
+                    // update the UI
+                    if ( resp.data.warnings )
+                        gAppRef.showWarnings( "The new publisher was created OK.", resp.data.warnings ) ;
+                    else
+                        gAppRef.showInfoToast( <div> The new publisher was created OK. </div> ) ;
+                    gAppRef.closeModalForm() ;
+                } ).catch( err => {
+                    gAppRef.showErrorMsg( <div> Couldn't create the publisher: <div className="monospace"> {err.toString()} </div> </div> ) ;
+                } ) ;
             } ) ;
         } ) ;
     }
 
     onEditPublisher() {
-        PublisherSearchResult2._doEditPublisher( this.props.data, (newVals,refs) => {
-            // send the updated details to the server
-            newVals.publ_id = this.props.data.publ_id ;
-            axios.post( gAppRef.makeFlaskUrl( "/publisher/update", {list:1} ), newVals )
-            .then( resp => {
-                // update the cached publishers
-                gAppRef.caches.publishers = resp.data.publishers ;
-                // update the UI with the new details
-                applyUpdatedVals( this.props.data, newVals, resp.data.updated, refs ) ;
-                removeSpecialFields( this.props.data ) ;
-                if ( newVals.imageData )
-                    gAppRef.forceFlaskImageReload( "publisher", newVals.publ_id ) ;
-                this.forceUpdate() ;
-                PreviewableImage.activatePreviewableImages( this ) ;
-                if ( resp.data.warnings )
-                    gAppRef.showWarnings( "The publisher was updated OK.", resp.data.warnings ) ;
-                else
-                    gAppRef.showInfoToast( <div> The publisher was updated OK. </div> ) ;
-                gAppRef.closeModalForm() ;
-            } )
-            .catch( err => {
-                gAppRef.showErrorMsg( <div> Couldn't update the publisher: <div className="monospace"> {err.toString()} </div> </div> ) ;
-            } ) ;
-        } );
+        gAppRef.dataCache.get( [ "publishers", "publications" ], () => {
+            PublisherSearchResult2._doEditPublisher( this.props.data, (newVals,refs) => {
+                // send the updated details to the server
+                newVals.publ_id = this.props.data.publ_id ;
+                axios.post(
+                    gAppRef.makeFlaskUrl( "/publisher/update" ), newVals
+                ).then( resp => {
+                    gAppRef.dataCache.refresh( [ "publishers" ], () => {
+                        // update the UI
+                        const publ = resp.data.record ;
+                        updateRecord( this.props.data, publ ) ;
+                        for ( let pub of publ.publications )
+                            gAppRef.updatePublication( pub.pub_id ) ;
+                        // update the UI
+                        if ( newVals.imageData )
+                            gAppRef.forceFlaskImageReload( "publisher", newVals.publ_id ) ;
+                        this.forceUpdate() ;
+                        PreviewableImage.activatePreviewableImages( this ) ;
+                        // update the UI
+                        if ( resp.data.warnings )
+                            gAppRef.showWarnings( "The publisher was updated OK.", resp.data.warnings ) ;
+                        else
+                            gAppRef.showInfoToast( <div> The publisher was updated OK. </div> ) ;
+                        gAppRef.closeModalForm() ;
+                    } ) ;
+                } ).catch( err => {
+                    gAppRef.showErrorMsg( <div> Couldn't update the publisher: <div className="monospace"> {err.toString()} </div> </div> ) ;
+                } ) ;
+            } );
+        } ) ;
     }
 
     onDeletePublisher() {
@@ -176,11 +179,10 @@ export class PublisherSearchResult extends React.Component
             gAppRef.ask( content, "ask", {
                 "OK": () => {
                     // delete the publisher on the server
-                    axios.get( gAppRef.makeFlaskUrl( "/publisher/delete/" + this.props.data.publ_id, {list:1} ) )
-                    .then( resp => {
-                        // update the cached publishers
-                        gAppRef.caches.publishers = resp.data.publishers ;
-                        gAppRef.caches.publications = resp.data.publications ; // nb: because of cascading deletes
+                    axios.get(
+                        gAppRef.makeFlaskUrl( "/publisher/delete/" + this.props.data.publ_id )
+                    ).then( resp => {
+                        gAppRef.dataCache.refresh( [ "publishers", "publications" ] ) ;
                         // update the UI
                         this.props.onDelete( "publ_id", this.props.data.publ_id ) ;
                         resp.data.deletedPublications.forEach( pub_id => {
@@ -189,12 +191,12 @@ export class PublisherSearchResult extends React.Component
                         resp.data.deletedArticles.forEach( article_id => {
                             this.props.onDelete( "article_id", article_id ) ;
                         } ) ;
+                        // update the UI
                         if ( resp.data.warnings )
                             gAppRef.showWarnings( "The publisher was deleted.", resp.data.warnings ) ;
                         else
                             gAppRef.showInfoToast( <div> The publisher was deleted. </div> ) ;
-                    } )
-                    .catch( err => {
+                    } ).catch( err => {
                         gAppRef.showErrorToast( <div> Couldn't delete the publisher: <div className="monospace"> {err.toString()} </div> </div> ) ;
                     } ) ;
                 },
@@ -202,11 +204,11 @@ export class PublisherSearchResult extends React.Component
             } ) ;
         } ;
         // get the publisher details
-        axios.get( gAppRef.makeFlaskUrl( "/publisher/" + this.props.data.publ_id ) )
-        .then( resp => {
+        axios.get(
+            gAppRef.makeFlaskUrl( "/publisher/" + this.props.data.publ_id )
+        ).then( resp => {
             doDelete( resp.data.nPublications, resp.data.nArticles ) ;
-        } )
-        .catch( err => {
+        } ).catch( err => {
             doDelete( err ) ;
         } ) ;
     }

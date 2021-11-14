@@ -5,6 +5,8 @@ import { App, gAppRef } from "./App" ;
 import { PublicationSearchResult } from "./PublicationSearchResult" ;
 import "./index.css" ;
 
+const axios = require( "axios" ) ;
+
 // --------------------------------------------------------------------
 
 ReactDOM.render(
@@ -38,8 +40,12 @@ ReactDOM.render(
             <Route path="/author/:authorId" render={ (props) => <App {...props} type="author" key={"author:"+props.match.params.authorId}
                 doSearch = { () => gAppRef.runSpecialSearch( "/search/author/"+gAppRef.props.match.params.authorId, null,
                     () => {
-                        const author = gAppRef.caches.authors[ gAppRef.props.match.params.authorId ] ;
-                        gAppRef.setWindowTitle( author ? author.author_name : "Unknown author" )
+                        axios.get(
+                            gAppRef.makeFlaskUrl( "/author/" + gAppRef.props.match.params.authorId )
+                        ).then( resp => {
+                            const author = resp.data ;
+                            gAppRef.setWindowTitle( author ? author.author_name : "Unknown author" )
+                        } ) ;
                     }
                 ) }
             /> } />

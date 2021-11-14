@@ -10,7 +10,7 @@ from sqlalchemy.sql.expression import func
 from asl_articles import app, db
 from asl_articles.models import Publication, PublicationImage, Article
 from asl_articles.articles import get_article_vals, get_article_sort_key
-from asl_articles.tags import do_get_tags
+import asl_articles.publishers
 from asl_articles import search
 from asl_articles.utils import get_request_args, clean_request_args, clean_tags, encode_tags, decode_tags, \
     apply_attrs, make_ok_response
@@ -24,14 +24,10 @@ _FIELD_NAMES = [ "*pub_name", "pub_edition", "pub_description", "pub_date", "pub
 @app.route( "/publications" )
 def get_publications():
     """Get all publications."""
-    return jsonify( do_get_publications() )
-
-def do_get_publications():
-    """Get all publications."""
-    # NOTE: The front-end maintains a cache of the publications, so as a convenience,
-    # we return the current list as part of the response to a create/update/delete operation.
-    results = Publication.query.all()
-    return { r.pub_id: get_publication_vals(r,False) for r in results }
+    return jsonify( {
+        pub.pub_id: get_publication_vals( pub, False, False )
+        for pub in Publication.query.all()
+    } )
 
 # ---------------------------------------------------------------------
 
@@ -42,16 +38,20 @@ def get_publication( pub_id ):
     pub = Publication.query.get( pub_id )
     if not pub:
         abort( 404 )
-    vals = get_publication_vals( pub, False )
+    vals = get_publication_vals( pub,
+        request.args.get( "include_articles" ),
+        request.args.get( "deep" )
+    )
     # include the number of associated articles
     query = Article.query.filter_by( pub_id = pub_id )
     vals[ "nArticles" ] = query.count()
     _logger.debug( "- %s ; #articles=%d", pub, vals["nArticles"] )
     return jsonify( vals )
 
-def get_publication_vals( pub, include_articles, add_type=False ):
+def get_publication_vals( pub, include_articles, deep ):
     """Extract public fields from a Publication record."""
     vals = {
+        "_type": "publication",
         "pub_id": pub.pub_id,
         "pub_name": pub.pub_name,
         "pub_edition": pub.pub_edition,
@@ -66,9 +66,11 @@ def get_publication_vals( pub, include_articles, add_type=False ):
     }
     if include_articles:
         articles = sorted( pub.articles, key=get_article_sort_key )
-        vals[ "articles" ] = [ get_article_vals( a ) for a in articles ]
-    if add_type:
-        vals[ "type" ] = "publication"
+        vals[ "articles" ] = [ get_article_vals( a, False ) for a in articles ]
+    if deep:
+        vals[ "_parent_publ" ] = asl_articles.publishers.get_publisher_vals(
+            pub.parent_publ, False, False
+        ) if pub.parent_publ else None
     return vals
 
 def get_publication_sort_key( pub ):
@@ -96,30 +98,25 @@ def create_publication():
         log = ( _logger, "Create publication:" )
     )
     warnings = []
-    updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
+    clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
 
     # NOTE: Tags are stored in the database using \n as a separator, so we need to encode *after* cleaning them.
     cleaned_tags = clean_tags( vals.get("pub_tags"), warnings )
     vals[ "pub_tags" ] = encode_tags( cleaned_tags )
-    if cleaned_tags != vals.get( "pub_tags" ):
-        updated[ "pub_tags" ] = decode_tags( vals["pub_tags"] )
 
     # create the new publication
     vals[ "time_created" ] = datetime.datetime.now()
     pub = Publication( **vals )
     db.session.add( pub )
     _set_seqno( pub, pub.publ_id )
-    _save_image( pub, updated )
+    _save_image( pub )
     db.session.commit()
     _logger.debug( "- New ID: %d", pub.pub_id )
     search.add_or_update_publication( None, pub, None )
 
     # generate the response
-    extras = { "pub_id": pub.pub_id }
-    if request.args.get( "list" ):
-        extras[ "publications" ] = do_get_publications()
-        extras[ "tags" ] = do_get_tags()
-    return make_ok_response( updated=updated, extras=extras, warnings=warnings )
+    vals = get_publication_vals( pub, False, True )
+    return make_ok_response( record=vals, warnings=warnings )
 
 def _set_seqno( pub, publ_id ):
     """Set a publication's seq#."""
@@ -139,7 +136,7 @@ def _set_seqno( pub, publ_id ):
     else:
         pub.pub_seqno = None
 
-def _save_image( pub, updated ):
+def _save_image( pub ):
     """Save the publication's image."""
 
     # check if a new image was provided
@@ -151,7 +148,7 @@ def _save_image( pub, updated ):
     PublicationImage.query.filter( PublicationImage.pub_id == pub.pub_id ).delete()
     if image_data == "{remove}":
         # NOTE: The front-end sends this if it wants the publication to have no image.
-        updated[ "pub_image_id" ] = None
+        pub.pub_image_id = None
         return
 
     # add the new image to the database
@@ -161,7 +158,6 @@ def _save_image( pub, updated ):
     db.session.add( img )
     db.session.flush()
     _logger.debug( "Created new image: %s, #bytes=%d", fname, len(image_data) )
-    updated[ "pub_image_id" ] = pub.pub_id
 
 # ---------------------------------------------------------------------
 
@@ -175,14 +171,12 @@ def update_publication():
         log = ( _logger, "Update publication: id={}".format( pub_id ) )
     )
     warnings = []
-    updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
+    clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
     article_order = request.json.get( "article_order" )
 
     # NOTE: Tags are stored in the database using \n as a separator, so we need to encode *after* cleaning them.
     cleaned_tags = clean_tags( vals.get("pub_tags"), warnings )
     vals[ "pub_tags" ] = encode_tags( cleaned_tags )
-    if cleaned_tags != vals.get( "pub_tags" ):
-        updated[ "pub_tags" ] = decode_tags( vals["pub_tags"] )
 
     # update the publication
     pub = Publication.query.get( pub_id )
@@ -192,7 +186,7 @@ def update_publication():
         _set_seqno( pub, vals["publ_id"] )
     vals[ "time_updated" ] = datetime.datetime.now()
     apply_attrs( pub, vals )
-    _save_image( pub, updated )
+    _save_image( pub )
     if article_order:
         query = Article.query.filter( Article.pub_id == pub_id )
         articles = { int(a.article_id): a for a in query }
@@ -212,11 +206,8 @@ def update_publication():
     search.add_or_update_publication( None, pub, None )
 
     # generate the response
-    extras = {}
-    if request.args.get( "list" ):
-        extras[ "publications" ] = do_get_publications()
-        extras[ "tags" ] = do_get_tags()
-    return make_ok_response( updated=updated, extras=extras, warnings=warnings )
+    vals = get_publication_vals( pub, False, True )
+    return make_ok_response( record=vals, warnings=warnings )
 
 # ---------------------------------------------------------------------
 
@@ -243,8 +234,5 @@ def delete_publication( pub_id ):
     search.delete_articles( deleted_articles )
 
     # generate the response
-    extras = { "deleteArticles": deleted_articles }
-    if request.args.get( "list" ):
-        extras[ "publications" ] = do_get_publications()
-        extras[ "tags" ] = do_get_tags()
+    extras = { "deletedArticles": deleted_articles }
     return make_ok_response( extras=extras )

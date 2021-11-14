@@ -76,6 +76,8 @@ export function confirmDiscardChanges( oldVals, newVals, accept ) {
     }
 }
 
+// --------------------------------------------------------------------
+
 export function sortSelectableOptions( options ) {
     options.sort( (lhs,rhs) => {
         lhs = ReactDOMServer.renderToStaticMarkup( lhs.label ) ;
@@ -100,32 +102,21 @@ export function unloadCreatableSelect( sel ) {
     return vals2 ;
 }
 
-// --------------------------------------------------------------------
-
-export function applyUpdatedVals( vals, newVals, updated, refs ) {
-    // NOTE: After the user has edited an object, we send the new values to the server to store in
-    // the database, but the server will sometimes return modified values back e.g. because unsafe HTML
-    // was removed, or the ID's of newly-created authors. This function applies these new values back
-    // into the original table of values.
-    for ( let r in refs )
-        vals[ r ] = (updated && updated[r] !== undefined) ? updated[r] : newVals[r] ;
-    // NOTE: We sometimes want to force an entry into the vals that doesn't have
-    // an associated ref (i.e. UI element) e.g. XXX_image_id.
-    for ( let key in updated )
-        vals[ key ] = updated[ key ] ;
-}
-
-export function removeSpecialFields( vals ) {
-    // NOTE: This removes special fields sent to us by the backend containing content that has search terms highlighted.
-    // We only really need to remove author names for articles, since the backend sends us these (possibly highlighted)
-    // as well as the ID's, but they could be incorrect after the user has edited an article. However, for consistency,
-    // we remove all these special fields for everything.
-    let keysToDelete = [] ;
-    for ( let key in vals ) {
-        if ( key[ key.length-1 ] === "!" )
-            keysToDelete.push( key ) ;
+export function makeTagLists( tags ) {
+    // convert the tags into a list suitable for CreatableSelect
+    // NOTE: react-select uses the "value" field to determine which choices have already been selected
+    // and thus should not be shown in the droplist of available choices.
+    let tagList = [] ;
+    if ( tags ) {
+        tags.map(
+            (tag) => tagList.push( { value: tag, label: tag } )
+        ) ;
     }
-    keysToDelete.forEach( k => delete vals[k] ) ;
+    // create another list for all known tags
+    let allTags = gAppRef.dataCache.data.tags.map(
+        (tag) => { return { value: tag[0], label: tag[0] } }
+    ) ;
+    return [ tagList, allTags ] ;
 }
 
 // --------------------------------------------------------------------
@@ -169,6 +160,12 @@ export function parseScenarioDisplayName( displayName ) {
 }
 
 // --------------------------------------------------------------------
+
+export function updateRecord( rec, newVals ) {
+    // update a record with new values
+    for ( let key in newVals )
+        rec[ key ] = newVals[ key ] ;
+}
 
 export function makeCollapsibleList( caption, vals, maxItems, style ) {
     if ( ! vals || vals.length === 0 )

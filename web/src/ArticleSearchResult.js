@@ -8,7 +8,7 @@ import { PublicationSearchResult } from "./PublicationSearchResult.js" ;
 import { PreviewableImage } from "./PreviewableImage.js" ;
 import { RatingStars } from "./RatingStars.js" ;
 import { gAppRef } from "./App.js" ;
-import { makeScenarioDisplayName, applyUpdatedVals, removeSpecialFields, makeCommaList, isLink } from "./utils.js" ;
+import { makeScenarioDisplayName, updateRecord, makeCommaList, isLink } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -25,8 +25,8 @@ export class ArticleSearchResult extends React.Component
         const display_snippet = PreviewableImage.adjustHtmlForPreviewableImages(
             this.props.data[ "article_snippet!" ] || this.props.data.article_snippet
         ) ;
-        const pub = gAppRef.caches.publications[ this.props.data.pub_id ] ;
-        const publ = gAppRef.caches.publishers[ this.props.data.publ_id ] ;
+        const parent_pub = this.props.data._parent_pub ;
+        const parent_publ = this.props.data._parent_publ ;
         const image_url = gAppRef.makeFlaskImageUrl( "article", this.props.data.article_image_id ) ;
 
         // prepare the article's URL
@@ -34,50 +34,33 @@ export class ArticleSearchResult extends React.Component
         if ( article_url ) {
             if ( ! isLink( article_url ) )
                 article_url = gAppRef.makeExternalDocUrl( article_url ) ;
-        } else if ( pub && pub.pub_url ) {
-            article_url = gAppRef.makeExternalDocUrl( pub.pub_url ) ;
+        } else if ( parent_pub && parent_pub.pub_url ) {
+            article_url = gAppRef.makeExternalDocUrl( parent_pub.pub_url ) ;
             if ( article_url.substr( article_url.length-4 ) === ".pdf" && this.props.data.article_pageno )
                 article_url += "#page=" + this.props.data.article_pageno ;
         }
 
         // prepare the authors
         let authors = [] ;
-        if ( this.props.data[ "authors!" ] ) {
-            // the backend has provided us with a list of author names (possibly highlighted) - use them directly
-            for ( let i=0 ; i < this.props.data["authors!"].length ; ++i ) {
-                const author_id = this.props.data.article_authors[ i ] ;
-                authors.push( <Link key={i} className="author" title="Show articles from this author."
-                    to = { gAppRef.makeAppUrl( "/author/" + author_id ) }
-                    dangerouslySetInnerHTML = {{ __html: this.props.data["authors!"][i] }}
-                /> ) ;
-            }
-        } else {
-            // we only have a list of author ID's (the normal case) - figure out what the corresponding names are
-            for ( let i=0 ; i < this.props.data.article_authors.length ; ++i ) {
-                const author_id = this.props.data.article_authors[ i ] ;
-                authors.push( <Link key={i} className="author" title="Show articles from this author."
-                    to = { gAppRef.makeAppUrl( "/author/" + author_id ) }
-                    dangerouslySetInnerHTML = {{ __html: gAppRef.caches.authors[ author_id ].author_name }}
-                /> ) ;
-            }
+        const author_names_hilite = this.props.data[ "authors!" ] ;
+        for ( let i=0 ; i < this.props.data.article_authors.length ; ++i ) {
+            const author = this.props.data.article_authors[ i ] ;
+            const author_name = author_names_hilite ? author_names_hilite[i] : author.author_name ;
+            authors.push( <Link key={i} className="author" title="Show articles from this author."
+                to = { gAppRef.makeAppUrl( "/author/" + author.author_id ) }
+                dangerouslySetInnerHTML = {{ __html: author_name }}
+            /> ) ;
         }
 
         // prepare the scenarios
         let scenarios = [] ;
-        if ( this.props.data[ "scenarios!" ] ) {
-            // the backend has provided us with a list of scenarios (possibly highlighted) - use them directly
-            this.props.data[ "scenarios!" ].forEach( (scenario,i) =>
-                scenarios.push( <span key={i} className="scenario"
-                    dangerouslySetInnerHTML = {{ __html: makeScenarioDisplayName( scenario ) }}
-                /> )
-            ) ;
-        } else {
-            // we only have a list of scenario ID's (the normal case) - figure out what the corresponding names are
-            this.props.data.article_scenarios.forEach( (scenario,i) =>
-                scenarios.push( <span key={i} className="scenario"
-                    dangerouslySetInnerHTML = {{ __html: makeScenarioDisplayName( gAppRef.caches.scenarios[scenario] ) }}
-                /> )
-            ) ;
+        const scenario_names_hilite = this.props.data[ "scenarios!" ] ;
+        for ( let i=0 ; i < this.props.data.article_scenarios.length ; ++i ) {
+            const scenario = this.props.data.article_scenarios[ i ] ;
+            const scenario_display_name = scenario_names_hilite ? scenario_names_hilite[i] : makeScenarioDisplayName(scenario) ;
+            scenarios.push( <span key={i} className="scenario"
+                dangerouslySetInnerHTML = {{ __html: scenario_display_name }}
+            /> ) ;
         }
 
         // prepare the tags
@@ -119,8 +102,8 @@ export class ArticleSearchResult extends React.Component
 
         // NOTE: The "title" field is also given the CSS class "name" so that the normal CSS will apply to it.
         // Some tests also look for a generic ".name" class name when checking search results.
-        const pub_display_name = pub ? PublicationSearchResult.makeDisplayName( pub ) : null ;
-        const publ_display_name = publ ? PublisherSearchResult.makeDisplayName( publ ) : null ;
+        const pub_display_name = parent_pub ? PublicationSearchResult.makeDisplayName( parent_pub ) : null ;
+        const publ_display_name = parent_publ ? PublisherSearchResult.makeDisplayName( parent_publ ) : null ;
         return ( <div className="search-result article"
                     ref = { r => gAppRef.setTestAttribute( r, "article_id", this.props.data.article_id ) }
             >
@@ -179,61 +162,71 @@ export class ArticleSearchResult extends React.Component
         } ) ;
     }
 
-    static onNewArticle( notify ) {
-        ArticleSearchResult2._doEditArticle( {}, (newVals,refs) => {
-            axios.post( gAppRef.makeFlaskUrl( "/article/create", {list:1} ), newVals )
-            .then( resp => {
-                // update the caches
-                gAppRef.caches.authors = resp.data.authors ;
-                gAppRef.caches.scenarios = resp.data.scenarios ;
-                gAppRef.caches.tags = resp.data.tags ;
-                // unload any updated values
-                applyUpdatedVals( newVals, newVals, resp.data.updated, refs ) ;
-                // update the UI with the new details
-                notify( resp.data.article_id, newVals ) ;
-                if ( resp.data.warnings )
-                    gAppRef.showWarnings( "The new article was created OK.", resp.data.warnings ) ;
-                else
-                    gAppRef.showInfoToast( <div> The new article was created OK. </div> ) ;
-                if ( resp.data._publication )
-                    gAppRef.updatePublications( [ resp.data._publication ] ) ;
-                gAppRef.closeModalForm() ;
-            } )
-            .catch( err => {
-                gAppRef.showErrorMsg( <div> Couldn't create the article: <div className="monospace"> {err.toString()} </div> </div> ) ;
+    static onNewArticle() {
+        gAppRef.dataCache.get( [ "publishers", "publications", "authors", "scenarios", "tags" ], () => {
+            ArticleSearchResult2._doEditArticle( {}, (newVals,refs) => {
+                axios.post(
+                    gAppRef.makeFlaskUrl( "/article/create" ), newVals
+                ).then( resp => {
+                    gAppRef.dataCache.refresh( [ "authors", "scenarios", "tags" ] ) ;
+                    // update the UI
+                    const newArticle = resp.data.record ;
+                    gAppRef.prependSearchResult( newArticle ) ;
+                    if ( newArticle._parent_pub )
+                        gAppRef.updatePublication( newArticle._parent_pub.pub_id ) ;
+                    else if ( newArticle._parent_publ )
+                        gAppRef.updatePublisher( newArticle._parent_publ.publ_id ) ;
+                    // update the UI
+                    if ( resp.data.warnings )
+                        gAppRef.showWarnings( "The new article was created OK.", resp.data.warnings ) ;
+                    else
+                        gAppRef.showInfoToast( <div> The new article was created OK. </div> ) ;
+                    gAppRef.closeModalForm() ;
+                } ).catch( err => {
+                    gAppRef.showErrorMsg( <div> Couldn't create the article: <div className="monospace"> {err.toString()} </div> </div> ) ;
+                } ) ;
             } ) ;
         } ) ;
     }
 
     onEditArticle() {
-        ArticleSearchResult2._doEditArticle( this.props.data, (newVals,refs) => {
-            // send the updated details to the server
-            newVals.article_id = this.props.data.article_id ;
-            axios.post( gAppRef.makeFlaskUrl( "/article/update", {list:1} ), newVals )
-            .then( resp => {
-                // update the caches
-                gAppRef.caches.authors = resp.data.authors ;
-                gAppRef.caches.scenarios = resp.data.scenarios ;
-                gAppRef.caches.tags = resp.data.tags ;
-                // update the UI with the new details
-                applyUpdatedVals( this.props.data, newVals, resp.data.updated, refs ) ;
-                removeSpecialFields( this.props.data ) ;
-                if ( newVals.imageData )
-                    gAppRef.forceFlaskImageReload( "article", newVals.article_id ) ;
-                this.forceUpdate() ;
-                PreviewableImage.activatePreviewableImages( this ) ;
-                if ( resp.data.warnings )
-                    gAppRef.showWarnings( "The article was updated OK.", resp.data.warnings ) ;
-                else
-                    gAppRef.showInfoToast( <div> The article was updated OK. </div> ) ;
-                if ( resp.data._publications )
-                    gAppRef.updatePublications( resp.data._publications ) ;
-                gAppRef.closeModalForm() ;
-            } )
-            .catch( err => {
-                gAppRef.showErrorMsg( <div> Couldn't update the article: <div className="monospace"> {err.toString()} </div> </div> ) ;
-            } ) ;
-        } );
+        gAppRef.dataCache.get( [ "publishers", "publications", "authors", "scenarios", "tags" ], () => {
+            ArticleSearchResult2._doEditArticle( this.props.data, (newVals,refs) => {
+                // send the updated details to the server
+                newVals.article_id = this.props.data.article_id ;
+                axios.post(
+                    gAppRef.makeFlaskUrl( "/article/update" ), newVals
+                ).then( resp => {
+                    gAppRef.dataCache.refresh( [ "authors", "scenarios", "tags" ] ) ;
+                    // update the UI
+                    const article = resp.data.record ;
+                    const orig_parent_pub = this.props.data._parent_pub ;
+                    const orig_parent_publ = this.props.data._parent_publ ;
+                    updateRecord( this.props.data, article ) ;
+                    if ( article._parent_pub )
+                        gAppRef.updatePublication( article._parent_pub.pub_id ) ;
+                    else if ( article._parent_publ )
+                        gAppRef.updatePublisher( article._parent_publ.publ_id ) ;
+                    if ( orig_parent_pub )
+                        gAppRef.updatePublication( orig_parent_pub.pub_id ) ;
+                    if ( orig_parent_publ )
+                        gAppRef.updatePublisher( orig_parent_publ.publ_id ) ;
+                    // update the UI
+                    if ( newVals.imageData )
+                        gAppRef.forceFlaskImageReload( "article", newVals.article_id ) ;
+                    this.forceUpdate() ;
+                    PreviewableImage.activatePreviewableImages( this ) ;
+                    // update the UI
+                    if ( resp.data.warnings )
+                        gAppRef.showWarnings( "The article was updated OK.", resp.data.warnings ) ;
+                    else
+                        gAppRef.showInfoToast( <div> The article was updated OK. </div> ) ;
+                    gAppRef.closeModalForm() ;
+                } ).catch( err => {
+                    gAppRef.showErrorMsg( <div> Couldn't update the article: <div className="monospace"> {err.toString()} </div> </div> ) ;
+                } ) ;
+            } );
+        } ) ;
     }
 
     onDeleteArticle() {
@@ -245,21 +238,22 @@ export class ArticleSearchResult extends React.Component
         gAppRef.ask( content, "ask", {
             "OK": () => {
                 // delete the article on the server
-                axios.get( gAppRef.makeFlaskUrl( "/article/delete/" + this.props.data.article_id, {list:1} ) )
-                .then( resp => {
-                    // update the caches
-                    gAppRef.caches.authors = resp.data.authors ;
-                    gAppRef.caches.tags = resp.data.tags ;
+                axios.get(
+                    gAppRef.makeFlaskUrl( "/article/delete/" + this.props.data.article_id )
+                ).then( resp => {
+                    gAppRef.dataCache.refresh( [ "authors", "tags" ] ) ;
                     // update the UI
                     this.props.onDelete( "article_id", this.props.data.article_id ) ;
+                    if ( this.props.data._parent_pub )
+                        gAppRef.updatePublication( this.props.data._parent_pub.pub_id ) ;
+                    else if ( this.props.data._parent_publ )
+                        gAppRef.updatePublisher( this.props.data._parent_publ.publ_id ) ;
+                    // update the UI
                     if ( resp.data.warnings )
                         gAppRef.showWarnings( "The article was deleted.", resp.data.warnings ) ;
                     else
                         gAppRef.showInfoToast( <div> The article was deleted. </div> ) ;
-                    if ( resp.data._publication )
-                        gAppRef.updatePublications( [ resp.data._publication ] ) ;
-                } )
-                .catch( err => {
+                } ).catch( err => {
                     gAppRef.showErrorToast( <div> Couldn't delete the article: <div className="monospace"> {err.toString()} </div> </div> ) ;
                 } ) ;
             },

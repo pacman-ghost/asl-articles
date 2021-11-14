@@ -84,7 +84,7 @@ export class PublisherSearchResult2
 
         function checkForDupe( publName ) {
             // check for an existing publisher
-            for ( let publ of Object.entries(gAppRef.caches.publishers) ) {
+            for ( let publ of Object.entries( gAppRef.dataCache.data.publishers ) ) {
                 if ( ciCompare( publName, publ[1].publ_name ) === 0 )
                     return true ;
             }

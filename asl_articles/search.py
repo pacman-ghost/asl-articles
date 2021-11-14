@@ -161,17 +161,13 @@ def search_article( article_id ):
     article = Article.query.get( article_id )
     if not article:
         return jsonify( [] )
-    article = get_article_vals( article, True )
-    _create_aslrb_links( article )
-    results = [ article ]
-    if article["pub_id"]:
-        pub = Publication.query.get( article["pub_id"] )
-        if pub:
-            results.append( get_publication_vals( pub, True, True ) )
-    if article["publ_id"]:
-        publ = Publisher.query.get( article["publ_id"] )
-        if publ:
-            results.append( get_publisher_vals( publ, True, True ) )
+    vals = get_article_vals( article, True )
+    _create_aslrb_links( vals )
+    results = [ vals ]
+    if article.parent_pub:
+        results.append( get_publication_vals( article.parent_pub, True, True ) )
+    if article.parent_publ:
+        results.append( get_publisher_vals( article.parent_publ, True, True ) )
     return jsonify( results )
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -305,7 +301,7 @@ def _do_fts_search( fts_query_string, col_names, results=None ): #pylint: disabl
 
             # prepare the result for the front-end
             result = globals()[ "_get_{}_vals".format( owner_type ) ]( obj )
-            result[ "type" ] = owner_type
+            result[ "_type" ] = owner_type
             result[ "rank" ] = row[1]
 
             # return highlighted versions of the content to the caller

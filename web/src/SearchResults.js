@@ -43,22 +43,22 @@ export class SearchResults extends React.Component
             // render the search results
             results = [] ;
             this.props.searchResults.forEach( sr => {
-                if ( sr.type === "publisher" ) {
+                if ( sr._type === "publisher" ) {
                     results.push( <PublisherSearchResult key={"publisher:"+sr.publ_id} data={sr}
                         onDelete = { (n,v) => this.onDeleteSearchResult( n, v ) }
                     /> ) ;
-                } else if ( sr.type === "publication" ) {
+                } else if ( sr._type === "publication" ) {
                     results.push( <PublicationSearchResult key={"publication:"+sr.pub_id} data={sr}
                         onDelete = { (n,v) => this.onDeleteSearchResult( n, v ) }
-                        onArticleClick = { this.props.type === "publication" ? (a) => scrollToArticle(a) : null }
+                        onArticleClick = { (a) => scrollToArticle(a) }
                     /> ) ;
-                } else if ( sr.type === "article" ) {
+                } else if ( sr._type === "article" ) {
                     results.push( <ArticleSearchResult key={"article:"+sr.article_id} data={sr}
                         onDelete = { (n,v) => this.onDeleteSearchResult( n, v ) }
                         ref = { r => articleRefs[sr.article_id] = r }
                     /> ) ;
                 } else {
-                    gAppRef.logInternalError( "Unknown search result type.", "srType = "+sr.type ) ;
+                    gAppRef.logInternalError( "Unknown search result type.", "srType = "+sr._type ) ;
                 }
             } ) ;
         }

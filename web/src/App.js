@@ -12,6 +12,7 @@ import { PublicationSearchResult } from "./PublicationSearchResult" ;
 import { ArticleSearchResult } from "./ArticleSearchResult" ;
 import ModalForm from "./ModalForm";
 import AskDialog from "./AskDialog" ;
+import { DataCache } from "./DataCache" ;
 import { PreviewableImage } from "./PreviewableImage" ;
 import { makeSmartBulletList } from "./utils.js" ;
 import { APP_NAME } from "./constants.js" ;
@@ -36,10 +37,13 @@ export class App extends React.Component
             searchSeqNo: 0,
             modalForm: null,
             askDialog: null,
-            startupTasks: [ "caches.publishers", "caches.publications", "caches.authors", "caches.scenarios", "caches.tags" ],
+            startupTasks: [ "dummy" ], // FUDGE! We need at least one startup task.
         } ;
         gAppRef = this ;
         this.setWindowTitle( null ) ;
+
+        // initialize the data cache
+        this.dataCache = new DataCache() ;
 
         // initialize
         this.args = queryString.parse( window.location.search ) ;
@@ -98,13 +102,13 @@ export class App extends React.Component
                         <img src="/images/icons/tips.png" alt="Show tip articles." /> Show tips
                     </MenuItem>
                     <div className="divider" />
-                    <MenuItem id="menu-new-publisher" onSelect={ () => PublisherSearchResult.onNewPublisher( this._onNewPublisher.bind(this) ) } >
+                    <MenuItem id="menu-new-publisher" onSelect={PublisherSearchResult.onNewPublisher} >
                         <img src="/images/icons/publisher.png" alt="New publisher." /> New publisher
                     </MenuItem>
-                    <MenuItem id="menu-new-publication" onSelect={ () => PublicationSearchResult.onNewPublication( this._onNewPublication.bind(this) ) } >
+                    <MenuItem id="menu-new-publication" onSelect={PublicationSearchResult.onNewPublication} >
                         <img src="/images/icons/publication.png" alt="New publication." /> New publication
                     </MenuItem>
-                    <MenuItem id="menu-new-article" onSelect={ () => ArticleSearchResult.onNewArticle( this._onNewArticle.bind(this) ) } >
+                    <MenuItem id="menu-new-article" onSelect={ArticleSearchResult.onNewArticle} >
                         <img src="/images/icons/article.png" alt="New article." /> New article
                     </MenuItem>
                 </MenuList>
@@ -122,7 +126,6 @@ export class App extends React.Component
                 <SearchResults ref={this._searchResultsRef}
                     seqNo = {this.state.searchSeqNo}
                     searchResults = {this.state.searchResults}
-                    type = {this.props.type}
                 />
             </div> ) ;
         }
@@ -157,30 +160,16 @@ export class App extends React.Component
         // check if the server started up OK
         let on_startup_ok = () => {
             // the backend server started up OK, continue our startup process
-            // initialize the caches
-            // NOTE: We maintain caches of key objects, so that we can quickly populate droplists. The backend server returns
-            // updated lists after any operation that could change them (create/update/delete), which is simpler and less error-prone
-            // than trying to manually keep our caches in sync. It's less efficient, but it won't happen too often, there won't be
-            // too many entries, and the database server is local.
-            this.caches = {} ;
-            [ "publishers", "publications", "authors", "scenarios", "tags" ].forEach( type => {
-                axios.get( this.makeFlaskUrl( "/" + type ) )
-                .then( resp => {
-                    this.caches[ type ] = resp.data ;
-                    this._onStartupTask( "caches." + type ) ;
-                } )
-                .catch( err => {
-                    this.showErrorToast( <div> Couldn't load the {type}: <div className="monospace"> {err.toString()} </div> </div> ) ;
-                } ) ;
-            } ) ;
+            this._onStartupTask( "dummy" ) ;
         }
         let on_startup_failure = () => {
             // the backend server had problems during startup; we hide the spinner
             // and leave the error message(s) on-screen.
             document.getElementById( "loading" ).style.display = "none" ;
         }
-        axios.get( this.makeFlaskUrl( "/startup-messages" ) )
-        .then( resp => {
+        axios.get(
+            this.makeFlaskUrl( "/startup-messages" )
+        ).then( resp => {
             // show any messages logged by the backend server as it started up
             [ "info", "warning", "error" ].forEach( msgType => {
                 if ( resp.data[ msgType ] ) {
@@ -200,8 +189,7 @@ export class App extends React.Component
                 on_startup_failure() ;
             else
                 on_startup_ok() ;
-        } )
-        .catch( err => {
+        } ).catch( err => {
             let errorMsg = err.toString() ;
             if ( errorMsg.indexOf( "502" ) !== -1 || errorMsg.indexOf( "504" ) !== -1 )
                 this.showErrorToast( <div> Couldn't connect to the backend Flask server. </div> ) ;
@@ -252,14 +240,12 @@ export class App extends React.Component
         args.no_hilite = this._disableSearchResultHighlighting ;
         axios.post(
             this.makeFlaskUrl( url ), args
-        )
-        .then( resp => {
+        ).then( resp => {
             ReactDOM.findDOMNode( this._searchResultsRef.current ).scrollTo( 0, 0 ) ;
             this.setState( { searchResults: resp.data, searchSeqNo: this.state.searchSeqNo+1 } ) ;
             if ( onDone )
                 onDone() ;
-        } )
-        .catch( err => {
+        } ).catch( err => {
             this.showErrorResponse( "The search query failed", err ) ;
             this.setState( { searchResults: null, searchSeqNo: this.state.searchSeqNo+1 } ) ;
         } ) ;
@@ -288,37 +274,47 @@ export class App extends React.Component
         )
     }
 
-    _onNewPublisher( publ_id, vals ) { this._addNewSearchResult( vals, "publisher", "publ_id", publ_id ) ; }
-    _onNewPublication( pub_id, vals ) { this._addNewSearchResult( vals, "publication", "pub_id", pub_id ) ; }
-    _onNewArticle( article_id, vals ) { this._addNewSearchResult( vals, "article", "article_id", article_id ) ; }
-    _addNewSearchResult( vals, srType, idName, idVal ) {
-        // add the new search result to the start of the search results
-        // NOTE: This isn't really the right thing to do, since the new object might not actually be
-        // a result for the current search, but it's nice to give the user some visual feedback.
-        vals.type = srType ;
-        vals[ idName ] = idVal ;
-        let newSearchResults = [ vals ] ;
+    prependSearchResult( sr ) {
+        // add a new entry to the start of the search results
+        // NOTE: We do this after creating a new object, and while it isn't really the right thing
+        // to do (since the new object might not actually be a result for the current search), it's nice
+        // to give the user some visual feedback.
+        let newSearchResults = [ sr ] ;
         newSearchResults.push( ...this.state.searchResults ) ;
         this.setState( { searchResults: newSearchResults } ) ;
     }
 
-    updatePublications( pubs ) {
-        // update the cache
-        let pubs2 = {} ;
-        for ( let i=0 ; i < pubs.length ; ++i ) {
-            const pub = pubs[ i ] ;
-            this.caches.publications[ pub.pub_id ] = pub ;
-            pubs2[ pub.pub_id ] = pub ;
-        }
-        // update the UI
+    updatePublisher( publ_id ) {
+        // update the specified publisher in the UI
+        this._doUpdateSearchResult(
+            (sr) => ( sr._type === "publisher" && sr.publ_id === publ_id ),
+            this.makeFlaskUrl( "/publisher/" + publ_id, {include_pubs:1,include_articles:1} )
+        ) ;
+        this.forceFlaskImageReload( "publisher", publ_id ) ;
+    }
+    updatePublication( pub_id ) {
+        // update the specified publication in the UI
+        this._doUpdateSearchResult(
+            (sr) => ( sr._type === "publication" && sr.pub_id === pub_id ),
+            this.makeFlaskUrl( "/publication/" + pub_id, {include_articles:1,deep:1} )
+        ) ;
+        this.forceFlaskImageReload( "publication", pub_id ) ;
+    }
+    _doUpdateSearchResult( srCheck, url ) {
+        // find the target search result in the UI
         let newSearchResults = this.state.searchResults ;
         for ( let i=0 ; i < newSearchResults.length ; ++i ) {
-            if ( newSearchResults[i].type === "publication" && pubs2[ newSearchResults[i].pub_id ] ) {
-                newSearchResults[i] = pubs2[ newSearchResults[i].pub_id ] ;
-                newSearchResults[i].type = "publication" ;
+            if ( srCheck( newSearchResults[i] ) ) {
+                // found it - get the latest details from the backend
+                axios.get( url ).then( resp => {
+                    newSearchResults[i] = resp.data ;
+                    this.setState( { searchResults: newSearchResults } ) ;
+                } ).catch( err => {
+                    this.showErrorResponse( "Can't get the updated search result details", err ) ;
+                } ) ;
+                break ; // nb: we assume there's only 1 instance
             }
         }
-        this.setState( { searchResults: newSearchResults } ) ;
     }
 
     showModalForm( formId, title, titleColor, content, buttons ) {
@@ -451,18 +447,6 @@ export class App extends React.Component
             console.log( "  " + detail ) ;
     }
 
-    makeTagLists( tags ) {
-        // convert the tags into a list suitable for CreatableSelect
-        // NOTE: react-select uses the "value" field to determine which choices have already been selected
-        // and thus should not be shown in the droplist of available choices.
-        let tagList = [] ;
-        if ( tags )
-            tags.map( tag => tagList.push( { value: tag, label: tag } ) ) ;
-        // create another list for all known tags
-        let allTags = this.caches.tags.map( tag => { return { value: tag[0], label: tag[0] } } ) ;
-        return [ tagList, allTags ] ;
-    }
-
     makeAppUrl( url ) {
         // FUDGE! The test suite needs any URL parameters to passed on to the next page if a link is clicked.
         if ( this.isTestMode() )
@@ -532,11 +516,15 @@ export class App extends React.Component
             this.showWarningToast( this.props.warning ) ;
         if ( this.props.doSearch )
             this.props.doSearch() ;
+        // NOTE: We could preload the DataCache here (i.e. where it won't affect startup time),
+        // but it will happen on every page load (e.g. /article/NNN or /publication/NNN),
+        // which would probably hurt more than it helps (since the data isn't needed if the user
+        // is only searching for stuff i.e. most of the time).
     }
 
     setWindowTitleFromSearchResults( srType, idField, idVal, nameField ) {
         for ( let sr of Object.entries( this.state.searchResults ) ) {
-            if ( sr[1].type === srType && String(sr[1][idField]) === idVal ) {
+            if ( sr[1]._type === srType && String(sr[1][idField]) === idVal ) {
                 this.setWindowTitle( typeof nameField === "function" ? nameField(sr[1]) : sr[1][nameField] ) ;
                 return ;
             }

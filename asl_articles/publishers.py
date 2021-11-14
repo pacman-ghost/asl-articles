@@ -8,7 +8,7 @@ from flask import request, jsonify, abort
 
 from asl_articles import app, db
 from asl_articles.models import Publisher, PublisherImage, Publication, Article
-from asl_articles.publications import do_get_publications
+from asl_articles.publications import get_publication_vals, get_publication_sort_key
 from asl_articles.articles import get_article_vals, get_article_sort_key
 from asl_articles import search
 from asl_articles.utils import get_request_args, clean_request_args, make_ok_response, apply_attrs
@@ -22,14 +22,10 @@ _FIELD_NAMES = [ "*publ_name", "publ_description", "publ_url" ]
 @app.route( "/publishers" )
 def get_publishers():
     """Get all publishers."""
-    return jsonify( _do_get_publishers() )
-
-def _do_get_publishers():
-    """Get all publishers."""
-    # NOTE: The front-end maintains a cache of the publishers, so as a convenience,
-    # we return the current list as part of the response to a create/update/delete operation.
-    results = Publisher.query.all()
-    return { r.publ_id: get_publisher_vals(r,False) for r in results }
+    return jsonify( {
+        publ.publ_id: get_publisher_vals( publ, False, False )
+        for publ in Publisher.query.all()
+    } )
 
 # ---------------------------------------------------------------------
 
@@ -41,8 +37,10 @@ def get_publisher( publ_id ):
     publ = Publisher.query.get( publ_id )
     if not publ:
         abort( 404 )
-    include_articles = request.args.get( "include_articles" )
-    vals = get_publisher_vals( publ, include_articles )
+    vals = get_publisher_vals( publ,
+        request.args.get( "include_pubs" ),
+        request.args.get( "include_articles" )
+    )
     # include the number of associated publications
     query = Publication.query.filter_by( publ_id = publ_id )
     vals[ "nPublications" ] = query.count()
@@ -56,20 +54,22 @@ def get_publisher( publ_id ):
     _logger.debug( "- %s ; #publications=%d ; #articles=%d", publ, vals["nPublications"], vals["nArticles"] )
     return jsonify( vals )
 
-def get_publisher_vals( publ, include_articles, add_type=False ):
+def get_publisher_vals( publ, include_pubs, include_articles ):
     """Extract public fields from a Publisher record."""
     vals = {
+        "_type": "publisher",
         "publ_id": publ.publ_id,
         "publ_name": publ.publ_name,
         "publ_description": publ.publ_description,
         "publ_url": publ.publ_url,
         "publ_image_id": publ.publ_id if publ.publ_image else None,
     }
+    if include_pubs:
+        pubs = sorted( publ.publications, key=get_publication_sort_key )
+        vals[ "publications" ] = [ get_publication_vals( p, False, False ) for p in pubs ]
     if include_articles:
         articles = sorted( publ.articles, key=get_article_sort_key )
         vals[ "articles" ] = [ get_article_vals( a, False ) for a in articles ]
-    if add_type:
-        vals[ "type" ] = "publisher"
     return vals
 
 # ---------------------------------------------------------------------
@@ -83,24 +83,22 @@ def create_publisher():
         log = ( _logger, "Create publisher:" )
     )
     warnings = []
-    updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
+    clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
 
     # create the new publisher
     vals[ "time_created" ] = datetime.datetime.now()
     publ = Publisher( **vals )
     db.session.add( publ )
-    _save_image( publ, updated )
+    _save_image( publ )
     db.session.commit()
     _logger.debug( "- New ID: %d", publ.publ_id )
     search.add_or_update_publisher( None, publ, None )
 
     # generate the response
-    extras = { "publ_id": publ.publ_id }
-    if request.args.get( "list" ):
-        extras[ "publishers" ] = _do_get_publishers()
-    return make_ok_response( updated=updated, extras=extras, warnings=warnings )
+    vals = get_publisher_vals( publ, True, True )
+    return make_ok_response( record=vals, warnings=warnings )
 
-def _save_image( publ, updated ):
+def _save_image( publ ):
     """Save the publisher's image."""
 
     # check if a new image was provided
@@ -112,7 +110,7 @@ def _save_image( publ, updated ):
     PublisherImage.query.filter( PublisherImage.publ_id == publ.publ_id ).delete()
     if image_data == "{remove}":
         # NOTE: The front-end sends this if it wants the publisher to have no image.
-        updated[ "publ_image_id" ] = None
+        publ.publ_image_id = None
         return
 
     # add the new image to the database
@@ -122,7 +120,6 @@ def _save_image( publ, updated ):
     db.session.add( img )
     db.session.flush()
     _logger.debug( "Created new image: %s, #bytes=%d", fname, len(image_data) )
-    updated[ "publ_image_id" ] = publ.publ_id
 
 # ---------------------------------------------------------------------
 
@@ -136,23 +133,21 @@ def update_publisher():
         log = ( _logger, "Update publisher: id={}".format( publ_id ) )
     )
     warnings = []
-    updated = clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
+    clean_request_args( vals, _FIELD_NAMES, warnings, _logger )
 
     # update the publisher
     publ = Publisher.query.get( publ_id )
     if not publ:
         abort( 404 )
-    _save_image( publ, updated )
+    _save_image( publ )
     vals[ "time_updated" ] = datetime.datetime.now()
     apply_attrs( publ, vals )
     db.session.commit()
     search.add_or_update_publisher( None, publ, None )
 
     # generate the response
-    extras = {}
-    if request.args.get( "list" ):
-        extras[ "publishers" ] = _do_get_publishers()
-    return make_ok_response( updated=updated, extras=extras, warnings=warnings )
+    vals = get_publisher_vals( publ, True, True )
+    return make_ok_response( record=vals, warnings=warnings )
 
 # ---------------------------------------------------------------------
 
@@ -186,7 +181,4 @@ def delete_publisher( publ_id ):
     search.delete_articles( deleted_articles )
 
     extras = { "deletedPublications": deleted_pubs, "deletedArticles": deleted_articles }
-    if request.args.get( "list" ):
-        extras[ "publishers" ] = _do_get_publishers()
-        extras[ "publications" ] = do_get_publications()
     return make_ok_response( extras=extras )

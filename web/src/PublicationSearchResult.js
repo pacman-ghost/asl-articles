@@ -6,7 +6,7 @@ import { PublicationSearchResult2 } from "./PublicationSearchResult2.js" ;
 import { PreviewableImage } from "./PreviewableImage.js" ;
 import { PUBLICATION_EXCESS_ARTICLE_THRESHOLD } from "./constants.js" ;
 import { gAppRef } from "./App.js" ;
-import { makeCollapsibleList, pluralString, applyUpdatedVals, removeSpecialFields, isLink } from "./utils.js" ;
+import { makeCollapsibleList, pluralString, updateRecord, isLink } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -21,8 +21,8 @@ export class PublicationSearchResult extends React.Component
         const display_description = PreviewableImage.adjustHtmlForPreviewableImages(
             this.props.data[ "pub_description!" ] || this.props.data.pub_description
         ) ;
-        const publ = gAppRef.caches.publishers[ this.props.data.publ_id ] ;
-        const image_url = PublicationSearchResult.makeImageUrl( this.props.data ) ;
+        const parent_publ = this.props.data._parent_publ ;
+        const image_url = PublicationSearchResult._makeImageUrl( this.props.data ) ;
 
         // prepare the publication's URL
         let pub_url = this.props.data.pub_url  ;
@@ -94,10 +94,10 @@ export class PublicationSearchResult extends React.Component
             >
             <div className="header">
                 {menu}
-                { publ &&
+                { parent_publ &&
                     <Link className="publisher" title="Show this publisher."
                         to = { gAppRef.makeAppUrl( "/publisher/" + this.props.data.publ_id ) }
-                        dangerouslySetInnerHTML={{ __html: publ.publ_name }}
+                        dangerouslySetInnerHTML={{ __html: parent_publ.publ_name }}
                     />
                 }
                 <Link className="name" title="Show this publication."
@@ -126,61 +126,69 @@ export class PublicationSearchResult extends React.Component
         PreviewableImage.activatePreviewableImages( this ) ;
     }
 
-    static onNewPublication( notify ) {
-        PublicationSearchResult2._doEditPublication( {}, null, (newVals,refs) => {
-            axios.post( gAppRef.makeFlaskUrl( "/publication/create", {list:1} ), newVals )
-            .then( resp => {
-                // update the caches
-                gAppRef.caches.publications = resp.data.publications ;
-                gAppRef.caches.tags = resp.data.tags ;
-                // unload any updated values
-                applyUpdatedVals( newVals, newVals, resp.data.updated, refs ) ;
-                // update the UI with the new details
-                notify( resp.data.pub_id, newVals ) ;
-                if ( resp.data.warnings )
-                    gAppRef.showWarnings( "The new publication was created OK.", resp.data.warnings ) ;
-                else
-                    gAppRef.showInfoToast( <div> The new publication was created OK. </div> ) ;
-                gAppRef.closeModalForm() ;
-                // NOTE: The parent publisher will update itself in the UI to show this new publication,
-                // since we've just received an updated copy of the publications.
-            } )
-            .catch( err => {
-                gAppRef.showErrorMsg( <div> Couldn't create the publication: <div className="monospace"> {err.toString()} </div> </div> ) ;
+    static onNewPublication() {
+        gAppRef.dataCache.get( [ "publishers", "publications", "tags" ], () => {
+            PublicationSearchResult2._doEditPublication( {}, null, (newVals,refs) => {
+                axios.post(
+                    gAppRef.makeFlaskUrl( "/publication/create" ), newVals
+                ).then( resp => {
+                    gAppRef.dataCache.refresh( [ "publications", "tags" ], () => {
+                        // update the UI
+                        const newPub = resp.data.record ;
+                        gAppRef.prependSearchResult( newPub ) ;
+                        if ( newPub._parent_publ )
+                            gAppRef.updatePublisher( newPub._parent_publ.publ_id ) ;
+                        // update the UI
+                        if ( resp.data.warnings )
+                            gAppRef.showWarnings( "The new publication was created OK.", resp.data.warnings ) ;
+                        else
+                            gAppRef.showInfoToast( <div> The new publication was created OK. </div> ) ;
+                        gAppRef.closeModalForm() ;
+                    } ) ;
+                } ).catch( err => {
+                    gAppRef.showErrorMsg( <div> Couldn't create the publication: <div className="monospace"> {err.toString()} </div> </div> ) ;
+                } ) ;
             } ) ;
         } ) ;
     }
 
     onEditPublication() {
-        // get the articles for this publication
-        let articles = this.props.data.articles ; // nb: _doEditPublication() might change the order of this list
-        PublicationSearchResult2._doEditPublication( this.props.data, articles, (newVals,refs) => {
-            // send the updated details to the server
-            newVals.pub_id = this.props.data.pub_id ;
-            if ( articles )
-                newVals.article_order = articles.map( a => a.article_id ) ;
-            axios.post( gAppRef.makeFlaskUrl( "/publication/update", {list:1} ), newVals )
-            .then( resp => {
-                // update the caches
-                gAppRef.caches.publications = resp.data.publications ;
-                gAppRef.caches.tags = resp.data.tags ;
-                // update the UI with the new details
-                applyUpdatedVals( this.props.data, newVals, resp.data.updated, refs ) ;
-                removeSpecialFields( this.props.data ) ;
-                if ( newVals.imageData )
-                    gAppRef.forceFlaskImageReload( "publication", newVals.pub_id ) ;
-                this.forceUpdate() ;
-                PreviewableImage.activatePreviewableImages( this ) ;
-                if ( resp.data.warnings )
-                    gAppRef.showWarnings( "The publication was updated OK.", resp.data.warnings ) ;
-                else
-                    gAppRef.showInfoToast( <div> The publication was updated OK. </div> ) ;
-                gAppRef.closeModalForm() ;
-                // NOTE: The parent publisher will update itself in the UI to show this updated publication,
-                // since we've just received an updated copy of the publications.
-            } )
-            .catch( err => {
-                gAppRef.showErrorMsg( <div> Couldn't update the publication: <div className="monospace"> {err.toString()} </div> </div> ) ;
+        gAppRef.dataCache.get( [ "publishers", "publications", "tags" ], () => {
+            // get the articles for this publication
+            let articles = this.props.data.articles ; // nb: _doEditPublication() might change the order of this list
+            PublicationSearchResult2._doEditPublication( this.props.data, articles, (newVals,refs) => {
+                // send the updated details to the server
+                newVals.pub_id = this.props.data.pub_id ;
+                if ( articles )
+                    newVals.article_order = articles.map( a => a.article_id ) ;
+                axios.post(
+                    gAppRef.makeFlaskUrl( "/publication/update" ), newVals
+                ).then( resp => {
+                    // update the UI
+                    gAppRef.dataCache.refresh( [ "publications", "tags" ], () => {
+                        // update the UI
+                        const pub = resp.data.record ;
+                        const orig_parent_publ = this.props.data._parent_publ ;
+                        updateRecord( this.props.data, pub ) ;
+                        if ( pub._parent_publ )
+                            gAppRef.updatePublisher( pub._parent_publ.publ_id ) ;
+                        if ( orig_parent_publ )
+                            gAppRef.updatePublisher( orig_parent_publ.publ_id ) ;
+                        // update the UI
+                        if ( newVals.imageData )
+                            gAppRef.forceFlaskImageReload( "publication", newVals.pub_id ) ;
+                        this.forceUpdate() ;
+                        PreviewableImage.activatePreviewableImages( this ) ;
+                        // update the UI
+                        if ( resp.data.warnings )
+                            gAppRef.showWarnings( "The publication was updated OK.", resp.data.warnings ) ;
+                        else
+                            gAppRef.showInfoToast( <div> The publication was updated OK. </div> ) ;
+                        gAppRef.closeModalForm() ;
+                    } ) ;
+                } ).catch( err => {
+                    gAppRef.showErrorMsg( <div> Couldn't update the publication: <div className="monospace"> {err.toString()} </div> </div> ) ;
+                } ) ;
             } ) ;
         } ) ;
     }
@@ -208,22 +216,23 @@ export class PublicationSearchResult extends React.Component
             gAppRef.ask( content, "ask", {
                 "OK": () => {
                     // delete the publication on the server
-                    axios.get( gAppRef.makeFlaskUrl( "/publication/delete/" + this.props.data.pub_id, {list:1} ) )
-                    .then( resp => {
-                        // update the caches
-                        gAppRef.caches.publications = resp.data.publications ;
-                        gAppRef.caches.tags = resp.data.tags ;
+                    axios.get(
+                        gAppRef.makeFlaskUrl( "/publication/delete/" + this.props.data.pub_id )
+                    ).then( resp => {
+                        gAppRef.dataCache.refresh( [ "publications", "tags" ] ) ;
                         // update the UI
                         this.props.onDelete( "pub_id", this.props.data.pub_id ) ;
-                        resp.data.deleteArticles.forEach( article_id => {
+                        resp.data.deletedArticles.forEach( article_id => {
                             this.props.onDelete( "article_id", article_id ) ;
                         } ) ;
+                        if ( this.props.data._parent_publ )
+                            gAppRef.updatePublisher( this.props.data._parent_publ.publ_id ) ;
+                        // update the UI
                         if ( resp.data.warnings )
                             gAppRef.showWarnings( "The publication was deleted.", resp.data.warnings ) ;
                         else
                             gAppRef.showInfoToast( <div> The publication was deleted. </div> ) ;
-                    } )
-                    .catch( err => {
+                    } ).catch( err => {
                         gAppRef.showErrorToast( <div> Couldn't delete the publication: <div className="monospace"> {err.toString()} </div> </div> ) ;
                     } ) ;
                 },
@@ -231,11 +240,11 @@ export class PublicationSearchResult extends React.Component
             } ) ;
         }
         // get the publication details
-        axios.get( gAppRef.makeFlaskUrl( "/publication/" + this.props.data.pub_id ) )
-        .then( resp => {
+        axios.get(
+            gAppRef.makeFlaskUrl( "/publication/" + this.props.data.pub_id )
+        ).then( resp => {
             doDelete( resp.data.nArticles ) ;
-        } )
-        .catch( err => {
+        } ).catch( err => {
             doDelete( err ) ;
         } ) ;
     }
@@ -253,15 +262,13 @@ export class PublicationSearchResult extends React.Component
     }
     _makeDisplayName( allowAlternateContent ) { return PublicationSearchResult.makeDisplayName( this.props.data, allowAlternateContent ) ; }
 
-    static makeImageUrl( vals ) {
+    static _makeImageUrl( vals ) {
         let image_url = gAppRef.makeFlaskImageUrl( "publication", vals.pub_image_id ) ;
         if ( ! image_url ) {
             // check if the parent publisher has an image
-            if ( vals.publ_id ) {
-                const publ = gAppRef.caches.publishers[ vals.publ_id ] ;
-                if ( publ )
-                    image_url = gAppRef.makeFlaskImageUrl( "publisher", publ.publ_image_id ) ;
-            }
+            const parent_publ = vals._parent_publ ;
+            if ( parent_publ )
+                image_url = gAppRef.makeFlaskImageUrl( "publisher", parent_publ.publ_image_id ) ;
         }
         return image_url ;
     }

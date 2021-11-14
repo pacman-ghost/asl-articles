@@ -4,7 +4,7 @@ import CreatableSelect from "react-select/creatable" ;
 import ReactDragListView from "react-drag-listview/lib/index.js" ;
 import { gAppRef } from "./App.js" ;
 import { ImageFileUploader } from "./FileUploader.js" ;
-import { checkConstraints, confirmDiscardChanges, sortSelectableOptions, unloadCreatableSelect, ciCompare, isNumeric } from "./utils.js" ;
+import { checkConstraints, confirmDiscardChanges, sortSelectableOptions, unloadCreatableSelect, makeTagLists, ciCompare, isNumeric } from "./utils.js" ;
 
 // --------------------------------------------------------------------
 
@@ -62,7 +62,7 @@ export class PublicationSearchResult2
             // initialize the publishers
             let publishers = [ { value: null, label: <i>(none)</i> } ] ;
             let currPubl = publishers[0] ;
-            for ( let p of Object.entries(gAppRef.caches.publishers) ) {
+            for ( let p of Object.entries( gAppRef.dataCache.data.publishers ) ) {
                 publishers.push( {
                     value: p[1].publ_id,
                     label: <span dangerouslySetInnerHTML={{__html: p[1].publ_name}} />
@@ -76,7 +76,7 @@ export class PublicationSearchResult2
             // NOTE: As a convenience, we provide a droplist of known publication names (without edition #'s),
             // to make it easier to add a new edition of an existing publication.
             let publications = {} ;
-            for ( let p of Object.entries(gAppRef.caches.publications) )
+            for ( let p of Object.entries( gAppRef.dataCache.data.publications ) )
                 publications[ p[1].pub_name ] = p[1] ;
             let publications2 = [] ;
             for ( let pub_name in publications ) {
@@ -93,7 +93,7 @@ export class PublicationSearchResult2
             }
 
             // initialize the tags
-            const tags = gAppRef.makeTagLists( vals.pub_tags ) ;
+            const tags = makeTagLists( vals.pub_tags ) ;
 
             // initialize the articles
             function make_article_display_name( article ) {
@@ -206,7 +206,7 @@ export class PublicationSearchResult2
 
         function checkForDupe( vals ) {
             // check for an existing publication name/edition
-            for ( let pub of Object.entries(gAppRef.caches.publications) ) {
+            for ( let pub of Object.entries( gAppRef.dataCache.data.publications ) ) {
                 if ( ciCompare( pub[1].pub_name, vals.pub_name ) !== 0 )
                     continue ;
                 if ( ! pub[1].pub_edition && ! vals.pub_edition )

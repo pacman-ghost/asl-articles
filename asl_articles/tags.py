@@ -13,12 +13,7 @@ from asl_articles.utils import decode_tags
 @app.route( "/tags" )
 def get_tags():
     """Get all tags."""
-    return jsonify( do_get_tags() )
 
-def do_get_tags():
-    """Get all tags."""
-
-    # get all the tags
     # NOTE: This is pretty inefficient, since an article/publication's tags are munged into one big string
     # and stored in a single column, so we need to manually unpack everything, but we'll see how it goes...
     tags = defaultdict( int )
@@ -36,4 +31,4 @@ def do_get_tags():
         key = lambda v: ( -v[1], v[0] ) # sort by # instances, then name
     )
 
-    return tags
+    return jsonify( tags )

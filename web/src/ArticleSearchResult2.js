@@ -5,7 +5,7 @@ import { NEW_ARTICLE_PUB_PRIORITY_CUTOFF } from "./constants.js" ;
 import { PublicationSearchResult } from "./PublicationSearchResult.js" ;
 import { gAppRef } from "./App.js" ;
 import { ImageFileUploader } from "./FileUploader.js" ;
-import { makeScenarioDisplayName, parseScenarioDisplayName, checkConstraints, confirmDiscardChanges, sortSelectableOptions, unloadCreatableSelect, isNumeric } from "./utils.js" ;
+import { makeScenarioDisplayName, parseScenarioDisplayName, checkConstraints, confirmDiscardChanges, sortSelectableOptions, unloadCreatableSelect, makeTagLists, isNumeric } from "./utils.js" ;
 
 // --------------------------------------------------------------------
 
@@ -73,7 +73,7 @@ export class ArticleSearchResult2
         // initialize the publications
         let publications = [ { value: null, label: <i>(none)</i> } ] ;
         let mostRecentPub = null ;
-        for ( let p of Object.entries(gAppRef.caches.publications) ) {
+        for ( let p of Object.entries( gAppRef.dataCache.data.publications ) ) {
             const pub_display_name = PublicationSearchResult.makeDisplayName( p[1] ) ;
             const pub = {
                 value: p[1].pub_id,
@@ -106,7 +106,7 @@ export class ArticleSearchResult2
         // initialize the publishers
         let publishers = [ { value: null, label: <i>(none)</i> } ] ;
         let currPubl = publishers[0] ;
-        for ( let p of Object.entries(gAppRef.caches.publishers) ) {
+        for ( let p of Object.entries( gAppRef.dataCache.data.publishers ) ) {
             publishers.push( {
                 value: p[1].publ_id,
                 label: <span dangerouslySetInnerHTML={{__html: p[1].publ_name}} />
@@ -118,25 +118,25 @@ export class ArticleSearchResult2
 
         // initialize the authors
         let allAuthors = [] ;
-        for ( let a of Object.entries(gAppRef.caches.authors) )
+        for ( let a of Object.entries( gAppRef.dataCache.data.authors ) )
             allAuthors.push( { value: a[1].author_id, label: a[1].author_name }  );
         allAuthors.sort( (lhs,rhs) => { return lhs.label.localeCompare( rhs.label ) ; } ) ;
         let currAuthors = [] ;
         if ( vals.article_authors ) {
             currAuthors = vals.article_authors.map( a => {
-                return { value: a, label: gAppRef.caches.authors[a].author_name }
+                return { value: a.author_id, label: a.author_name }
             } ) ;
         }
 
         // initialize the scenarios
         let allScenarios = [] ;
-        for ( let s of Object.entries(gAppRef.caches.scenarios) )
+        for ( let s of Object.entries( gAppRef.dataCache.data.scenarios ) )
             allScenarios.push( { value: s[1].scenario_id, label: makeScenarioDisplayName(s[1]) } ) ;
         allScenarios.sort( (lhs,rhs) => { return lhs.label.localeCompare( rhs.label ) ; } ) ;
         let currScenarios = [] ;
         if ( vals.article_scenarios ) {
             currScenarios = vals.article_scenarios.map( s => {
-                return { value: s, label: makeScenarioDisplayName(gAppRef.caches.scenarios[s]) }
+                return { value: s.scenario_id, label: makeScenarioDisplayName(s) }
             } ) ;
         }
         function onScenarioCreated( val ) {
@@ -149,7 +149,7 @@ export class ArticleSearchResult2
         }
 
         // initialize the tags
-        const tags = gAppRef.makeTagLists( vals.article_tags ) ;
+        const tags = makeTagLists( vals.article_tags ) ;
 
         // prepare the form content
         /* eslint-disable jsx-a11y/img-redundant-alt */
@@ -260,7 +260,7 @@ export class ArticleSearchResult2
                     } ) ;
                 } else if ( r === "article_tags" ) {
                     let vals =  unloadCreatableSelect( refs[r] ) ;
-                    newVals[ r ] =  vals.map( v => v.label ) ;
+                    newVals[ r ] = vals.map( v => v.label ) ;
                 } else
                     newVals[ r ] = refs[r].value.trim() ;
             }

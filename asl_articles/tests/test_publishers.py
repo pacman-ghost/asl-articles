@@ -399,7 +399,7 @@ def test_publication_lists( webdriver, flask_app, dbconn ):
             publ_sr = find_search_result( publ_name, results )
             pubs = find_child( ".collapsible", publ_sr )
             if pub_name:
-                # check that the publisher appears in the publisher's search result
+                # check that the publication appears in the publisher's search result
                 assert find_child( ".caption", pubs ).text == "Publications:"
                 pubs = find_children( "li", pubs )
                 assert len(pubs) == 1
