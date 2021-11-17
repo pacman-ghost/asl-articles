@@ -484,6 +484,61 @@ def test_publisher_articles( webdriver, flask_app, dbconn ): #pylint: disable=to
 
 # ---------------------------------------------------------------------
 
+def test_publisher_article_dates( webdriver, flask_app, dbconn ):
+    """Test "published" dates for publisher articles."""
+
+    # initialize
+    init_tests( webdriver, flask_app, dbconn, disable_constraints=False, fixtures="publisher-article-dates.json" )
+
+    # initialize
+    article_title, article_date = "test article", "1st January, 2000"
+    article_sr = None
+
+    def check_article_date( has_date ):
+        # check the article's publication date
+        def do_check():
+            elem = find_child( ".article_date", article_sr )
+            article_id = article_sr.get_attribute( "testing--article_id" )
+            row = get_article_row( dbconn, article_id, ["article_date"] )
+            if has_date:
+                return elem.text == article_date and row[0] == article_date
+            else:
+                return not elem and not row[0]
+        wait_for( 2, do_check )
+
+    # create an article associated with a publication
+    create_article( {
+        "title": article_title,
+        "publication": "ASL Journal",
+        "snippet": "This is a test article.",
+        "pageno": 42,
+        "authors": [ "+Joe Blow" ]
+    } )
+    article_sr = wait_for( 2, lambda: find_search_result( article_title ) )
+    check_article_date( False )
+
+    # change the article to be associated with a publisher
+    edit_article( article_sr, {
+        "publisher": "Avalon Hill"
+    }, expected_constraints = [
+        "The article date was not specified."
+    ], accept_constraints=True )
+    check_article_date( False )
+
+    # give the article a published date
+    edit_article( article_sr, {
+        "article_date": article_date
+    } )
+    check_article_date( True )
+
+    # change the article back to the publication
+    edit_article( article_sr, {
+        "publication": "ASL Journal"
+    } )
+    check_article_date( False )
+
+# ---------------------------------------------------------------------
+
 def test_unicode( webdriver, flask_app, dbconn ):
     """Test Unicode content."""
 
@@ -636,7 +691,10 @@ def test_article_ratings( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
-def create_article( vals, toast_type="info", expected_error=None, expected_constraints=None, dlg=None ):
+def create_article( vals, toast_type="info",
+    expected_error=None, expected_constraints=None, accept_constraints=False,
+    dlg=None
+):
     """Create a new article."""
 
     # initialize
@@ -656,7 +714,9 @@ def create_article( vals, toast_type="info", expected_error=None, expected_const
         return dlg # nb: the dialog is left on-screen
     elif expected_constraints:
         # we were expecting constraint warnings, confirm them
-        check_constraint_warnings( "Do you want to create this article?", expected_constraints, "cancel" )
+        check_constraint_warnings( "Do you want to create this article?",
+            expected_constraints, "ok" if accept_constraints else "cancel"
+        )
         return dlg # nb: the dialog is left on-screen
     else:
         # we were expecting the create to work, confirm this
@@ -668,7 +728,9 @@ def create_article( vals, toast_type="info", expected_error=None, expected_const
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-def edit_article( sr, vals, toast_type="info", expected_error=None, expected_constraints=None ): #pylint: disable=too-many-branches
+def edit_article( sr, vals, toast_type="info",
+    expected_error=None, expected_constraints=None, accept_constraints=False
+): #pylint: disable=too-many-branches
     """Edit a article's details."""
 
     # initialize
@@ -690,7 +752,9 @@ def edit_article( sr, vals, toast_type="info", expected_error=None, expected_con
         return dlg # nb: the dialog is left on-screen
     elif expected_constraints:
         # we were expecting constraint warnings, confirm them
-        check_constraint_warnings( "Do you want to update this article?", expected_constraints, "cancel" )
+        check_constraint_warnings( "Do you want to update this article?",
+            expected_constraints, "ok" if accept_constraints else "cancel"
+        )
         return dlg # nb: the dialog is left on-screen
     else:
         # we were expecting the update to work, confirm this

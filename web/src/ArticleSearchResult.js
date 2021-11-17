@@ -140,9 +140,18 @@ export class ArticleSearchResult extends React.Component
                 <div className="snippet" dangerouslySetInnerHTML={{__html: display_snippet}} />
             </div>
             <div className="footer">
-                { authors.length > 0 && <div className="authors"> By {makeCommaList(authors)} </div> }
-                { scenarios.length > 0 && <div className="scenarios"> Scenarios: {makeCommaList(scenarios)} </div> }
-                { tags.length > 0 && <div className="tags"> Tags: {tags} </div> }
+                { authors.length > 0 &&
+                    <div className="authors"> By {makeCommaList(authors)} </div>
+                }
+                { this.props.data.article_date &&
+                    <div> <label>Published:</label> <span className="article_date"> {this.props.data.article_date} </span> </div>
+                }
+                { scenarios.length > 0 &&
+                    <div className="scenarios"> Scenarios: {makeCommaList(scenarios)} </div>
+                }
+                { tags.length > 0 &&
+                    <div className="tags"> Tags: {tags} </div>
+                }
             </div>
         </div> ) ;
     }

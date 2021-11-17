@@ -19,7 +19,7 @@ from asl_articles.utils import get_request_args, clean_request_args, clean_tags,
 
 _logger = logging.getLogger( "db" )
 
-_FIELD_NAMES = [ "*article_title", "article_subtitle", "article_snippet", "article_pageno",
+_FIELD_NAMES = [ "*article_title", "article_subtitle", "article_date", "article_snippet", "article_pageno",
     "article_url", "article_tags", "pub_id", "publ_id"
 ]
 
@@ -51,6 +51,7 @@ def get_article_vals( article, deep ):
         "article_subtitle": article.article_subtitle,
         "article_image_id": article.article_id if article.article_image else None,
         "article_authors": [ get_author_vals( a.parent_author ) for a in authors ],
+        "article_date": article.article_date,
         "article_snippet": article.article_snippet,
         "article_pageno": article.article_pageno,
         "article_url": article.article_url,
@@ -94,6 +95,8 @@ def create_article():
 
     # create the new article
     vals[ "time_created" ] = datetime.datetime.now()
+    if not vals.get( "publ_id" ):
+        vals.pop( "article_date", None )
     article = Article( **vals )
     db.session.add( article )
     db.session.flush()
@@ -223,6 +226,8 @@ def update_article():
         _set_seqno( article, vals["pub_id"] )
     vals[ "time_updated" ] = datetime.datetime.now()
     apply_attrs( article, vals )
+    if not vals.get( "publ_id" ):
+        article.article_date = None
     _save_authors( article )
     _save_scenarios( article )
     _save_image( article )

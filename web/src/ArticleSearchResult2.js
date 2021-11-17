@@ -22,16 +22,19 @@ export class ArticleSearchResult2
         let parentMode = vals.publ_id ? "publisher" : "publication" ;
         let publicationParentRowRef = null ;
         let publisherParentRowRef = null ;
+        let articleDateRef = null ;
         function onPublicationParent() {
             parentMode = "publication" ;
             publicationParentRowRef.style.display = "flex" ;
             publisherParentRowRef.style.display = "none" ;
+            articleDateRef.style.display = "none" ;
             refs.pub_id.focus() ;
         }
         function onPublisherParent() {
             parentMode = "publisher" ;
             publicationParentRowRef.style.display = "none" ;
             publisherParentRowRef.style.display = "flex" ;
+            articleDateRef.style.display = "flex" ;
             refs.publ_id.focus() ;
         }
 
@@ -154,6 +157,7 @@ export class ArticleSearchResult2
         // prepare the form content
         /* eslint-disable jsx-a11y/img-redundant-alt */
         const content = <div>
+        <div style={{display:"flex"}}>
             <div className="image-container">
                 <div className="row image">
                     <img src={imageUrl} className="image"
@@ -174,33 +178,40 @@ export class ArticleSearchResult2
                     />
                 </div>
             </div>
-            <div className="row title"> <label className="top"> Title: </label>
-                <input type="text" defaultValue={vals.article_title} autoFocus ref={r => refs.article_title=r} />
+            <div style={{flexGrow:1}}>
+                <div className="row title"> <label className="top"> Title: </label>
+                    <input type="text" defaultValue={vals.article_title} autoFocus ref={r => refs.article_title=r} />
+                </div>
+                <div className="row subtitle"> <label className="top"> Subtitle: </label>
+                    <input type="text" defaultValue={vals.article_subtitle} ref={r => refs.article_subtitle=r} />
+                </div>
+                <div className="row publication" style={{display:parentMode==="publication"?"flex":"none"}} ref={r => publicationParentRowRef=r} >
+                    <label className="select top parent-mode"
+                        title = "Click to associate this article with a publisher."
+                        onClick = {onPublisherParent}
+                    > Publication: </label>
+                    <Select className="react-select" classNamePrefix="react-select" options={publications} isSearchable={true}
+                        defaultValue = {currPub}
+                        ref = { r => refs.pub_id=r }
+                    />
+                    <input className="pageno" type="text" defaultValue={vals.article_pageno} ref={r => refs.article_pageno=r} title="Page number." />
+                </div>
+                <div className="row publisher" style={{display:parentMode==="publisher"?"flex":"none"}} ref={r => publisherParentRowRef=r} >
+                    <label className="select top parent-mode"
+                        title="Click to associate this article with a publication."
+                        onClick = {onPublicationParent}
+                    > Publisher: </label>
+                    <Select className="react-select" classNamePrefix="react-select" options={publishers} isSearchable={true}
+                        defaultValue = {currPubl}
+                        ref = { r => refs.publ_id=r }
+                    />
+                </div>
+                <div className="row article_date" style={{display:parentMode==="publisher"?"flex":"none"}}ref={r => articleDateRef=r} >
+                    <label className="select top"> Date: </label>
+                    <input className="article_date" type="text" defaultValue={vals.article_date} ref={r => refs.article_date=r} />
+                </div>
             </div>
-            <div className="row subtitle"> <label className="top"> Subtitle: </label>
-                <input type="text" defaultValue={vals.article_subtitle} ref={r => refs.article_subtitle=r} />
-            </div>
-            <div className="row publication" style={{display:parentMode==="publication"?"flex":"none"}} ref={r => publicationParentRowRef=r} >
-                <label className="select top parent-mode"
-                    title = "Click to associate this article with a publisher."
-                    onClick = {onPublisherParent}
-                > Publication: </label>
-                <Select className="react-select" classNamePrefix="react-select" options={publications} isSearchable={true}
-                    defaultValue = {currPub}
-                    ref = { r => refs.pub_id=r }
-                />
-                <input className="pageno" type="text" defaultValue={vals.article_pageno} ref={r => refs.article_pageno=r} title="Page number." />
-            </div>
-            <div className="row publisher" style={{display:parentMode==="publisher"?"flex":"none"}} ref={r => publisherParentRowRef=r} >
-                <label className="select top parent-mode"
-                    title="Click to associate this article with a publication."
-                    onClick = {onPublicationParent}
-                > Publisher: </label>
-                <Select className="react-select" classNamePrefix="react-select" options={publishers} isSearchable={true}
-                    defaultValue = {currPubl}
-                    ref = { r => refs.publ_id=r }
-                />
-            </div>
+        </div>
             <div className="row snippet"> <label> Snippet: </label>
                 <textarea defaultValue={vals.article_snippet} ref={r => refs.article_snippet=r} />
             </div>
@@ -286,6 +297,7 @@ export class ArticleSearchResult2
                     [ () => newVals.article_pageno === "" && newVals.pub_id !== null, "No page number was specified.", refs.article_pageno ],
                     [ () => newVals.article_pageno !== "" && newVals.pub_id === null, "A page number was specified but no publication.", refs.pub_id ],
                     [ () => newVals.article_pageno !== "" && !isNumeric(newVals.article_pageno), "The page number is not numeric.", refs.article_pageno ],
+                    [ () => newVals.publ_id && newVals.article_date === "", "The article date was not specified.", refs.article_date ],
                     [ () => newVals.article_snippet === "", "No snippet was provided.", refs.article_snippet ],
                     [ () => newVals.article_authors.length === 0, "No authors were specified.", refs.article_authors ],
                     [ () => newVals.article_tags && newVals.article_tags.length === 1 && newVals.article_tags[0] === "tips", "This tip has no other tags." ],

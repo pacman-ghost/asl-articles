@@ -1,0 +1,11 @@
+{
+
+"publisher": [
+    { "publ_id": 1, "publ_name": "Avalon Hill" }
+],
+
+"publication": [
+    { "pub_id": 20, "pub_name": "ASL Journal", "publ_id": 1 }
+]
+
+}

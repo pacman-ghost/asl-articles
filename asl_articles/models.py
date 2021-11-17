@@ -63,6 +63,7 @@ class Article( db.Model ):
     article_id = db.Column( db.Integer, primary_key=True )
     article_title = db.Column( db.String(200), nullable=False )
     article_subtitle = db.Column( db.String(200) )
+    article_date = db.Column( db.String(100) ) # nb: this is just a display string
     article_snippet = db.Column( db.String(5000) )
     article_seqno = db.Column( db.Integer )
     article_pageno = db.Column( db.String(20) )
