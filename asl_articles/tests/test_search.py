@@ -583,6 +583,11 @@ def test_make_fts_query_string():
     #     'foo AND "xyz 123" AND bar'
     # )
 
+    # test some quoted phrases that wrap special characters
+    do_test( 'Mr. Jones', '"Mr." AND Jones' )
+    do_test( '"Mr. Jones"', '"Mr. Jones"' )
+    do_test( 'foo "Mr. Jones" bar', 'foo AND "Mr. Jones" AND bar' )
+
     # test some incorrectly quoted phrases
     do_test( '"', '' )
     do_test( ' " " " ', '' )

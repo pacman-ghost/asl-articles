@@ -393,7 +393,15 @@ def _make_fts_query_string( query_string, search_aliases ): #pylint: disable=too
             return "({})".format( " OR ".join( quote(v) for v in val ) )
     def quote( val ):
         """Quote a string, if necessary."""
-        if not val.startswith( '"' ) or not val.endswith( '"' ):
+        # NOTE: We used to check for fully-quoted values i.e.
+        #   not ( startswith " and endswith " )
+        # which becomes:
+        #   not startswith " or not endswith "
+        # but this doesn't work with quoted multi-word phrases that contain special characters
+        # e.g. "J. R. Tracy", since we see that the first phrase ("J.) is not fully-quoted,
+        # and so we wrap it in quotes :-/ Instead, if we see a quote at either end of the word,
+        # we treat it as part of a quoted phrase (either single- or multi-word), and use it verbatim.
+        if not val.startswith( '"' ) and not val.endswith( '"' ):
             if any( ch in val for ch in _SQLITE_FTS_SPECIAL_CHARS+" " ):
                 val = '"{}"'.format( val )
         return val.replace( "'", "''" )
