@@ -60,12 +60,13 @@ export class PublicationSearchResult2
             } ;
 
             // initialize the publishers
-            let publishers = [ { value: null, label: <i>(none)</i> } ] ;
+            let publishers = [ { value: null, label: <i>(none)</i>, textLabel: "" } ] ;
             let currPubl = publishers[0] ;
             for ( let p of Object.entries( gAppRef.dataCache.data.publishers ) ) {
                 publishers.push( {
                     value: p[1].publ_id,
-                    label: <span dangerouslySetInnerHTML={{__html: p[1].publ_name}} />
+                    label: <span dangerouslySetInnerHTML={{__html: p[1].publ_name}} />,
+                    textLabel: p[1].publ_name
                 } ) ;
                 if ( p[1].publ_id === vals.publ_id )
                     currPubl = publishers[ publishers.length-1 ] ;
@@ -153,7 +154,7 @@ export class PublicationSearchResult2
                     <input className="pub_date" type="text" defaultValue={vals.pub_date} ref={r => refs.pub_date=r} />
                 </div>
                 <div className="row publisher"> <label className="select top"> Publisher: </label>
-                    <Select className="react-select" classNamePrefix="react-select" options={publishers} isSearchable={true}
+                    <Select className="react-select" classNamePrefix="react-select" options={publishers} isSearchable={true} getOptionValue={o => o.textLabel}
                         defaultValue = {currPubl}
                         ref = { r => refs.publ_id=r }
                     />

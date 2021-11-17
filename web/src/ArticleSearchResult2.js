@@ -74,13 +74,14 @@ export class ArticleSearchResult2
         } ;
 
         // initialize the publications
-        let publications = [ { value: null, label: <i>(none)</i> } ] ;
+        let publications = [ { value: null, label: <i>(none)</i>, textLabel: "" } ] ;
         let mostRecentPub = null ;
         for ( let p of Object.entries( gAppRef.dataCache.data.publications ) ) {
             const pub_display_name = PublicationSearchResult.makeDisplayName( p[1] ) ;
             const pub = {
                 value: p[1].pub_id,
                 label: <span dangerouslySetInnerHTML={{__html: pub_display_name}} />,
+                textLabel: pub_display_name,
             } ;
             publications.push( pub ) ;
             if ( mostRecentPub === null || p[1].time_created > mostRecentPub[1] )
@@ -107,12 +108,13 @@ export class ArticleSearchResult2
         }
 
         // initialize the publishers
-        let publishers = [ { value: null, label: <i>(none)</i> } ] ;
+        let publishers = [ { value: null, label: <i>(none)</i>, textLabel: "" } ] ;
         let currPubl = publishers[0] ;
         for ( let p of Object.entries( gAppRef.dataCache.data.publishers ) ) {
             publishers.push( {
                 value: p[1].publ_id,
-                label: <span dangerouslySetInnerHTML={{__html: p[1].publ_name}} />
+                label: <span dangerouslySetInnerHTML={{__html: p[1].publ_name}} />,
+                textLabel: p[1].publ_name,
             } ) ;
             if ( p[1].publ_id === vals.publ_id )
                 currPubl = publishers[ publishers.length-1 ] ;
@@ -190,7 +192,7 @@ export class ArticleSearchResult2
                         title = "Click to associate this article with a publisher."
                         onClick = {onPublisherParent}
                     > Publication: </label>
-                    <Select className="react-select" classNamePrefix="react-select" options={publications} isSearchable={true}
+                    <Select className="react-select" classNamePrefix="react-select" options={publications} isSearchable={true} getOptionValue={o => o.textLabel}
                         defaultValue = {currPub}
                         ref = { r => refs.pub_id=r }
                     />
@@ -201,7 +203,7 @@ export class ArticleSearchResult2
                         title="Click to associate this article with a publication."
                         onClick = {onPublicationParent}
                     > Publisher: </label>
-                    <Select className="react-select" classNamePrefix="react-select" options={publishers} isSearchable={true}
+                    <Select className="react-select" classNamePrefix="react-select" options={publishers} isSearchable={true} getOptionValue={o => o.textLabel}
                         defaultValue = {currPubl}
                         ref = { r => refs.publ_id=r }
                     />
