@@ -13,13 +13,13 @@ ReactDOM.render(
     <BrowserRouter>
         <Switch>
             <Route path="/publishers" render={ (props) => <App {...props} type="publishers" key="publishers"
-                doSearch = { () => gAppRef._showPublishers() }
+                doSearch = { () => gAppRef._showPublishers(false) }
             /> } />
             <Route path="/technique" render={ (props) => <App {...props} type="technique" key="technique"
-                doSearch = { () => gAppRef._showTechniqueArticles() }
+                doSearch = { () => gAppRef._showTechniqueArticles(false) }
             /> } />
             <Route path="/tips" render={ (props) => <App {...props} type="tips" key="tips"
-                doSearch = { () => gAppRef._showTipsArticles() }
+                doSearch = { () => gAppRef._showTipsArticles(false) }
             /> } />
             <Route path="/publisher/:publId" render={ (props) => <App {...props} type="publisher" key={"publ:"+props.match.params.publId}
                 doSearch = { () => gAppRef.runSpecialSearch( "/search/publisher/"+gAppRef.props.match.params.publId, null,

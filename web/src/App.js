@@ -92,13 +92,13 @@ export class App extends React.Component
             const menu = ( <Menu id="app">
                 <MenuButton />
                 <MenuList>
-                    <MenuItem id="menu-show-publishers" onSelect={ () => this._showPublishers() } >
+                    <MenuItem id="menu-show-publishers" onSelect={ () => this._showPublishers(true) } >
                         <img src="/images/icons/publisher.png" alt="Show publishers." /> Show publishers
                     </MenuItem>
-                    <MenuItem id="menu-search-technique" onSelect={ () => this._showTechniqueArticles() } >
+                    <MenuItem id="menu-search-technique" onSelect={ () => this._showTechniqueArticles(true) } >
                         <img src="/images/icons/technique.png" alt="Show technique articles." /> Show technique
                     </MenuItem>
-                    <MenuItem id="menu-search-tips" onSelect={ () => this._showTipsArticles() } >
+                    <MenuItem id="menu-search-tips" onSelect={ () => this._showTipsArticles(true) } >
                         <img src="/images/icons/tips.png" alt="Show tip articles." /> Show tips
                     </MenuItem>
                     <div className="divider" />
@@ -258,20 +258,26 @@ export class App extends React.Component
             args = {} ;
         this._doSearch( url, args, onDone ) ;
     }
-    _showPublishers() {
-        this.runSpecialSearch( "/search/publishers", null,
-            () => { this.setWindowTitle( "All publishers" ) }
-        )
+    _showPublishers( pushState ) {
+        this.runSpecialSearch( "/search/publishers", null, () => {
+            this.setWindowTitle( "All publishers" ) ;
+            if ( pushState )
+                window.history.pushState( null, document.title, "/publishers"+window.location.search ) ;
+        } )
     }
-    _showTechniqueArticles() {
-        this.runSpecialSearch( "/search/tag/technique", {randomize:1},
-            () => { this.setWindowTitle( "Technique" ) }
-        )
+    _showTechniqueArticles( pushState ) {
+        this.runSpecialSearch( "/search/tag/technique", {randomize:1}, () => {
+            this.setWindowTitle( "Technique" ) ;
+            if ( pushState )
+                window.history.pushState( null, document.title, "/technique"+window.location.search ) ;
+        } )
     }
-    _showTipsArticles() {
-        this.runSpecialSearch( "/search/tag/tips", {randomize:1},
-            () => { this.setWindowTitle( "Tips" ) }
-        )
+    _showTipsArticles( pushState ) {
+        this.runSpecialSearch( "/search/tag/tips", {randomize:1}, () => {
+            this.setWindowTitle( "Tips" ) ;
+            if ( pushState )
+                window.history.pushState( null, document.title, "/tips"+window.location.search ) ;
+        } )
     }
 
     prependSearchResult( sr ) {
