@@ -81,10 +81,10 @@ export class PublicationSearchResult extends React.Component
             <MenuButton className="sr-menu" />
             <MenuList>
                 <MenuItem className="edit" onSelect={ () => this.onEditPublication() } >
-                    <img src="/images/icons/edit.png" alt="Edit." /> Edit
+                    <img src="/images/edit.png" alt="Edit." /> Edit
                 </MenuItem>
                 <MenuItem className="delete" onSelect={ () => this.onDeletePublication() } >
-                    <img src="/images/icons/delete.png" alt="Delete." /> Delete
+                    <img src="/images/delete.png" alt="Delete." /> Delete
                 </MenuItem>
             </MenuList>
         </Menu> ) ;

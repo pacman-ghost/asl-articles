@@ -95,27 +95,27 @@ export class App extends React.Component
                 <MenuButton />
                 <MenuList>
                     <MenuItem id="menu-show-publishers" onSelect={ () => this._showPublishers(true) } >
-                        <img src="/images/icons/publisher.png" alt="Show publishers." /> Show publishers
+                        <img src="/images/menu/publishers.png" alt="Show publishers." /> Show publishers
                     </MenuItem>
                     <MenuItem id="menu-search-technique" onSelect={ () => this._showTechniqueArticles(true) } >
-                        <img src="/images/icons/technique.png" alt="Show technique articles." /> Show technique
+                        <img src="/images/menu/technique.png" alt="Show technique articles." /> Show technique
                     </MenuItem>
                     <MenuItem id="menu-search-tips" onSelect={ () => this._showTipsArticles(true) } >
-                        <img src="/images/icons/tips.png" alt="Show tip articles." /> Show tips
+                        <img src="/images/menu/tips.png" alt="Show tip articles." /> Show tips
                     </MenuItem>
                     <div className="divider" />
                     <MenuItem id="menu-new-publisher" onSelect={PublisherSearchResult.onNewPublisher} >
-                        <img src="/images/icons/publisher.png" alt="New publisher." /> New publisher
+                        <img src="/images/menu/publisher.png" alt="New publisher." /> New publisher
                     </MenuItem>
                     <MenuItem id="menu-new-publication" onSelect={PublicationSearchResult.onNewPublication} >
-                        <img src="/images/icons/publication.png" alt="New publication." /> New publication
+                        <img src="/images/menu/publication.png" alt="New publication." /> New publication
                     </MenuItem>
                     <MenuItem id="menu-new-article" onSelect={ArticleSearchResult.onNewArticle} >
-                        <img src="/images/icons/article.png" alt="New article." /> New article
+                        <img src="/images/menu/article.png" alt="New article." /> New article
                     </MenuItem>
                     <div className="divider" />
                     <MenuItem id="menu-db-report" onSelect={ () => this._showDbReport(true) } >
-                        <img src="/images/icons/db-report.png" alt="Database report." /> DB report
+                        <img src="/images/menu/db-report.png" alt="Database report." /> DB report
                     </MenuItem>
                 </MenuList>
             </Menu> ) ;

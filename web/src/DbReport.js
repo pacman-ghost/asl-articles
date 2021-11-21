@@ -151,13 +151,13 @@ class DbLinks extends React.Component
 
         // render the component
         const nLinksToCheck = this.state.linksToCheck ? this.state.linksToCheck.length - this.state.currLinkToCheck : null ;
-        const imageUrl = this.state.checkLinksInProgress ? "/images/loading.gif" : "/images/icons/check-db-links.png" ;
+        const imageUrl = this.state.checkLinksInProgress ? "/images/loading.gif" : "/images/check-db-links.png" ;
         return ( <div className="db-links">
             <h2> Links { !dbLinks && <img src="/images/loading.gif" className="loading" alt="Loading..." /> } </h2>
             { this.state.linksToCheck && this.state.linksToCheck.length > 0 && (
                 <div className="check-links-frame">
                     <button className="check-links" style={{display:"flex"}} onClick={() => this.checkDbLinks()} >
-                        <img src={imageUrl} style={{height:"1.25em",marginRight:"0.5em"}} alt="Check database links." />
+                        <img src={imageUrl} style={{height:"1em",marginTop:"0.15em",marginRight:"0.5em"}} alt="Check database links." />
                         { this.state.checkLinksInProgress ? "Stop checking" : "Check links (" + nLinksToCheck + ")" }
                     </button>
                     <div className="status-msg"> {this.state.checkLinksStatusMsg} </div>

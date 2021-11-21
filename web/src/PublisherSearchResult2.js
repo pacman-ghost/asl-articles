@@ -136,7 +136,7 @@ export class PublisherSearchResult2
         // show the form
         const isNew = Object.keys( vals ).length === 0 ;
         const title = ( <div style={{display:"flex"}}>
-            <img src="/images/icons/publisher.png" alt="Dialog icon." />
+            <img src="/images/menu/publisher.png" alt="Dialog icon." />
             {isNew ? "New publisher" : "Edit publisher"}
         </div> ) ;
         gAppRef.showModalForm( "publisher-form",

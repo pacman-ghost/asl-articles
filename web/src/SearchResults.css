@@ -13,7 +13,7 @@
 .search-result .header { padding: 2px 5px ; border-top-right-radius: 5px ; }
 .search-result .header a { text-decoration: none ; }
 .search-result .header a.open-link { margin-left: 0.5em ; }
-.search-result .header a.open-link img { height: 1.2em ; margin-bottom: -0.2em ; }
+.search-result .header a.open-link img { height: 1em ; margin-bottom: -0.15em ; }
 
 .search-result.publisher .header { border: 1px solid #c0c0c0 ; background: #eabe51 ; }
 .search-result.publisher .header a.name { color: inherit ; text-decoration: none ; }
@@ -32,7 +32,8 @@
 .search-result .content p:not(:first-child) { margin-top: 0.25em ; }
 .search-result .content ul p, .search-result .content ol p { margin-top: 0.1em ; }
 .search-result .content i i { color: #666 ; }
-.search-result .content a.aslrb { color: #804040 ; text-decoration: none ; border-bottom: 1px dotted #804040 ; }
+.search-result .content a.aslrb { color: red ; text-decoration: none ; }
+.search-result .content a.aslrb:hover { background: #ffffcc ; }
 .search-result .content .image { float: left ; margin: 0.25em 0.5em 0.5em 0 ; max-height: 8em ; max-width: 6em ; }
 .search-result .content .collapsible { margin-top: 0.5em ; font-size: 90% ; color: #333 ; }
 .search-result .content .collapsible a { color: #333 ; text-decoration: none ; }

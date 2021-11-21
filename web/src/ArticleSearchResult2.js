@@ -327,7 +327,7 @@ export class ArticleSearchResult2
 
         // show the form
         const title = ( <div style={{display:"flex"}}>
-            <img src="/images/icons/article-grey.png" alt="Dialog icon." />
+            <img src="/images/menu/article.png" alt="Dialog icon." />
             {isNew ? "New article" : "Edit article"}
         </div> ) ;
         gAppRef.showModalForm( "article-form",
