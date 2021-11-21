@@ -28,6 +28,9 @@ for fspec in ["config","static","templates"] :
 
 # initialize
 from asl_articles import app
+flask_host = app.config.get( "FLASK_HOST", "localhost" )
+flask_port = app.config.get( "FLASK_PORT_NO", 5000 )
+flask_debug = app.config.get( "FLASK_DEBUG", False )
 
 # FUDGE! Startup can take some time (e.g. because we have to build the search index over a large database),
 # and since we do that on first request, it's annoying to have started the server up, if we don't do that
@@ -37,15 +40,13 @@ from asl_articles import app
 def _force_init():
     time.sleep( 5 )
     try:
-        # figoure out the URL for the request we're going to make
+        # figure out the URL for the request we're going to make
         with app.test_request_context() as req:
             url = url_for( "ping" )
             host = req.request.host_url
-        # FUDGE! There doesn't seem to be a way to get the port number Flask is listening on :-/
-        port = app.config.get( "FLASK_PORT_NO", 5000 )
         if host.endswith( "/" ):
             host = host[:-1]
-        url = "{}:{}{}".format( host, port, url )
+        url = "{}:{}{}".format( host, flask_port, url )
         # make the request
         _ = urllib.request.urlopen( url ).read()
     except Exception as ex: #pylint: disable=broad-except
@@ -53,9 +54,20 @@ def _force_init():
 threading.Thread( target=_force_init ).start()
 
 # run the server
-app.run(
-    host = app.config.get( "FLASK_HOST", "localhost" ),
-    port = app.config.get( "FLASK_PORT_NO" ),
-    debug = app.config.get( "FLASK_DEBUG", False ),
-    extra_files = extra_files
-)
+if flask_debug:
+    # NOTE: It's useful to run the webapp using the Flask development server, since it will
+    # automatically reload itself when the source files change.
+    app.run(
+        host=flask_host, port=flask_port,
+        debug=flask_debug,
+        extra_files=extra_files
+    )
+else:
+    import waitress
+    # FUDGE! Browsers tend to send a max. of 6-8 concurrent requests per server, so we increase
+    # the number of worker threads to avoid task queue warnings :-/
+    nthreads = app.config.get( "WAITRESS_THREADS", 8 )
+    waitress.serve( app,
+        host=flask_host, port=flask_port,
+        threads=nthreads
+    )

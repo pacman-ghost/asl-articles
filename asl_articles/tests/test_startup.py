@@ -1,11 +1,15 @@
 """ Test the startup process. """
 
+import pytest
+
 import asl_articles.startup
 
 from asl_articles.tests.utils import init_tests, wait_for, find_child, set_toast_marker, check_toast
+from asl_articles.tests import pytest_options
 
 # ---------------------------------------------------------------------
 
+@pytest.mark.skipif( pytest_options.flask_url is not None, reason="Testing against a remote Flask server."  )
 def test_startup_messages( webdriver, flask_app, dbconn ):
     """Test startup messages."""
 

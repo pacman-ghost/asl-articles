@@ -17,9 +17,11 @@ import alembic.config
 import asl_articles
 from asl_articles import app
 from asl_articles.utils import to_bool
-from asl_articles.tests import utils
+from asl_articles import tests as asl_articles_tests
 
 _FLASK_SERVER_URL = ( "localhost", 5001 ) # nb: for the test Flask server we spin up
+
+_pytest_options = None
 
 # ---------------------------------------------------------------------
 
@@ -59,6 +61,15 @@ def pytest_addoption( parser ):
         "--dbconn", action="store", dest="dbconn", default=None,
         help="Database connection string."
     )
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+def pytest_configure( config ):
+    """Called after command-line options have been parsed."""
+    global _pytest_options
+    _pytest_options = config.option
+    # notify the test suite about the pytest options
+    asl_articles_tests.pytest_options = _pytest_options
 
 # ---------------------------------------------------------------------
 
@@ -106,7 +117,7 @@ def flask_app( request ):
                 return False
             except Exception as ex: #pylint: disable=broad-except
                 assert False, "Unexpected exception: {}".format( ex )
-        utils.wait_for( 5, is_ready )
+        asl_articles_tests.utils.wait_for( 5, is_ready )
 
     # return the server to the caller
     try:
