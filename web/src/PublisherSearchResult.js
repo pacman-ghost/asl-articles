@@ -191,10 +191,10 @@ export class PublisherSearchResult extends React.Component
                         // update the UI
                         this.props.onDelete( "publ_id", this.props.data.publ_id ) ;
                         resp.data.deletedPublications.forEach( pub_id => {
-                            this.props.onDelete( "pub_id", pub_id ) ;
+                            this.props.onDelete( "pub_id", pub_id, true ) ;
                         } ) ;
                         resp.data.deletedArticles.forEach( article_id => {
-                            this.props.onDelete( "article_id", article_id ) ;
+                            this.props.onDelete( "article_id", article_id, true ) ;
                         } ) ;
                         // update the UI
                         if ( resp.data.warnings )

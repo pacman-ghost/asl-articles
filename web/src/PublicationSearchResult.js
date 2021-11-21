@@ -223,7 +223,7 @@ export class PublicationSearchResult extends React.Component
                         // update the UI
                         this.props.onDelete( "pub_id", this.props.data.pub_id ) ;
                         resp.data.deletedArticles.forEach( article_id => {
-                            this.props.onDelete( "article_id", article_id ) ;
+                            this.props.onDelete( "article_id", article_id, true ) ;
                         } ) ;
                         if ( this.props.data._parent_publ )
                             gAppRef.updatePublisher( this.props.data._parent_publ.publ_id ) ;
