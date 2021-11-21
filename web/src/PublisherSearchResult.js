@@ -25,6 +25,11 @@ export class PublisherSearchResult extends React.Component
         ) ;
         const image_url = gAppRef.makeFlaskImageUrl( "publisher", this.props.data.publ_image_id ) ;
 
+        // prepare the publisher's URL
+        let publ_url = this.props.data.publ_url ;
+        if ( publ_url )
+            publ_url = gAppRef.makeExternalDocUrl( publ_url ) ;
+
         // prepare the publications
         let pubs = this.props.data.publications ;
         pubs.sort( (lhs,rhs) => {
@@ -74,14 +79,14 @@ export class PublisherSearchResult extends React.Component
                     to = { gAppRef.makeAppUrl( "/publisher/" + this.props.data.publ_id ) }
                     dangerouslySetInnerHTML={{ __html: display_name }}
                 />
-                { this.props.data.publ_url &&
-                    <a href={this.props.data.publ_url} className="open-link" target="_blank" rel="noopener noreferrer">
+                { publ_url &&
+                    <a href={publ_url} className="open-link" target="_blank" rel="noopener noreferrer">
                         <img src="/images/open-link.png" alt="Open publisher." title="Go to this publisher." />
                     </a>
                 }
             </div>
             <div className="content">
-                { image_url && <PreviewableImage url={image_url} className="image" alt="Publisher." /> }
+                { image_url && <PreviewableImage url={image_url} noActivate={true} className="image" alt="Publisher." /> }
                 <div className="description" dangerouslySetInnerHTML={{__html: display_description}} />
                 { makeCollapsibleList( "Publications", pubs, PUBLISHER_EXCESS_PUBLICATION_THRESHOLD, {float:"left"} ) }
                 { makeCollapsibleList( "Articles", articles, PUBLISHER_EXCESS_ARTICLE_THRESHOLD, {clear:"both",float:"left"} ) }

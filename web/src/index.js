@@ -54,6 +54,7 @@ ReactDOM.render(
                     () => gAppRef.setWindowTitle( gAppRef.props.match.params.tag )
                 ) }
             /> } />
+            <Route path="/report" render={ (props) => <App {...props} type="report" key="report" /> } />
             <Route path="/" exact component={App} />
             <Route path="/" render={ (props) => <App {...props} warning="Unknown URL." type="home" key="unknown-url" /> } />
         </Switch>

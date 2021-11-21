@@ -167,7 +167,7 @@ export function updateRecord( rec, newVals ) {
         rec[ key ] = newVals[ key ] ;
 }
 
-export function makeCollapsibleList( caption, vals, maxItems, style ) {
+export function makeCollapsibleList( caption, vals, maxItems, style, listKey ) {
     if ( ! vals || vals.length === 0 )
         return null ;
     let items=[], excessItems=[] ;
@@ -188,7 +188,7 @@ export function makeCollapsibleList( caption, vals, maxItems, style ) {
         excessItemsMoreRef.style.display = show ? "none" : "block" ;
     }
     if ( excessItems.length === 0 )
-        caption = <span> {caption+":"} </span> ;
+        caption = <span> {caption}: </span> ;
     else
         caption = <span> {caption} <span className="count"> ({vals.length}) </span> </span> ;
     let onClick, style2 ;
@@ -196,7 +196,7 @@ export function makeCollapsibleList( caption, vals, maxItems, style ) {
         onClick = flipExcessItems ;
         style2 = { cursor: "pointer" } ;
     }
-    return ( <div className="collapsible" style={style}>
+    return ( <div className="collapsible" style={style} key={listKey}>
         <div className="caption" onClick={onClick} style={style2} >
             {caption}
             { excessItems.length > 0 && <img src="/images/collapsible-down.png" ref={r => flipButtonRef=r} alt="Show/hide extra items." /> }

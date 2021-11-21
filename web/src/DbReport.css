@@ -1,0 +1,24 @@
+#db-report {
+    border: 1px solid #ccc ; border-radius: 8px ;
+    background: #fff ; padding: 0.5em ;
+}
+#db-report .section { margin-top: 1em ; }
+#db-report .section:first-of-type { margin-top: 0 ; }
+
+#db-report h2 { border: 1px solid #ccc ; padding: 0.1em 0.2em ; background: #eee ; margin-bottom: 0.25em ; font-size: 125% ; }
+#db-report h2 img.loading { height: 0.75em ; margin-left: 0.25em ; }
+
+#db-report .db-row-counts .images { font-size: 80% ; font-style: italic ; }
+
+#db-report .db-links .check-links-frame { display: inline-block ; position: absolute ; right: 1em ; text-align: center ; }
+#db-report .db-links button.check-links { margin-bottom: 0.2em ; padding: 0.25em 0.5em ; }
+#db-report .db-links .check-links-frame .status-msg { font-size: 60% ; font-style: italic ; }
+#db-report .db-links .link-errors { font-size: 80% ; list-style-image: url("/images/link-error-bullet.png") ; }
+#db-report .db-links .link-errors .status { font-family: monospace ; font-style: italic ; }
+
+#db-report .db-images .dupe-analysis .collapsible { margin-bottom: 0.5em ; }
+#db-report .db-images .dupe-analysis .hash { font-family: monospace ; font-size: 80% ; font-style: italic ; }
+#db-report .db-images .image-sizes th { text-align: left ; font-weight: normal ; font-style: italic ; }
+#db-report .db-images .image-sizes img { height: 0.9em ; }
+#db-report .db-images .react-tabs__tab-list { margin-bottom: 0 ; font-weight: bold ; }
+#db-report .db-images .react-tabs__tab-panel { border: 1px solid #aaa ; border-top-width: 0 ; padding: 0.25em 0.5em ; }

@@ -35,6 +35,7 @@ def init_tests( webdriver, flask_app, dbconn, **kwargs ):
     global _webdriver, _flask_app
     _webdriver = webdriver
     _flask_app = flask_app
+    fixtures_dir = os.path.join( os.path.dirname( __file__ ), "fixtures/" )
 
     # initialize the database
     fixtures = kwargs.pop( "fixtures", None )
@@ -45,6 +46,14 @@ def init_tests( webdriver, flask_app, dbconn, **kwargs ):
     else:
         assert fixtures is None
         session = None
+
+    # initialize the documents directory
+    dname = kwargs.pop( "docs", None )
+    if dname:
+        flask_app.config[ "EXTERNAL_DOCS_BASEDIR" ] = os.path.join( fixtures_dir, dname )
+    else:
+        if flask_app:
+            flask_app.config.pop( "EXTERNAL_DOCS_BASEDIR", None )
 
     # never highlight search results unless explicitly enabled
     if "no_sr_hilite" not in kwargs:

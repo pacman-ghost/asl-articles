@@ -18,6 +18,7 @@
     "react-router-dom": "^5.1.2",
     "react-scripts": "3.2.0",
     "react-select": "^3.0.8",
+    "react-tabs": "^3.2.3",
     "react-toastify": "^5.4.1"
   },
   "scripts": {

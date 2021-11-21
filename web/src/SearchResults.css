@@ -34,12 +34,9 @@
 .search-result .content i i { color: #666 ; }
 .search-result .content a.aslrb { color: #804040 ; text-decoration: none ; border-bottom: 1px dotted #804040 ; }
 .search-result .content .image { float: left ; margin: 0.25em 0.5em 0.5em 0 ; max-height: 8em ; max-width: 6em ; }
-.search-result .content .collapsible { margin-top:0.5em ; font-size: 90% ; color: #333 ; }
+.search-result .content .collapsible { margin-top: 0.5em ; font-size: 90% ; color: #333 ; }
 .search-result .content .collapsible a { color: #333 ; text-decoration: none ; }
-.search-result .content .collapsible .caption img { height: 0.75em ; margin-left: 0.25em ; }
-.search-result .content .collapsible .count { font-size: 80% ; font-style: italic ; color: #666 ; }
 .search-result .content .collapsible ul { margin: 0 0 0 1em ; }
-.search-result .content .collapsible .more { font-size: 80% ; font-style: italic ; color: #666 ; cursor: pointer ; }
 
 .search-result .footer { clear: both ; padding: 0 5px ; font-size: 80% ; font-style: italic ; color: #666 ; }
 .search-result .footer a { color: #666 ; text-decoration: none ; }

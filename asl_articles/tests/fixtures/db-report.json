@@ -1,0 +1,42 @@
+{
+
+"publisher": [
+    { "publ_id": 1, "publ_name": "Avalon Hill", "publ_url": "http://{FLASK}/ping" },
+    { "publ_id": 2, "publ_name": "Multiman Publishing", "publ_url": "http://{FLASK}/unknown" }
+],
+
+"publication": [
+    { "pub_id": 10, "pub_name": "ASL Journal", "pub_edition": "1", "publ_id": 1, "pub_url": "/aslj-1.html" },
+    { "pub_id": 11, "pub_name": "ASL Journal", "pub_edition": "2", "publ_id": 1, "pub_url": "/aslj-2.html" },
+    { "pub_id": 20, "pub_name": "MMP News", "publ_id": 2 }
+],
+
+"article": [
+    { "article_id": 100, "article_title": "ASLJ article 1", "pub_id": 10 },
+    { "article_id": 101, "article_title": "ASLJ article 2", "pub_id": 10 },
+    { "article_id": 110, "article_title": "ASLJ article 3", "pub_id": 11 },
+    { "article_id": 200, "article_title": "MMP article", "pub_id": 20, "article_url": "/mmp.html" },
+    { "article_id": 299, "article_title": "MMP publisher article", "publ_id": 2, "article_url": "/unknown" }
+],
+
+"article_author": [
+    { "seq_no": 1, "article_id": 100, "author_id": 1000 },
+    { "seq_no": 2, "article_id": 100, "author_id": 1001 },
+    { "seq_no": 1, "article_id": 299, "author_id": 1000 }
+],
+"author": [
+    { "author_id": 1000, "author_name": "Joe Blow" },
+    { "author_id": 1001, "author_name": "Fred Nerk" },
+    { "author_id": 1999, "author_name": "Alan Smithee" }
+],
+
+"article_scenario": [
+    { "seq_no": 1, "article_id": 100, "scenario_id": 2000 },
+    { "seq_no": 1, "article_id": 299, "scenario_id": 2001 }
+],
+"scenario": [
+    { "scenario_id": 2000, "scenario_display_id": "ASL 1", "scenario_name": "The Guards Counterattack" },
+    { "scenario_id": 2001, "scenario_display_id": "ASL 5", "scenario_name": "Hill 621" }
+]
+
+}

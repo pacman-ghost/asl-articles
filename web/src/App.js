@@ -10,11 +10,12 @@ import { SearchResults } from "./SearchResults" ;
 import { PublisherSearchResult } from "./PublisherSearchResult" ;
 import { PublicationSearchResult } from "./PublicationSearchResult" ;
 import { ArticleSearchResult } from "./ArticleSearchResult" ;
+import { DbReport } from "./DbReport";
 import ModalForm from "./ModalForm";
 import AskDialog from "./AskDialog" ;
 import { DataCache } from "./DataCache" ;
 import { PreviewableImage } from "./PreviewableImage" ;
-import { makeSmartBulletList } from "./utils.js" ;
+import { makeSmartBulletList, isLink } from "./utils.js" ;
 import { APP_NAME } from "./constants.js" ;
 import "./App.css" ;
 
@@ -35,6 +36,7 @@ export class App extends React.Component
         this.state = {
             searchResults: [],
             searchSeqNo: 0,
+            showDbReport: false,
             modalForm: null,
             askDialog: null,
             startupTasks: [ "dummy" ], // FUDGE! We need at least one startup task.
@@ -111,6 +113,10 @@ export class App extends React.Component
                     <MenuItem id="menu-new-article" onSelect={ArticleSearchResult.onNewArticle} >
                         <img src="/images/icons/article.png" alt="New article." /> New article
                     </MenuItem>
+                    <div className="divider" />
+                    <MenuItem id="menu-db-report" onSelect={ () => this._showDbReport(true) } >
+                        <img src="/images/icons/db-report.png" alt="Database report." /> DB report
+                    </MenuItem>
                 </MenuList>
             </Menu> ) ;
             // generate the main content
@@ -123,6 +129,7 @@ export class App extends React.Component
                     <SearchForm onSearch={this.onSearch.bind(this)} ref={this._searchFormRef} />
                 </div>
                 {menu}
+                { this.state.showDbReport && <DbReport /> }
                 <SearchResults ref={this._searchResultsRef}
                     seqNo = {this.state.searchSeqNo}
                     searchResults = {this.state.searchResults}
@@ -236,7 +243,7 @@ export class App extends React.Component
     _doSearch( url, args, onDone ) {
         // do the search
         this.setWindowTitle( null ) ;
-        this.setState( { searchResults: "(loading)" } ) ;
+        this.setState( { searchResults: "(loading)", showDbReport: false } ) ;
         args.no_hilite = this._disableSearchResultHighlighting ;
         axios.post(
             this.makeFlaskUrl( url ), args
@@ -278,6 +285,14 @@ export class App extends React.Component
             if ( pushState )
                 window.history.pushState( null, document.title, "/tips"+window.location.search ) ;
         } )
+    }
+
+    _showDbReport( pushState ) {
+        this.setState( { showDbReport: true, searchResults: [] } ) ;
+        this._searchFormRef.current.setState( { queryString: "" } ) ;
+        this.setWindowTitle( "Database report" ) ;
+        if ( pushState )
+            window.history.pushState( null, document.title, "/report"+window.location.search ) ;
     }
 
     prependSearchResult( sr ) {
@@ -473,9 +488,13 @@ export class App extends React.Component
     }
     makeExternalDocUrl( url ) {
         // generate a URL for an external document
+        if ( isLink( url ) )
+            return url ;
         if ( url.substr( 0, 2 ) === "$/" )
             url = url.substr( 2 ) ;
-        return this.makeFlaskUrl( "/docs/" + encodeURIComponent(url) ) ;
+        if ( url[0] === "/" )
+            url = url.substr( 1 ) ;
+        return this.makeFlaskUrl( "/docs/" + encodeURIComponent( url ) ) ;
     }
 
     makeFlaskImageUrl( type, imageId ) {
@@ -522,6 +541,8 @@ export class App extends React.Component
             this.showWarningToast( this.props.warning ) ;
         if ( this.props.doSearch )
             this.props.doSearch() ;
+        else if ( this.props.type === "report" )
+            this._showDbReport() ;
         // NOTE: We could preload the DataCache here (i.e. where it won't affect startup time),
         // but it will happen on every page load (e.g. /article/NNN or /publication/NNN),
         // which would probably hurt more than it helps (since the data isn't needed if the user

@@ -8,7 +8,7 @@ import { PublicationSearchResult } from "./PublicationSearchResult.js" ;
 import { PreviewableImage } from "./PreviewableImage.js" ;
 import { RatingStars } from "./RatingStars.js" ;
 import { gAppRef } from "./App.js" ;
-import { makeScenarioDisplayName, updateRecord, makeCommaList, isLink } from "./utils.js" ;
+import { makeScenarioDisplayName, updateRecord, makeCommaList } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -31,10 +31,9 @@ export class ArticleSearchResult extends React.Component
 
         // prepare the article's URL
         let article_url = this.props.data.article_url ;
-        if ( article_url ) {
-            if ( ! isLink( article_url ) )
-                article_url = gAppRef.makeExternalDocUrl( article_url ) ;
-        } else if ( parent_pub && parent_pub.pub_url ) {
+        if ( article_url )
+            article_url = gAppRef.makeExternalDocUrl( article_url ) ;
+        else if ( parent_pub && parent_pub.pub_url ) {
             article_url = gAppRef.makeExternalDocUrl( parent_pub.pub_url ) ;
             if ( article_url.substr( article_url.length-4 ) === ".pdf" && this.props.data.article_pageno )
                 article_url += "#page=" + this.props.data.article_pageno ;
@@ -136,7 +135,7 @@ export class ArticleSearchResult extends React.Component
                 { display_subtitle && <div className="subtitle" dangerouslySetInnerHTML={{ __html: display_subtitle }} /> }
             </div>
             <div className="content">
-                { image_url && <PreviewableImage url={image_url} className="image" alt="Article." /> }
+                { image_url && <PreviewableImage url={image_url} noActivate={true} className="image" alt="Article." /> }
                 <div className="snippet" dangerouslySetInnerHTML={{__html: display_snippet}} />
             </div>
             <div className="footer">

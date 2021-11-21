@@ -12,7 +12,7 @@ export class PreviewableImage extends React.Component
 
     render() {
         return ( <a href={this.props.url} className="preview" target="_blank" rel="noopener noreferrer">
-            <img src={this.props.url} className={this.props.className} alt={this.props.altText} />
+            <img src={this.props.url} className={this.props.className} style={this.props.style} alt={this.props.altText} />
         </a> ) ;
     }
 
@@ -61,6 +61,21 @@ export class PreviewableImage extends React.Component
         buf.push( html.substr( pos ) ) ;
 
         return buf.join( "" ) ;
+    }
+
+    componentDidMount() {
+        if ( this.props.manualActivate ) {
+            // NOTE: We normally want PreviewableImage's to automatically activate themselves, but there is
+            // a common case where we don't want this to happen: when raw HTML is received from the backend
+            // and inserted like that into the page.
+            // In this case, <img> tags are fixed up by adjustHtmlForPreviewableImages() as raw HTML (i.e. not
+            // as a PreviewableImage instance), and so the page still needs to call activatePreviewableImages()
+            // to activate these. Since it's probably not a good idea to activate an image twice, in this case
+            // PreviewableImage instances should be created as "manually activated".
+            return ;
+        }
+        let $elem = $( ReactDOM.findDOMNode( this ) ) ;
+        $elem.imageZoom() ;
     }
 
     static activatePreviewableImages( rootNode ) {

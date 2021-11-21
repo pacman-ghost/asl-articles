@@ -1,5 +1,6 @@
 #header { position: absolute ; top: 5px ; left: 5px ; right: 5px ; height: 65px ; }
-#search-results { position: absolute ; top: 95px ; bottom: 5px ; left: 5px ; right: 5px ; overflow: auto ; }
+#search-results, #db-report { position: absolute ; top: 95px ; bottom: 5px ; left: 5px ; right: 5px ; overflow: auto ; }
+#db-report { z-index: 10 ; }
 
 #header { border: 1px solid #ccc ; background: #eee ; border-top-right-radius: 10px ; padding: 5px 5px 10px 5px ; }
 #header .logo { float: left ; height: 70px ; }
@@ -10,6 +11,7 @@
     background: url("/images/main-menu.png") transparent no-repeat ; background-size: 100% ; border: none ;
     cursor: pointer ;
 }
+[data-reach-menu] { z-index: 999 ; }
 [data-reach-menu-list] { padding: 5px ; }
 [data-reach-menu-item] { display: flex ; height: 1.25em ; padding: 5px ; }
 [data-reach-menu-item][data-selected] { background: #90caf9 ; color: black ; }
@@ -38,5 +40,9 @@
 .react-select__value-container { padding: 0 5px ; margin: -10px 0 ; }
 
 img#loading { position: fixed ; top: 50% ; left: 50% ; margin-top: -16px ; margin-left: -16px ; }
+
+.collapsible .caption img { height: 0.75em ; margin-left: 0.25em ; }
+.collapsible .count { font-size: 80% ; font-style: italic ; color: #666 ; }
+.collapsible .more { font-size: 80% ; font-style: italic ; color: #666 ; cursor: pointer ; }
 
 .monospace { margin-top: 0.5em ; font-family: monospace ; font-style: italic ; font-size: 80% ; }

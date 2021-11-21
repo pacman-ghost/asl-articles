@@ -6,7 +6,7 @@ import { PublicationSearchResult2 } from "./PublicationSearchResult2.js" ;
 import { PreviewableImage } from "./PreviewableImage.js" ;
 import { PUBLICATION_EXCESS_ARTICLE_THRESHOLD } from "./constants.js" ;
 import { gAppRef } from "./App.js" ;
-import { makeCollapsibleList, pluralString, updateRecord, isLink } from "./utils.js" ;
+import { makeCollapsibleList, pluralString, updateRecord } from "./utils.js" ;
 
 const axios = require( "axios" ) ;
 
@@ -26,7 +26,7 @@ export class PublicationSearchResult extends React.Component
 
         // prepare the publication's URL
         let pub_url = this.props.data.pub_url  ;
-        if ( pub_url && ! isLink(pub_url) )
+        if ( pub_url )
             pub_url = gAppRef.makeExternalDocUrl( pub_url ) ;
 
         // prepare the tags
@@ -111,7 +111,7 @@ export class PublicationSearchResult extends React.Component
                 }
             </div>
             <div className="content">
-                { image_url && <PreviewableImage url={image_url} className="image" alt="Publication." /> }
+                { image_url && <PreviewableImage url={image_url} noActivate={true} className="image" alt="Publication." /> }
                 <div className="description" dangerouslySetInnerHTML={{__html: display_description}} />
                 { makeCollapsibleList( "Articles", articles, PUBLICATION_EXCESS_ARTICLE_THRESHOLD, {float:"left",marginBottom:"0.25em"} ) }
             </div>
