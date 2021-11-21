@@ -27,7 +27,7 @@ def parse_requirements( fname ):
 
 setup(
     name = "asl-articles",
-    version = "0.1", # nb: also update constants.py
+    version = "1.0", # nb: also update constants.py
     description = "Searchable index of ASL articles.",
     license = "AGPLv3",
     packages = find_packages(),
