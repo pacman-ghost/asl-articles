@@ -1,6 +1,26 @@
 This program provides a searchable interface to your ASL magazines and their articles.
 
-It is written using React (Javascript) for the front-end, and a Flask (Python) back-end. For ease of use, it can be run using Docker containers.
+<a href="https://github.com/pacman-ghost/asl-articles/raw/master/doc/publishers.png" target="_blank">
+<img src="https://github.com/pacman-ghost/asl-articles/raw/master/doc/publishers.png" height="150">
+</a>
+&nbsp;
+<a href="https://github.com/pacman-ghost/asl-articles/raw/master/doc/publication.png" target="_blank">
+<img src="https://github.com/pacman-ghost/asl-articles/raw/master/doc/publication.png" height="150">
+</a>
+&nbsp;
+<a href="https://github.com/pacman-ghost/asl-articles/raw/master/doc/search.png" target="_blank">
+<img src="https://github.com/pacman-ghost/asl-articles/raw/master/doc/search.png" height="150">
+</a>
+&nbsp;
+<a href="https://github.com/pacman-ghost/asl-articles/raw/master/doc/tag.png" target="_blank">
+<img src="https://github.com/pacman-ghost/asl-articles/raw/master/doc/tag.png" height="150">
+</a>
+
+*NOTE: This project integrates with my other [asl-rulebook2](https://github.com/pacman-ghost/asl-rulebook2) project. Add a setting to your `site.cfg` e.g.*
+```
+ASLRB_BASE_URL = http://localhost:5020
+```
+*and references to rules will be converted to clickable links that will open the ASLRB at that rule.*
 
 ### To create a new database
 
@@ -20,9 +40,9 @@ Run the following command to create the database (you must be in the *alembic/* 
 
 Go to the project root directory and run the following command:
 
-```./run-containers.sh /home/pacman-ghost/asl-articles.db```
+```./run-containers.sh -d /home/pacman-ghost/asl-articles.db```
 
-*NOTE: You will need Docker >= 17.05 (for multi-stage builds)*
+*NOTE: You will need Docker >= 17.05 (for multi-stage builds)*, and `docker-compose`.
 
 Then open a browser and go to http://localhost:3002
 
@@ -36,7 +56,11 @@ For security reasons, browsers don't allow *file://* links to PDF's, they must b
 
 When you run the application, specify the top-level directory that contains your PDF's in the command line e.g.
 
-```./run-containers.sh /home/pacman-ghost/asl-articles.db /home/pacman-ghost/asl-articles-docs/```
+```
+    ./run-containers.sh \
+        -d /home/pacman-ghost/asl-articles.db \
+        -e /home/pacman-ghost/asl-articles-docs/
+```
 
 Then, configure your document paths *relative to that directory*.
 
