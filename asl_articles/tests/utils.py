@@ -132,13 +132,15 @@ def get_search_result_names( results=None ):
         results = get_search_results()
     return [ find_child( ".name", r ).text for r in results ]
 
-def find_search_result( name, results=None ):
+def find_search_result( name, results=None, wait=0 ):
     """Find a search result."""
-    if not results:
-        results = get_search_results()
-    results = [ r for r in results if find_child( ".name", r ).text == name ]
-    assert len(results) == 1
-    return results[0]
+    def find_sr():
+        matches = [
+            r for r in results or get_search_results()
+            if find_child( ".name", r ).text == name
+        ]
+        return matches[0] if len(matches) == 1 else None
+    return wait_for( wait, find_sr )
 
 def check_search_result( sr, check, expected ):
     """Check a search result in the UI."""

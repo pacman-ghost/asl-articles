@@ -129,11 +129,13 @@ export class App extends React.Component
                     <SearchForm onSearch={this.onSearch.bind(this)} ref={this._searchFormRef} />
                 </div>
                 {menu}
-                { this.state.showDbReport && <DbReport /> }
-                <SearchResults ref={this._searchResultsRef}
-                    seqNo = {this.state.searchSeqNo}
-                    searchResults = {this.state.searchResults}
-                />
+                { this.state.showDbReport
+                    ? <DbReport />
+                    : <SearchResults ref={this._searchResultsRef}
+                        seqNo = {this.state.searchSeqNo}
+                        searchResults = {this.state.searchResults}
+                      />
+                }
             </div> ) ;
         }
         return ( <div> {content}
@@ -155,6 +157,7 @@ export class App extends React.Component
             { this._fakeUploads && <div>
                 <textarea id="_stored_msg-upload_" ref="_stored_msg-upload_" defaultValue="" hidden={true} />
             </div> }
+            <div id="watermark" ref="watermark"> <img src="/images/watermark.png" alt="watermark" /> </div>
         </div> ) ;
     }
 
@@ -537,6 +540,7 @@ export class App extends React.Component
     }
     _onStartupComplete() {
         // startup has completed, we're ready to go
+        this.refs.watermark.style.opacity = 0.2 ;
         if ( this.props.warning )
             this.showWarningToast( this.props.warning ) ;
         if ( this.props.doSearch )

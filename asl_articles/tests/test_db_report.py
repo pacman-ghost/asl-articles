@@ -10,7 +10,7 @@ from asl_articles.tests.test_publications import edit_publication
 from asl_articles.tests.test_articles import edit_article
 from asl_articles.tests.utils import init_tests, \
     select_main_menu_option, select_sr_menu_option, check_ask_dialog, \
-    do_search, find_search_result, \
+    do_search, find_search_result, get_search_results, \
     wait_for, wait_for_elem, find_child, find_children
 
 # ---------------------------------------------------------------------
@@ -36,10 +36,11 @@ def test_db_report( webdriver, flask_app, dbconn ):
     assert image_sizes == {}
 
     # add some images
-    results = do_search( SEARCH_ALL )
-    publ_sr = find_search_result( "Avalon Hill", results )
+    do_search( SEARCH_ALL )
+    publ_sr = find_search_result( "Avalon Hill", wait=2 )
     fname = os.path.join( os.path.split(__file__)[0], "fixtures/images/1.gif" )
     edit_publisher( publ_sr, { "image": fname } )
+    results = get_search_results()
     pub_sr = find_search_result( "ASL Journal (1)", results )
     fname = os.path.join( os.path.split(__file__)[0], "fixtures/images/2.gif" )
     edit_publication( pub_sr, { "image": fname } )
@@ -78,11 +79,12 @@ def test_db_report( webdriver, flask_app, dbconn ):
     }
 
     # delete all the publishers (and associated objects), then check the updated report
-    results = do_search( SEARCH_ALL )
-    publ_sr = find_search_result( "Avalon Hill", results )
+    do_search( SEARCH_ALL )
+    publ_sr = find_search_result( "Avalon Hill", wait=2 )
     select_sr_menu_option( publ_sr, "delete" )
     check_ask_dialog( "Delete this publisher?", "ok" )
-    publ_sr = find_search_result( "Multiman Publishing" )
+    results = get_search_results()
+    publ_sr = find_search_result( "Multiman Publishing", results )
     select_sr_menu_option( publ_sr, "delete" )
     check_ask_dialog( "Delete this publisher?", "ok" )
     row_counts, links, dupe_images, image_sizes = _get_db_report()

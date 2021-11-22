@@ -1,6 +1,6 @@
 #db-report {
     border: 1px solid #ccc ; border-radius: 8px ;
-    background: #fff ; padding: 0.5em ;
+    padding: 0.5em ;
 }
 #db-report .section { margin-top: 1em ; }
 #db-report .section:first-of-type { margin-top: 0 ; }
