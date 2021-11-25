@@ -40,8 +40,8 @@ def _on_startup():
                 return
 
         # initialize the search index
-        _logger = logging.getLogger( "startup" )
-        asl_articles.search.init_search( db.session, _logger )
+        logger = logging.getLogger( "startup" )
+        asl_articles.search.init_search( db.session, logger )
 
 # ---------------------------------------------------------------------
 

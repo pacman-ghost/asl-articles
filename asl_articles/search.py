@@ -568,7 +568,7 @@ def _find_aslrb_ruleids( val ): #pylint: disable=too-many-branches
 
 # ---------------------------------------------------------------------
 
-def init_search( session, logger ):
+def init_search( session, logger, test_mode=False ):
     """Initialize the search engine."""
 
     # initialize the database
@@ -612,20 +612,22 @@ def init_search( session, logger ):
         for article in session.query( Article ).order_by( Article.time_created.desc() ):
             add_or_update_article( dbconn, article, session )
 
-    # configure the searcg engine
+    # configure the search engine
+    global _search_aliases
+    _search_aliases = {}
+    global _search_weights
+    _search_weights = {}
     fname = os.path.join( asl_articles.config_dir, "search.cfg" )
     if os.path.isfile( fname ):
         # load the search aliases
         _logger.debug( "Loading search aliases: %s", fname )
         cfg = AppConfigParser( fname )
-        global _search_aliases
         _search_aliases = _load_search_aliases(
             cfg.get_section( "Search aliases" ),
             cfg.get_section( "Search aliases 2" )
         )
         # load the search weights
         _logger.debug( "Loading search weights:" )
-        global _search_weights
         for row in cfg.get_section( "Search weights" ):
             if row[0] not in _SEARCHABLE_COL_NAMES:
                 asl_articles.startup.log_startup_msg( "warning",
@@ -646,20 +648,22 @@ def init_search( session, logger ):
     # NOTE: These should really be stored in the database, but the UI would be so insanely hairy,
     # we just keep them in a text file and let the user manage them manually :-/
     global _author_aliases
+    _author_aliases = {}
     fname = os.path.join( asl_articles.config_dir, "author-aliases.cfg" )
     if os.path.isfile( fname ):
         _logger.debug( "Loading author aliases: %s", fname )
         cfg = AppConfigParser( fname )
         _author_aliases = _load_author_aliases( cfg.get_section("Author aliases"), session, False )
-    # NOTE: We load the test aliases here as well (the test suite can't mock them because
-    # they might be running in a different process).
-    fname = os.path.join( os.path.split(__file__)[0], "tests/fixtures/author-aliases.cfg" )
-    if os.path.isfile( fname ):
-        _logger.debug( "Loading test author aliases: %s", fname )
-        cfg = AppConfigParser( fname )
-        _author_aliases.update(
-            _load_author_aliases( cfg.get_section("Author aliases"), session, True )
-        )
+    if test_mode:
+        # NOTE: We load the test aliases here as well (since the test suite can't mock them,
+        # because we might be running in a different process).
+        fname = os.path.join( os.path.split(__file__)[0], "tests/fixtures/author-aliases.cfg" )
+        if os.path.isfile( fname ):
+            _logger.debug( "Loading test author aliases: %s", fname )
+            cfg = AppConfigParser( fname )
+            _author_aliases.update(
+                _load_author_aliases( cfg.get_section("Author aliases"), session, True )
+            )
 
 def _load_search_aliases( aliases, aliases2 ):
     """Load the search aliases."""
@@ -827,3 +831,11 @@ def _make_publication_key( pub ):
 def _make_article_key( article ):
     """Generate the owner key for an Article."""
     return "article:{}".format( article.article_id if isinstance(article,Article) else article )
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+@app.route( "/init-search-for-test" )
+def init_search_for_test():
+    """Re-initialize the search engine (for testing porpoises)."""
+    init_search( db.session, logging.getLogger("search"), test_mode=True )
+    return "ok"

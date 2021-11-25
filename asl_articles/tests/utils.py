@@ -1,12 +1,12 @@
 """ Helper utilities for the test suite. """
 
 import os
+import urllib.request
 import json
 import time
 import itertools
 import uuid
 import base64
-import logging
 
 import sqlalchemy
 import sqlalchemy.orm
@@ -19,7 +19,6 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
 
-from asl_articles import search
 from asl_articles.utils import to_bool
 import asl_articles.models
 
@@ -46,6 +45,11 @@ def init_tests( webdriver, flask_app, dbconn, **kwargs ):
     else:
         assert fixtures is None
         session = None
+
+    # re-initialize the search engine
+    if flask_app:
+        url = flask_app.url_for( "init_search_for_test" )
+        _ = urllib.request.urlopen( url ).read()
 
     # initialize the documents directory
     dname = kwargs.pop( "docs", None )
@@ -94,9 +98,6 @@ def load_fixtures( session, fname ):
         if table_name in data:
             session.bulk_insert_mappings( model, data[table_name] )
     session.commit()
-
-    # rebuild the search index
-    search.init_search( session, logging.getLogger("search") )
 
 # ---------------------------------------------------------------------
 

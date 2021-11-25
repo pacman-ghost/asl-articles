@@ -4,6 +4,8 @@ import os
 import itertools
 import re
 
+import pytest
+
 from asl_articles.search import SEARCH_ALL
 from asl_articles.tests.test_publishers import edit_publisher
 from asl_articles.tests.test_publications import edit_publication
@@ -12,6 +14,7 @@ from asl_articles.tests.utils import init_tests, \
     select_main_menu_option, select_sr_menu_option, check_ask_dialog, \
     do_search, find_search_result, get_search_results, \
     wait_for, wait_for_elem, find_child, find_children
+from asl_articles.tests import pytest_options
 
 # ---------------------------------------------------------------------
 
@@ -102,6 +105,17 @@ def test_db_report( webdriver, flask_app, dbconn ):
 
 # ---------------------------------------------------------------------
 
+# NOTE: This test may not work if we are running against Docker containers, because:
+# - external URL's are created that point to the back-end's $/ping endpoint.
+# - the front-end container realizes that these URL's need to be checked by the backend,
+#   so it sends them to the $/db-report/check-link endpoint.
+# - these URL's may not resolve because they were generated using gAppRef.makeFlaskUrl(),
+#   which will work if the front-end container is sending a request to the back-end
+#   container, but may not work from inside the back-end container, because the port number
+#   being used by Flask *inside* the container may not be the same as *outside* the container.
+# The problem is generating a URL that can be used as an external URL that will work everywhere.
+# We could specify it as a parameter, but that's more trouble than it's worth.
+@pytest.mark.skipif( pytest_options.flask_url is not None, reason="Testing against a remote Flask server." )
 def test_check_db_links( webdriver, flask_app, dbconn ):
     """Test checking links in the database."""
 

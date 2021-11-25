@@ -9,7 +9,7 @@ from asl_articles.tests import pytest_options
 
 # ---------------------------------------------------------------------
 
-@pytest.mark.skipif( pytest_options.flask_url is not None, reason="Testing against a remote Flask server."  )
+@pytest.mark.skipif( pytest_options.flask_url is not None, reason="Testing against a remote Flask server." )
 def test_startup_messages( webdriver, flask_app, dbconn ):
     """Test startup messages."""
 
