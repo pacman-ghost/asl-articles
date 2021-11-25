@@ -410,20 +410,24 @@ def _make_fts_query_string( query_string, search_aliases ): #pylint: disable=too
         if is_raw_query:
             return [ val.strip() ]
         tokens = []
+        DQUOTE_MARKER = "<!~!>"
         for word in val.split():
+            # FUDGE! It's difficult to figure out if we have a multi-word quoted phrase when the query string
+            # contains nested quotes, so we hack around this by temporarily removing the inner quotes.
+            word = word.replace( '""', DQUOTE_MARKER )
             if len(tokens) > 0:
                 if tokens[-1].startswith( '"' ) and not tokens[-1].endswith( '"' ):
-                    # the previous token is a quoted phrase, continue it
+                    # the previous token is a the start of a quoted phrase - continue it
                     tokens[-1] += " " + word
-                    continue
-                if not tokens[-1].startswith( '"' ) and word.endswith( '"' ):
-                    tokens.append( quote( word[:-1] ) )
                     continue
             tokens.append( quote( word ) )
         if len(tokens) > 0 and tokens[-1].startswith( '"' ) and not tokens[-1].endswith( '"' ):
             # we have an unterminated quoted phrase, terminate it
             tokens[-1] += '"'
-        return [ t for t in tokens if t ]
+        return [
+            t.replace( DQUOTE_MARKER, '""' )
+            for t in tokens if t
+        ]
 
     # split the query string into parts (alias replacement texts, and everything else)
     parts, pos = [], 0

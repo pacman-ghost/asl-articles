@@ -588,6 +588,17 @@ def test_make_fts_query_string():
     do_test( '"Mr. Jones"', '"Mr. Jones"' )
     do_test( 'foo "Mr. Jones" bar', 'foo AND "Mr. Jones" AND bar' )
 
+    # test nested quoted phrases
+    # NOTE: This is important since searching for an author wraps their name in double quotes,
+    # so we need to be able to handle a quoted phrase (e.g. a nickname) within the name.
+    do_test( 'Joseph "Joey" Blow', 'Joseph AND "Joey" AND Blow' )
+    do_test( 'Joseph "Joey Joe" Blow', 'Joseph AND "Joey Joe" AND Blow' )
+    do_test( 'Joseph ""Joey"" Blow', 'Joseph AND ""Joey"" AND Blow' )
+    # NOTE: This one doesn't work properly, but no-one is going to be doing this :-/
+    # do_test( 'Joseph ""Joey Joe"" Blow', 'Joseph AND ""Joey Joe"" AND Blow' )
+    do_test( '"Joseph ""Joey"" Blow"', '"Joseph ""Joey"" Blow"' )
+    do_test( '"Joseph ""Joey Joe"" Blow"', '"Joseph ""Joey Joe"" Blow"' )
+
     # test some incorrectly quoted phrases
     do_test( '"', '' )
     do_test( ' " " " ', '' )
