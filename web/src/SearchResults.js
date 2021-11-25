@@ -34,11 +34,17 @@ export class SearchResults extends React.Component
             // track articles
             let articleRefs = {} ;
             function scrollToArticle( article_id ) {
+                // NOTE: If the user has clicked on an article that has been listed as part of a publication,
+                // we just scroll to that article (since articles are also returned as part of the search results
+                // when searching for a publication).
+                // NOTE: We could do the same thing when clicking on a publication that has been listed as part
+                // of a publisher, but in this case, it's probably better UX to show the publication's page,
+                // along with its articles.
                 const node = ReactDOM.findDOMNode( articleRefs[article_id] ) ;
-                if ( node )
+                if ( node ) {
                     node.scrollIntoView() ;
-                else
-                    document.location = gAppRef.makeAppUrl( "/article/" + article_id ) ;
+                    return true ;
+                }
             }
             // render the search results
             results = [] ;
