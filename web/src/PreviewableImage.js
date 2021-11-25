@@ -18,7 +18,10 @@ export class PreviewableImage extends React.Component
 
     static initPreviewableImages() {
         // load the imageZoom script
-        $.getScript( "/jQuery/imageZoom/jquery.imageZoom.js" ) ;
+        $.getScript( {
+            url: "/jQuery/imageZoom/jquery.imageZoom.js",
+            cache: true,
+        } ) ;
         // load the imageZoom CSS
         let cssNode = document.createElement( "link" ) ;
         cssNode.type = "text/css" ;
