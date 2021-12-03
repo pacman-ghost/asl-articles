@@ -563,6 +563,10 @@ export class App extends React.Component
         this.setWindowTitle( null ) ;
     }
     setWindowTitle( caption ) {
+        if ( caption ) {
+            let doc = new DOMParser().parseFromString( caption, "text/html" ) ;
+            caption = doc.body.textContent ;
+        }
         document.title = caption ? APP_NAME + " - " + caption : APP_NAME ;
     }
 
