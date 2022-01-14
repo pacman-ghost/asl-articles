@@ -17,30 +17,20 @@ This program provides a searchable interface to your ASL magazines and their art
 </a>
 
 *NOTE: This project integrates with my other [asl-rulebook2](https://github.com/pacman-ghost/asl-rulebook2) project. Add a setting to your `site.cfg` e.g.*
-```
-ASLRB_BASE_URL = http://localhost:5020
-```
+
+``` ASLRB_BASE_URL = http://localhost:5020 ```
+
 *and references to rules will be converted to clickable links that will open the ASLRB at that rule.*
-
-### To create a new database
-
-*NOTE: This requires the Python environment to have been set up (see the developer notes below).*
-
-Go to the *alembic/* directory and change the database connection string in *alembic.ini* e.g.
-
-```sqlalchemy.url = sqlite:////home/pacman-ghost/asl-articles.db```
-
-Note that there are 3 forward slashes for the protocol, the 4th one is the start of the path to the database.
-
-Run the following command to create the database (you must be in the *alembic/* directory):
-
-```alembic upgrade head```
 
 ### To run the application
 
-Go to the project root directory and run the following command:
+Get a copy of the pre-loaded database from the release page.
 
-```./run-containers.sh -d /home/pacman-ghost/asl-articles.db```
+Then go to the project root directory and run the following command:
+
+```
+    ./run-containers.sh -d /home/pacman-ghost/asl-articles.db
+```
 
 *NOTE: You will need Docker >= 17.05 (for multi-stage builds)*, and `docker-compose`.
 
