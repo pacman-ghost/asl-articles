@@ -16,7 +16,7 @@
     "react-drag-listview": "^0.1.6",
     "react-draggable": "^4.1.0",
     "react-router-dom": "^5.1.2",
-    "react-scripts": "3.2.0",
+    "react-scripts": "5.0.1",
     "react-select": "^3.0.8",
     "react-tabs": "^3.2.3",
     "react-toastify": "^5.4.1"
